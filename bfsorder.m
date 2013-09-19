@@ -17,6 +17,8 @@ while (~terminate)
      terminate = 1;
    end
 end
+
+explored = uniqueorder([explored 1:size(A,1)]); %include unexplored vertices at the end
 B = A(explored,explored);
 end
 
