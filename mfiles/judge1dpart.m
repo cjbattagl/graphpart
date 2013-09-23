@@ -1,6 +1,6 @@
 % Report metrics on 1d partition quality into p equal parts
 % future: allow bins to represent partitions
-function [balance cut] = judge1dpart(A,p)
+function [balance cut loads] = judge1dpart(A,p)
   n = size(A,1);
   m = nnz(A);
   loads = zeros(p,1);
