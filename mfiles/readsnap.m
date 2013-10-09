@@ -8,5 +8,7 @@ function [A] = readsnap(fname)
   A(:,3) = 1;
   A = spconvert(A);
   m = max(size(A));
-  A(m,m)=1; %this makes sure A is square... but should just use a resize function
+  if (size(A,1) != size(A,2))
+    A(m,m)=0;
+  end
 end
