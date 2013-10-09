@@ -1,3 +1,6 @@
 [submodule "mfiles/external/matlab-bgl"]
 	path = mfiles/external/matlab-bgl
 	url = https://github.com/dgleich/matlab-bgl.git
+[submodule "mfiles/external/CXSparse"]
+	path = mfiles/external/CXSparse
+	url = https://github.com/PetterS/CXSparse.git

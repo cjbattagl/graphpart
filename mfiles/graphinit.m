@@ -5,8 +5,15 @@
 
 function graphinit
 
+root = pwd;
+
 cd external/matlab-bgl
 path(path,pwd);
+cd(root);
+cd external/CXSparse/MATLAB/CSparse
+disp('I hope you built CXSparse');
+path(path,pwd);
+cd(root);
 
 %  cd CSparse/MATLAB/CSparse
 %  path(path,pwd);
