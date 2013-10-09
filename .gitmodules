@@ -1,0 +1,3 @@
+[submodule "mfiles/external/matlab-bgl"]
+	path = mfiles/external/matlab-bgl
+	url = https://github.com/dgleich/matlab-bgl.git
