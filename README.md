@@ -1,4 +1,4 @@
 graphpart
 =========
 
-exploring the thorny limits of graph partitioning
+git for general network science collaboration and exploration
