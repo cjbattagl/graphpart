@@ -5,10 +5,8 @@
 
 function graphinit
 
-curr = pwd;
-cd external/mit_matlab_tools
+cd external/matlab-bgl
 path(path,pwd);
-cd curr;
 
 %  cd CSparse/MATLAB/CSparse
 %  path(path,pwd);
