@@ -4,6 +4,12 @@
 % patohmat for patohmat ^_^
 
 function graphinit
+
+curr = pwd;
+cd external/mit_matlab_tools
+path(path,pwd);
+cd curr;
+
 %  cd CSparse/MATLAB/CSparse
 %  path(path,pwd);
 %  cd ~/metis-5.0.2/metismex
