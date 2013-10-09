@@ -19,8 +19,6 @@ function [times edges] = grow_erdos(N,max_nnz,seed)
   p_min = lbound / (N^2 - N); %prob that will gen 'lbound' edges
   p_max = bound / (N^2 - N); %prob that will gen 'bound' edges
   
-  % construct A,x
-  A = rand(N);
   x = ones(N,1);
 
   for prob = p_min:1:p_max
