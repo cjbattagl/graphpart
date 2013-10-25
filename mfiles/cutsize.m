@@ -10,6 +10,6 @@ function cutsize(A, k)
     idxs = (i*floor(m/k)+1:(i+1)*floor(m/k));
     S = S - sum(sum(A(idxs,idxs)));
   end
-  disp(S)              % #edges
-  disp(100*S/nnz(A))   % %edges cut
+  disp(full(S))              % #edges
+  disp(full(100*S/nnz(A)))   % %edges cut
 end
