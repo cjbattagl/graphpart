@@ -3,7 +3,7 @@
 % in the order that the matrix is presented in
 % it also displays the percentage of edges in the edge-cut
 
-function cutsize(A, k)
+function f = cutsize(A, k)
   m = size(A,1);
   S = sum(sum(A));
   for i=0:k-1
@@ -12,4 +12,5 @@ function cutsize(A, k)
   end
   disp(S)              % #edges
   disp(100*S/nnz(A))   % %edges cut
+  f = 100*S/nnz(A);
 end
