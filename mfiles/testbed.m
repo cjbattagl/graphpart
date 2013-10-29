@@ -4,7 +4,9 @@ trials = 50;
 test_er_p_range = 0;
 test_gamma_range = 0;
 test_alpha_choice = 0;
-test_scale_free = 1;
+test_scale_free = 0;
+test_multi_fennel = 1;
+
 
 if (test_er_p_range)
     fprintf('ER p-Range Test:\n');
@@ -86,11 +88,17 @@ if (test_scale_free)
     
 end
 
-
-
-
-
-
-
+if (test_multi_fennel)
+  A = sparse(rand(1000) < .001);
+  A = A + A';
+  A = A - diag(diag(A));
+  A(A>1) = 1;
+  
+  for t = 2:15
+    B = fennel(A, 1.5, t);
+    qualedge(t-1)=cutsize(B, t);
+  end
+  plot(qualedge)
+end
 
 
