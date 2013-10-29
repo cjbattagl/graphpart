@@ -1,6 +1,6 @@
 % NOTE: This code was pulled from the Graph500 generator example
 
-function ij = kronecker_generator (SCALE, edgefactor)                   
+function ij = kronecker_generator (SCALE, edgefactor, A, B, C)                   
 %% Generate an edgelist according to the Graph500                       
 %% parameters.  In this sample, the edge list is                        
 %% returned in an array with two rows, where StartVertex                
@@ -19,9 +19,10 @@ function ij = kronecker_generator (SCALE, edgefactor)
                                                                         
   %% Set number of edges.                                               
   M = edgefactor * N;                                                   
-                                                                        
+                                                      
   %% Set initiator probabilities.                                       
-  [A, B, C] = deal (0.57, 0.19, 0.19);                                  
+%    [A, B, C] = deal (0.57, 0.19, 0.19);        
+   
                                                                         
   %% Create index arrays.                                               
   ij = ones (2, M);                                                     

@@ -11,8 +11,8 @@ function f = cutsize(A, k)
     S = S - sum(sum(A(idxs,idxs)));
   end
   
-  disp(full(S))              % #edges
-  disp(full(100*S/nnz(A)))   % %edges cut
+%   disp(full(S))              % #edges
+%   disp(full(100*S/nnz(A)))   % %edges cut
   f = 100*S/nnz(A);
 
 end
