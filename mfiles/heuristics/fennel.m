@@ -8,9 +8,9 @@ function [B] = fennel (A, gamma)
   m = size(A,1);
   e = nnz(A);
 
-%   alpha = e*((2^(gamma-1))/m^gamma);
+  alpha = e*((2^(gamma-1))/m^gamma);
   % experimental section alpha
-  alpha = sqrt(2)*e/m^1.5;
+%   alpha = sqrt(2)*e/m^1.5;
 
   p1 = [];
   p2 = [];
