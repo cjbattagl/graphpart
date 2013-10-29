@@ -1,7 +1,5 @@
-% This was a function I threw together to implement FENNEL
-% It's gross and hard to read right now and I don't even remember if it works
-% I will fix it X_X
-
+%Input: Adjacency Matrix A, Weight parameter gamma
+%Output: bisected adjacency matrix B = A(p,p)
 function [B] = fennel (A, gamma)
   vorder = randperm(size(A,1));
 
