@@ -8,6 +8,13 @@
 #include <bebop/smc/csr_matrix.h>
 #include <bebop/smc/jad_matrix.h>
 
-int main( void ) {
-  return 0;
+int
+main (int argc, char *argv[])
+{
+  /* Process arguments */
+  if (argc != 2) {
+    fprintf (stderr, "usage: %s <input-matrix>\n", argv[0]);
+    return -1;
+  }
+
 }

@@ -2,10 +2,13 @@ CC=gcc
 CXX=g++
 RM=rm -f
 
-CPPFLAGS= -g -O2 $(BBI)
-LDFLAGS= -g $(BBL) 
-BBI= -I../external/sparse_matrix_converter/include -I../external/bebop_util/include
-BBL= -L../external/sparse_matrix_converter -lbebop_util -L../external/bebop_util
+SMC_ROOT=../external/sparse_matrix_converter
+BBU_ROOT=../external/bebop_util
+
+CPPFLAGS= -g -O3 $(BBI)
+LDFLAGS= -g -Wl,-rpath $(BBL)
+BBI= -I$(SMC_ROOT)/include -I$(BBU_ROOT)/include
+BBL= -L$(SMC_ROOT) -L$(BBU_ROOT) -lbebop_util -lsparse_matrix_converter
 
 SRCS= fennel.cc
 OBJS= fennel.o
