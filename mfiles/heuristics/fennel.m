@@ -17,7 +17,7 @@ function [B] = fennel (A, gamma, num_parts)
     best_part_idx = 0;
     best_part_score = -inf;
     for p=1:num_parts
-      [~, loc] = ismember(idxs, parts{p});
+      [foo, loc] = ismember(idxs, parts{p});
       loc = find(loc);
       p1newedges =  length(loc)-length(idxs);
 

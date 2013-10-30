@@ -90,7 +90,7 @@ In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG p
 \section{Initial Steps}
 Our first goal was to implement the partitioning methods developed in recent literature, and test them with on synthetic graphs. This paves the way for us to make further contributions to the field (given that we can now compare any techniques we come up with to the techniques in the literature).
 
-Our `test-bed' is implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices, and code is very easy to prototype. Our code is situated among a growing suite of MATLAB graph functions in~\url{https://github.com/cjbattagl/graphpart/tree/master/mfiles}
+Our `test-bed' is implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices, and code is very easy to prototype. Our code located at~\url{https://github.com/cjbattagl/graphpart/tree/master/mfiles}
 
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \[\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\]
@@ -146,7 +146,7 @@ $\vspace{3pt}m\frac{2^\gamma-1}{n^\gamma} $&18.37\\
 
 
 
-In order to test scale-free distributions we chose to use Kronecker generated scale free network with $n=8192, m=16384$.
+In order to test scale-free distributions we chose to use Kronecker generated scale free network with $n=8192, m=16384$. (Note: Table~\ref{table:quality} is just a small subset of what we plan to investigate).
 
 \begin{table}[h]
 \centering
@@ -167,9 +167,9 @@ As our early experiments demonstrate, we are also able to investigate the qualit
 
 \section{Next Steps}
 \begin{enumerate}
-\item Propose new partitioning heuristics and evaluate them
-\item Investigate critical points of failure of heuristics on random graph models, and justify
-\item Evaluate heuristics with other objective functions (such as edge-partitioning)
+\item Propose new partitioning heuristics and evaluate them.
+\item Investigate critical points of failure of heuristics on random graph models, and justify.
+\item Evaluate heuristics with other objective functions (such as edge-partitioning).
 \end{enumerate}
 
 
