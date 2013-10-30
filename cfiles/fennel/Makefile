@@ -13,3 +13,6 @@ fennel: $(OBJS)
 
 fennel.o: $(SRCS)
 	$(CXX) $(CPPFLAGS) -c fennel.cc
+
+clean:
+	$(RM) $(OBJS) fennel
