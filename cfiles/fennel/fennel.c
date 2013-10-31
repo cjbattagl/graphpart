@@ -32,7 +32,7 @@ int main (int argc, char *argv[])
 
   /* Open and read matrix */
   csr_t A;
-  csr_readHB (matrix_filename, &A);
+  read_matrix_market_real_sparse(matrix_filename, &A);
 
   stopwatch_init ();
   g_timer = stopwatch_create ();
