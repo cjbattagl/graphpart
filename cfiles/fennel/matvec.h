@@ -3,7 +3,6 @@
 
 #include "csr.h"
 
-void axpy (double* dest, double alpha, const double* x, const double* y, int n);
-double dot (const double *x, const double *y, int n);
+void csr_matvec__sequential (double* y, const csr_t* A, const double* x);
 int matvec (const csr_t* Adata, const double* b, double* x, int n, double* rhist, int maxiter);
 #endif
