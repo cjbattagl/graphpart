@@ -40,9 +40,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     if (!mxIsSparse(prhs[0]) || mxGetN(prhs[0])!=mxGetM(prhs[0])) {
         mexErrMsgTxt ("First parameter must be a symmetric sparse matrix");
     }
+    if (!mxIsMatrix(prhs[3])) {
+        mexErrMsgTxt ("Fourth parameter must be a vorder");
+    }
 
 //associate inputs
     a_in_m = mxDuplicateArray(prhs[0]);
+    v_in_m = mxDuplicateArray(prhs[3]);
     nparts = (idx_t) mxGetScalar (prhs[1]);
     gamma = (double) mxGetScalar (prhs[2]);
 
@@ -59,10 +63,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 //associate pointers
     a = mxGetPr(a_in_m);
+    v = mxGetPr(v_in_m);
     b = mxGetPr(b_out_m);
 
-//outer loop: all vertices
+    mwIndex n, nnz, *jc, *ir;
+    double *pr;
+
+    n = mxGetN(a_in_m);
+    jc = mxGetJc(a_in_m);
+    nnz = jc[n];
+    ir = mxGetIr(a_in_m);
+    pr = mxGetPr(a_in_m);
     
+    
+
+//outer loop: all vertices
+    for(i=0;i<dimx;i++) {
+      int curr_v = v[i];
+          for (i = 1; i <= n; i++) {
+        for (j = jc[i-1]; j < jc[i]; j++) {
+    }
 
 
     for(i=0;i<dimx;i++)
