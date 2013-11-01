@@ -1,6 +1,7 @@
 CC=gcc
 CXX=gcc
 RM=rm -f
+MEX=mkoctfile
 
 SMC_ROOT=../external/sparse_matrix_converter
 BBU_ROOT=../external/bebop_util
