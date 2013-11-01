@@ -26,39 +26,52 @@ typedef int mwSignedIndex;
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
 
 //declare variables
-    mxArray *a_in_m, *b_in_m, *c_out_m, *d_out_m;
+    mxArray *a_in_m, *b_out_m;
     const mwSize *dims;
-    double *a, *b, *c, *d;
+    double *a, *b;
     int dimx, dimy, numdims;
     int i,j;
+    idx_t nparts;
+    double gamma;
+
+    if (nrhs != 4 || nlhs > 1) {
+        mexErrMsgTxt ("Wrong # of arguments");
+    }
+    if (!mxIsSparse(prhs[0]) || mxGetN(prhs[0])!=mxGetM(prhs[0])) {
+        mexErrMsgTxt ("First parameter must be a symmetric sparse matrix");
+    }
 
 //associate inputs
     a_in_m = mxDuplicateArray(prhs[0]);
-    b_in_m = mxDuplicateArray(prhs[1]);
+    nparts = (idx_t) mxGetScalar (prhs[1]);
+    gamma = (double) mxGetScalar (prhs[2]);
 
+    if (nparts < 2) {
+      mexErrMsgTxt("nparts must be at least 2");
+    }
 //figure out dimensions
     dims = mxGetDimensions(prhs[0]);
     numdims = mxGetNumberOfDimensions(prhs[0]);
     dimy = (int)dims[0]; dimx = (int)dims[1];
 
 //associate outputs
-    c_out_m = plhs[0] = mxCreateDoubleMatrix(dimy,dimx,mxREAL);
-    d_out_m = plhs[1] = mxCreateDoubleMatrix(dimy,dimx,mxREAL);
+    b_out_m = plhs[0] = mxCreateDoubleMatrix(dimy,1,mxREAL);
 
 //associate pointers
     a = mxGetPr(a_in_m);
-    b = mxGetPr(b_in_m);
-    c = mxGetPr(c_out_m);
-    d = mxGetPr(d_out_m);
+    b = mxGetPr(b_out_m);
 
-//do something
+//outer loop: all vertices
+    
+
+
     for(i=0;i<dimx;i++)
     {
         for(j=0;j<dimy;j++)
         {
             mexPrintf("element[%d][%d] = %f\n",j,i,a[i*dimy+j]);
-            c[i*dimy+j] = a[i*dimy+j]+5; //adds 5 to every element in a
-            d[i*dimy+j] = b[i*dimy+j]*b[i*dimy+j]; //squares b
+           // c[i*dimy+j] = a[i*dimy+j]+5; //adds 5 to every element in a
+           // d[i*dimy+j] = b[i*dimy+j]*b[i*dimy+j]; //squares b
         }
     }
 
