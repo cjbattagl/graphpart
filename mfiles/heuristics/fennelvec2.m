@@ -8,7 +8,7 @@ function [B] = fennelvec2 (A, gamma, num_parts)
 
   %alpha = e*((2^(gamma-1))/m^gamma);
   alpha = sqrt(2)*e/m^1.5;
-  parts = zeros(num_parts,m,'logical');
+  parts = logical(zeros(num_parts,m));
   C = A(vorder,vorder);
   
   for v=1:m
@@ -16,7 +16,7 @@ function [B] = fennelvec2 (A, gamma, num_parts)
     best_part_idx = 0;
     best_part_score = -inf;
     for p=1:num_parts
-      p1newedges = nnz(parts(p,:)(idxs));
+      p1newedges = nnz(parts(p,idxs));
 
       if (p1newedges - dc(nnz(parts(p,:)),alpha, gamma)) > best_part_score
         best_part_idx = p;
