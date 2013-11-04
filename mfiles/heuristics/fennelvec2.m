@@ -1,5 +1,6 @@
-%This runs ~3X faster than fennel.m
-function [B] = fennelvec1 (A, gamma, num_parts)
+%This optimizes by recognizing that we only need to look in iteratively larger
+%submatrices of A(vorder,vorder)
+function [B] = fennelvec2 (A, gamma, num_parts)
   vorder = randperm(size(A,1));
 
   m = size(A,1);
@@ -7,12 +8,11 @@ function [B] = fennelvec1 (A, gamma, num_parts)
 
   %alpha = e*((2^(gamma-1))/m^gamma);
   alpha = sqrt(2)*e/m^1.5;
-
-  %parts = cell(num_parts);
   parts = zeros(num_parts,m,'logical');
+  C = A(vorder,vorder);
   
-  for v=vorder
-    idxs = find(A(v,:));  %get N(v)    
+  for v=1:m
+    idxs = find(C(v,1:v));  %get N(v)    
     best_part_idx = 0;
     best_part_score = -inf;
     for p=1:num_parts
@@ -32,7 +32,7 @@ function [B] = fennelvec1 (A, gamma, num_parts)
     B_ind = [B_ind  ind];
   end
 
-  B = A(B_ind, B_ind);
+  B = C(B_ind, B_ind);
 end
 
 function [y] = c(x, alpha, gamma)
