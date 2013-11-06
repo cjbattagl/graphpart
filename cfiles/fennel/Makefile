@@ -1,33 +1,62 @@
-CC=gcc
-CXX=gcc
-RM=rm -f
-MEX=mkoctfile
+EXT_ROOT=../external
+SMC_ROOT=$(EXT_ROOT)/sparse_matrix_converter
+BBU_ROOT=$(EXT_ROOT)/bebop_util
+BBM_ROOT=$(EXT_ROOT)/bebop_make
 
-SMC_ROOT=../external/sparse_matrix_converter
-BBU_ROOT=../external/bebop_util
+include $(BBM_ROOT)/options
+include $(BBM_ROOT)/Makefile.include
+include $(BBM_ROOT)/ecl
+include $(BBM_ROOT)/setup
 
-CPPFLAGS= -std=c99 -g -O3 $(BBI)
-LDFLAGS= -g -Wl,-rpath $(BBL)
-BBI= -I$(SMC_ROOT)/include -I$(BBU_ROOT)/include
-BBL= -L$(SMC_ROOT) -L$(BBU_ROOT) -lbebop_util -lsparse_matrix_converter
+## Set up library and include paths
+CPPFLAGS += -I$(BBU_ROOT)/include  -I$(SMC_ROOT)/include -std=c99
+LIBS += -L$(BBU_ROOT) -lbebop_util -L$(SMC_ROOT) -lsparse_matrix_converter
 
-SRCS= fennel.c csr.c timer.c matvec.c
-OBJS= fennel.o csr.o timer.o matvec.o
+## Filename of static library
+LIBSMC_STATIC = $(SMC_ROOT)/libsparse_matrix_converter$(STATIC_LIB_EXTENSION)
 
-fennel: $(OBJS)
-	$(CXX) $(LDFLAGS) -o fennel $(OBJS) $(LDLIBS) 
+## Filename of dynamic library
+LIBSMC_DYNAMIC = $(SMC_ROOT)/libsparse_matrix_converter$(DYNAMIC_LIB_EXTENSION)
 
-fennel.o: $(SRCS) $(OBJS)
-	$(CXX) $(CPPFLAGS) -c fennel.c
+EXEOUT = fennel
+EXEOBJ = fennel.o  
 
-csr.o: $(SRCS)
-	$(CXX) $(CPPFLAGS) -c csr.c
+## Location of SMC header files
+HEADERDIR = $(SMC_ROOT)/include/bebop/smc
 
-timer.o: $(SRCS)
-	$(CXX) $(CPPFLAGS) -c timer.c
+#########################################################################
+## GENERAL BUILD RULES 
+#########################################################################
 
-matvec.o: $(SRCS)
-	$(CXX) $(CPPFLAGS) -c matvec.c
+.o: 
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
+#########################################################################
+## OUTPUT RULES
+#########################################################################
+
+.PHONY: all
+
+all: $(EXEOUT)
+
+fennel.o: fennel.c $(HEADERDIR)/sparse_matrix.h $(HEADERDIR)/sparse_matrix_ops.h 
+
+$(EXEOUT): $(LIBSMC_STATIC) fennel.o
+	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o $(EXEOUT) $(EXEOBJ) \
+		$(LIBSMC_STATIC) $(LIBS)
+
+	
+##########################################################################
+## UTILITY STEPS
+##########################################################################
+
+ctags: 
+	ctags *.[ch]
+
+etags:
+	etags *.[ch]
+	
 clean:
-	$(RM) $(OBJS) fennel
+	$(RM) $(LIBSMCOBJ) 
+	$(RM) $(EXEOBJ)
+	$(RM) $(EXEOUT)

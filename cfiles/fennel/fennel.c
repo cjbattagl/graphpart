@@ -1,67 +1,174 @@
-#include <bebop/smc/sparse_matrix.h>
-#include <bebop/smc/bcoo_matrix.h>
-#include <bebop/smc/bcsr_matrix.h>
 #include <bebop/smc/coo_matrix.h>
 #include <bebop/smc/csc_matrix.h>
 #include <bebop/smc/csr_matrix.h>
-#include <bebop/smc/jad_matrix.h>
+#include <bebop/smc/read_mm.h>
+#include <bebop/smc/sparse_matrix.h>
+#include <bebop/smc/sparse_matrix_ops.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <math.h>
+#include <unistd.h>
 #include <bebop/util/config.h>
+#include <bebop/util/get_options.h>
+#include <bebop/util/init.h>
+#include <bebop/util/log.h>
+#include <bebop/util/malloc.h>
+#include <bebop/util/timer.h>
+#include <bebop/util/util.h>
 
 #include "fennel.h"
-#include "timer.h"
-#include "matvec.h"
-#include "csr.h"
 
-struct stopwatch_t* g_timer = 0;
+struct 
+cmdlineopts_t
+{
+  char* input_filename;
+  char* input_file_format;
+  char* output_filename;
+  char* output_file_format;
+} opts;
+
+static void
+usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
+{
+  fprintf (out, "Usage:\n");
+  fprintf (out, "fennel <in-filename> <in-format> <out-filename> <out-format> [options]\n");
+  fprintf (out, "<in-filename>:   name of file containing the sparse matrix to read in\n");
+  fprintf (out, "<in-format>:     format of the input file (\"HB\" for Harwell-Boeing, \"ML\" for\n");
+  fprintf (out, "                 Matlab or \"MM\" for MatrixMarket)\n");
+  fprintf (out, "<out-filename>:  name of file to which to output the sparse matrix\n");
+  fprintf (out, "<out-format>:    format of the output file (\"HB\" for Harwell-Boeing, \"ML\" for\n");
+  fprintf (out, "                 Matlab or \"MM\" for MatrixMarket)\n");
+  fprintf (out, "[options]: -a -- validate the input matrix only, without outputting anything\n");
+  fprintf (out, "           -e -- expand symmetric into unsymmetric storage (this option is\n");
+  fprintf (out, "                 unnecessary for output to Matlab format, as Matlab format is already\n");
+  fprintf (out, "                 expanded)\n");
+  fprintf (out, "           -v  -- verbose mode\n");
+  fprintf (out, "           -h  -- print this usage message and exit\n\n");
+  fprintf (out, "EX: ./fennel -a 'test.mtx' 'MM'\n");
+  fprintf (out, "EX: ./fennel -v 'test.mtx' 'MM' 'out.mtx' 'MM'\n");
+}
 
 int main (int argc, char *argv[])
 {
-  /* Process arguments */
-  if (argc != 2) {
-    fprintf (stderr, "usage: %s <input-matrix>\n", argv[0]);
-    return -1;
-  }
+  extern int optind;
+
+  enum sparse_matrix_file_format_t informat = 0;
+  enum sparse_matrix_file_format_t outformat = 0;
+  struct sparse_matrix_t* A = NULL;
+  struct arginfo *arglist = NULL;
+  double seconds = 0.0;
+  int errcode = 0;
+
+  bebop_default_initialize (argc, argv, &errcode);
+  if (errcode != 0)
+    {
+      fprintf (stderr, "*** Failed to initialize BeBOP Utility Library "
+	       "(error code %d) ***\n", errcode);
+      bebop_exit (EXIT_FAILURE);
+    }
 
   const char* matrix_filename = argv[1];
+  /* Set the get_options usage function to "usage", instead of using the default
+   * usage function.  This is necessary because the command-line arguments include
+   * things that are not "options" in the strict sense, because they do not follow
+   * a "-[a-z]".
+   */
+  register_usage_function (usage);
 
-  /* Open and read matrix */
-  csr_t A;
-  read_matrix_market_real_sparse(matrix_filename, &A);
+  arglist = register_arginfo (arglist, 'v', NULLARG, NULL, "If specified, ac"
+			      "tivate verbose mode");
+  arglist = register_arginfo (arglist, 'e', NULLARG, NULL, "If specified, ex"
+			      "pand the input matrix from symmetric storage "
+			      "into unsymmetric storage");
+  arglist = register_arginfo (arglist, 'a', NULLARG, NULL, "If specified, va"
+			      "lidate the input matrix, without outputting a"
+			      "nything");
+  get_options (argc, argv, arglist, NULL);
 
-  stopwatch_init ();
-  g_timer = stopwatch_create ();
+  if (got_arg_p (arglist, 'a'))
+    {
+      int errcode = do_validate_matrix (argc, argv, arglist);
+      destroy_arginfo_list (arglist);
+      deinit_timer();
+      bebop_exit (errcode); /* stops logging */
+    }
 
-  /* Run CG */
-  fprintf (stdout, "\n===== Running matvec =====\n");
-  run_driver (&A, "rhist__sequential.out");
+  if (argc - optind != 4)
+    {
+      fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
+	       "e specified, but there should be %d ***\n", argc - optind, 4);
+      dump_usage (stderr, argv[0], arglist, NULL);
+      bebop_exit (EXIT_FAILURE); /* stops logging */
+    }
 
-  /* Done -- clean-up */
-  stopwatch_destroy (g_timer);
-  csr_free (&A);
+  opts.input_filename = argv[optind];
+  opts.input_file_format = argv[optind+1];
+  opts.output_filename = argv[optind+2];
+  opts.output_file_format = argv[optind+3];
+
+  if (strcmp (opts.input_file_format, "HB") == 0 || 
+      strcmp (opts.input_file_format, "hb") == 0)
+    informat = HARWELL_BOEING;
+  else if (strcmp (opts.input_file_format, "MM") == 0 ||
+	   strcmp (opts.input_file_format, "mm") == 0)
+    informat = MATRIX_MARKET;
+  else if (strcmp (opts.input_file_format, "ML") == 0 ||
+           strcmp (opts.input_file_format, "ml") == 0)
+    informat = MATLAB;
+  else
+    {
+      fprintf (stderr, "*** Unsupported input file format \"%s\" ***\n", 
+	       opts.input_file_format);
+      dump_usage (stderr, argv[0], arglist, NULL);
+      destroy_arginfo_list (arglist);
+      bebop_exit (EXIT_FAILURE); /* stops logging */
+    }
+
+  if (strcmp (opts.output_file_format, "HB") == 0 || 
+      strcmp (opts.output_file_format, "hb") == 0)
+    outformat = HARWELL_BOEING;
+  else if (strcmp (opts.output_file_format, "MM") == 0 ||
+	   strcmp (opts.output_file_format, "mm") == 0)
+    outformat = MATRIX_MARKET;
+  else if (strcmp (opts.output_file_format, "ML") == 0 ||
+           strcmp (opts.output_file_format, "ml") == 0)
+    outformat = MATLAB;
+  else
+    {
+      fprintf (stderr, "*** Unsupported output file format \"%s\" ***\n", 
+	       opts.output_file_format);
+      dump_usage (stderr, argv[0], arglist, NULL);
+      destroy_arginfo_list (arglist);
+      bebop_exit (EXIT_FAILURE); /* stops logging */
+    }
+
+  if (got_arg_p (arglist, 'v'))
+    {
+      printf ("Loading sparse matrix...");
+      fflush (stdout); /* Otherwise the message may not be printed until 
+			  after loading is complete */
+    }
+  seconds = get_seconds();
+  A = load_sparse_matrix (informat, opts.input_filename);
+  seconds = get_seconds() - seconds;
+  if (A == NULL)
+    {
+      fprintf (stderr, "*** Failed to load input matrix file \"%s\" ***\n", 
+	       opts.input_filename);
+      destroy_arginfo_list (arglist);
+      bebop_exit (1); /* stops logging */
+    }
+  if (got_arg_p (arglist, 'v'))
+    printf ("done, in %g seconds\n", seconds);
+
+  fprintf (stdout, "\n===== Running fennel =====\n");
+  //run_driver (&(A->repr), "rhist__sequential.out");
+
+  destroy_sparse_matrix (A);
   return 0;
-}
-
-static void run_driver (const csr_t* A, const char* rhist_filename)
-{
-  const int maxiter = getenv ("MAXITER") ? atoi (getenv ("MAXITER")) : A->m;
-  const int numtrials = getenv ("NUMTRIALS") ? atoi (getenv ("NUMTRIALS")) : 40;
-
-  double* b = NULL; /* right-hand side */
-  double* x = NULL; /* solution vector */
-  setup_mv (A->m, &b, &x);
-
-  testing_driver (A, maxiter, b, x, rhist_filename);
-  timing_driver (A, maxiter, numtrials, b, x);
-
-  /* clean-up */
-  free (x);
-  free (b);
 }
 
 static void setup_mv (int n, double** p_b, double** p_x)
@@ -84,121 +191,83 @@ static void setup_mv (int n, double** p_b, double** p_x)
   }
 }
 
-
-static void timing_driver (const csr_t* A, const int maxiter, const int numtrials, double* b, double* x)
+/**
+ * Perform the matrix validation operation specified by the "-a" command-line option.
+ */
+static int
+do_validate_matrix (int argc, char *argv[], struct arginfo* arglist)
 {
-  if (numtrials <= 0) return;
+  extern int optind;
 
-  long double* times = (long double *)malloc (numtrials * sizeof (long double));
-  assert (times);
+  enum sparse_matrix_file_format_t informat = 0;
+  struct sparse_matrix_t* A = NULL;
+  double seconds = 0.0;
+  int errcode = 0;
 
-  int num_iters = 0;
-  g_malloc = 0;
-  g_init = 0;
-  g_scan = 0;
+  if (argc - optind != 2)
+    {
+      fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
+	       "e specified, but there should be %d ***\n", argc - optind, 2);
+      dump_usage (stderr, argv[0], arglist, NULL);
+      return -1;
+    }
+
+  opts.input_filename = argv[optind];
+  opts.input_file_format = argv[optind+1];
+
+  if (strcmp (opts.input_file_format, "HB") == 0 || 
+      strcmp (opts.input_file_format, "hb") == 0)
+    informat = HARWELL_BOEING;
+  else if (strcmp (opts.input_file_format, "MM") == 0 ||
+	   strcmp (opts.input_file_format, "mm") == 0)
+    informat = MATRIX_MARKET;
+  else if (strcmp (opts.input_file_format, "ML") == 0 ||
+           strcmp (opts.input_file_format, "ml") == 0)
+    informat = MATLAB;
+  else
+    {
+      fprintf (stderr, "*** Unsupported input file format \"%s\" ***\n", 
+	       opts.input_file_format);
+      dump_usage (stderr, argv[0], arglist, NULL);
+      return -1;
+    }
+
+  if (got_arg_p (arglist, 'v'))
+    {
+      printf ("Loading sparse matrix...");
+      fflush (stdout); /* Otherwise the message may not be printed until 
+			  after loading is complete */
+    }
+  seconds = get_seconds();
+  A = load_sparse_matrix (informat, opts.input_filename);
+  seconds = get_seconds() - seconds;
+  if (A == NULL)
+    {
+      fprintf (stderr, "*** Failed to load input matrix file \"%s\" ***\n", 
+	       opts.input_filename);
+      destroy_arginfo_list (arglist);
+      return 1;
+    }
+  if (got_arg_p (arglist, 'v'))
+    printf ("done, in %g seconds\n", seconds);
 
 
-  for (int trial = 0; trial < numtrials; ++trial) {
-    setup_mv (A->m, &b, &x);
-    stopwatch_start (g_timer);
-    num_iters += matvec(A, b, x, A->m, NULL, maxiter);
-    times[trial] = stopwatch_stop (g_timer);
-  }
+  if (got_arg_p (arglist, 'v'))
+    {
+      printf ("Validating sparse matrix...");
+      fflush (stdout); 
+    }
+  seconds = get_seconds();
+  errcode = valid_sparse_matrix (A);
+  seconds = get_seconds() - seconds;
+  if (got_arg_p (arglist, 'v'))
+    printf ("done, in %g seconds\n", seconds);
 
-  fprintf (stderr, "Raw execution times:");
-  for (int trial = 0; trial < numtrials; ++trial)
-    fprintf (stderr, " %Lg", times[trial]);
-  fprintf (stderr, "\n\n");
+  if (valid_sparse_matrix (A))
+    printf ("\n### Sparse matrix is valid ###\n\n");
+  else 
+    printf ("\n### Invalid sparse matrix! ###\n\n");
 
-  /* Summary statistics */
-  long double t_min = times[0], t_max = times[0], t_sum = times[0];
-  for (int trial = 1; trial < numtrials; ++trial) {
-    if (times[trial] < t_min) t_min = times[trial];
-    if (times[trial] > t_max) t_max = times[trial];
-    t_sum += times[trial];
-  }
-  long double t_med = median__long_double (numtrials, times);
-
-  const long double avg_iters = (long double)num_iters / numtrials;
-  const long double num_flops = /* total # of floating-point operations */
-    (long double)4.0 * A->m /* CG start-up */
-    + avg_iters * (2.0 * A->nnz /* SpMV */
-                   + 5.0 * A->m /* 2 dots + 3 axpys */)
-    ;
-  printf ("Minimum time (best performance): %Lg secs (~ %.2Lg Gflop/s)\n",
-          t_min, 1.0e-9 * num_flops / t_min);
-  printf ("Maximum time (worst performance): %Lg secs (~ %.2Lg Gflop/s)\n",
-          t_max, 1.0e-9 * num_flops / t_max);
-  printf ("Average time (performance): %Lg (~ %.2Lg Gflop/s)\n",
-          t_sum / numtrials, 1.0e-9 * num_flops / t_sum * numtrials);
-  printf ("Average malloc time: %Lg\n", g_malloc / numtrials);
-  printf ("Average scan time: %Lg\n", g_scan / numtrials);
-  printf ("Average init time: %Lg\n", g_init / numtrials);
-  printf ("Median time (performance): %Lg secs (~ %.2Lg Gflop/s)\n",
-          t_med, 1.0e-9 * num_flops / t_min);
-}
-
-static void testing_driver (const csr_t* A, const int maxiter, double* b, double* x, const char* rhist_filename)
-{
-  double* rhist = NULL;
-  if (maxiter && rhist_filename) {
-    rhist = (double *)malloc (maxiter * sizeof (double));
-    assert (rhist);
-  }
-
-  assert ((b && x) || (!A->m));
-  setup_mv (A->m, &b, &x);
-  int retval = matvec(A, b, x, A->m, rhist, maxiter);
-
-  int num_iters; /* Number of iterations executed */
-  if (retval < 0) {
-    fprintf (stderr, "Iteration failed to converge! (maxiter = %d)\n", maxiter);
-    num_iters = maxiter + 1;
-  } else {
-    fprintf (stderr, "Converged after %d iterations.\n",
-             retval);
-    num_iters = retval;
-  }
-
-  /* Dump residuals */
-  if (rhist && rhist_filename) {
-    FILE* rhist_fp = fopen (rhist_filename, "w");
-    assert (rhist_fp);
-    for (int i = 0; i < num_iters; ++i)
-      fprintf (rhist_fp, "%g\n", rhist[i]);
-    fclose (rhist_fp);
-    fprintf (stderr, "(See '%s' for convergence history)\n", rhist_filename);
-  }
-
-  if (rhist) free (rhist);
-
-  assert (num_iters != (maxiter+1)); // Abort if no convergence
-}
-
-static int cmp__long_double (const void* pa, const void* pb)
-{
-  assert (pa && pb);
-  long double a = ((long double *)pa)[0];
-  long double b = ((long double *)pb)[0];
-  if (a < b) return -1;
-  if (a > b) return 1;
+  destroy_sparse_matrix (A);
   return 0;
-}
-
-static long double median__long_double (int n, const long double* X)
-{
-  /* Makes a sorted copy */
-  long double* X_copy = (long double *)malloc (n * sizeof (long double));
-  assert (X_copy);
-  memcpy (X_copy, X, n * sizeof (long double));
-  qsort (X_copy, n, sizeof (long double), cmp__long_double);
-
-  long double x_median;
-  if ((n % 2) == 0) // even number of elements
-    x_median = (long double)0.5 * (X_copy[n/2-1] + X_copy[n/2]);
-  else // odd number of elements
-    x_median = X_copy[n/2];
-
-  free (X_copy);
-  return x_median;
 }
