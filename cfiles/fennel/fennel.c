@@ -1,7 +1,7 @@
 /**
  * Driver program for our FENNEL implementation
  * Note that this code is a modification of driver code from Bebop,
- * provided with the following license:
+ * provided with the following LICENSE:
  *
  * Copyright (c) 2008, Regents of the University of California 
  * All rights reserved.
@@ -41,6 +41,7 @@
 #include <bebop/smc/csr_matrix.h>
 #include <bebop/smc/read_mm.h>
 #include <bebop/smc/sparse_matrix.h>
+#include <bebop/smc/interface.h>
 #include <bebop/smc/sparse_matrix_ops.h>
 
 #include <stdio.h>
@@ -78,7 +79,6 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
   fprintf (out, "[options]: -a -- validate the input matrix only, without outputting anything\n");
   fprintf (out, "           -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, "           -v  -- verbose mode\n");
-  fprintf (out, "           -h  -- print this usage message and exit\n\n");
   fprintf (out, "EX: ./fennel -a 'test.mtx' 'MM'\n");
   fprintf (out, "EX: ./fennel -v 'test.mtx' 'MM'\n");
 }
@@ -169,32 +169,35 @@ int main (int argc, char *argv[]) {
   
   if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
 
+  //******************************************************************
+  //********** Run FENNEL ********************************************
+  //******************************************************************
+  fprintf (stdout, "\n===== Converting to CSR =====\n");
+  sp_convert(A, "CSR");
+  assert(A->format == CSR);
+  
+  struct csr_matrix_t* repr = A->repr;
+  
+  fprintf (stdout, "m = %d, n = %d, nnz = %d, density = %f\n",repr->m,repr->n,repr->nnz,
+    (float)repr->nnz/(float)(repr->m * repr->n));
+  
   fprintf (stdout, "\n===== Running fennel =====\n");
-  //int *vorder = genRandPerm(100);
-  //run_driver (&(A->repr), "rhist__sequential.out");
-
+  run_fennel(A, 2);
+  
+  //******************************************************************
+  //***********/Run FENNEL *******************************************
+  //******************************************************************
   destroy_sparse_matrix (A);
   return 0;
 }
 
-static void setup_mv (int n, double** p_b, double** p_x) {
-  if (n <= 0) return;
 
-  if (p_b) {
-    if (!(*p_b)) { // not yet allocated
-      *p_b = (double *)malloc (n * sizeof (double));
-      assert (*p_b);
-    }
-    for (int i = 0; i < n; ++i)
-      (*p_b)[i] = 1.0;
-  }
-  if (p_x) {
-    if (!(*p_x)) { // not yet allocated
-      *p_x = (double *)malloc (n * sizeof (double));
-      assert (*p_x);
-    }
-  }
+static int run_fennel(struct sparse_matrix_t* A, int nparts) {
+  int *vorder = genRandPerm(100);
 }
+
+
+
 
 /**
  * Perform the matrix validation operation specified by the "-a" command-line option.

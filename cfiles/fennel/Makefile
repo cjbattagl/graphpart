@@ -46,7 +46,6 @@ fennel.o: fennel.c $(HEADERDIR)/sparse_matrix.h $(HEADERDIR)/sparse_matrix_ops.h
 
 randperm.o: randperm.c
 
-
 $(EXEOUT): $(LIBSMC_STATIC) fennel.o randperm.o
 	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o $(EXEOUT) $(EXEOBJ) \
 		$(LIBSMC_STATIC) $(LIBS)
