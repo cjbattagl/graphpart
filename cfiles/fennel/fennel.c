@@ -50,6 +50,7 @@
 #include <assert.h>
 #include <math.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <bebop/util/config.h>
 #include <bebop/util/get_options.h>
 #include <bebop/util/init.h>
@@ -181,7 +182,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 2, 2.5); //todo: nparts, gamma as inputs
+  run_fennel(repr, 2, 1.4); //todo: nparts, gamma as inputs
   // *************************************************************
   
   destroy_sparse_matrix (A);
@@ -197,6 +198,8 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   enum symmetry_type_t symmetry_type;
   enum symmetric_storage_location_t symmetric_storage_location;
   enum value_type_t value_type;
+  
+  double seconds = 0.0;
 
   unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
 		   &symmetric_storage_location, &value_type);
@@ -212,9 +215,9 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   
   // Allocate partition vectors
   fprintf (stdout, "----> Gen %d partition vectors of size %d\n",nparts,n);
-  int** parts = (int**)malloc(nparts * sizeof(int*));
+  bool** parts = (bool**)malloc(nparts * sizeof(bool*));
   for(int i = 0; i < nparts; i++) { 
-    parts[i] = (int*)malloc(n * sizeof(int));
+    parts[i] = (bool*)malloc(n * sizeof(bool));
     for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros 
     assert(parts[i]);
   }
@@ -237,6 +240,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   float c1, c2;
   float dc;
   
+  seconds = get_seconds();
   // iterate through nodes in vorder
   for (int i = 0; i < n; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
@@ -261,6 +265,8 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     
     parts[best_part][v] = 1; partsize[best_part]++;
   }
+  seconds = get_seconds() - seconds;
+
  
   // Compute load balance
   int max_load = partsize[0];
@@ -269,8 +275,8 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     if (partsize[s] > max_load) {max_load = partsize[s];}
     if (partsize[s] < min_load) {min_load = partsize[s];}
   }
-  
-  fprintf (stdout, "\n===== Fennel Complete =====\n");
+
+  fprintf (stdout, "\n===== Fennel Complete in %g seconds =====\n", seconds);
   fprintf (stdout, "----> Partition sizes: ");
   for (s = 0; s < nparts; s++) {
     fprintf (stdout, "| %d |", partsize[s]);
@@ -299,7 +305,6 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   }
   
   fprintf (stdout, "\n----> Percent edges cut = %d / %d = %f\n",cutedges,nnz,(float)cutedges/nnz);
-
 }
 
 /**
