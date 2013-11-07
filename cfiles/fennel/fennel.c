@@ -181,7 +181,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(A, 2); //todo: nparts
+  run_fennel(repr, 2); //todo: nparts
   // *************************************************************
   
   destroy_sparse_matrix (A);
@@ -189,19 +189,20 @@ int main (int argc, char *argv[]) {
 }
 
 
-static int run_fennel(const struct sparse_matrix_t* A, int nparts) {
-  int *m, *n, *nnz;
-  void** values;
-  int** colidx;
-  int** rowptr;
-  enum symmetry_type_t* symmetry_type;
-  enum symmetric_storage_location_t* symmetric_storage_location;
-  enum value_type_t* value_type;
+static int run_fennel(const struct csr_matrix_t* A, int nparts) {
+  int m, n, nnz;
+  void* values;
+  int* colidx;
+  int* rowptr;
+  enum symmetry_type_t symmetry_type;
+  enum symmetric_storage_location_t symmetric_storage_location;
+  enum value_type_t value_type;
 
-  unpack_csr_matrix ((const struct csr_matrix_t*)A, m, n, nnz, values, colidx, rowptr, symmetry_type,
-		   symmetric_storage_location, value_type);
+  unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
+		   &symmetric_storage_location, &value_type);
 		   
-  int *vorder = genRandPerm(100);
+  fprintf (stdout, "----> Gen rand perm of size %d\n",n);
+  int *vorder = genRandPerm(n);
 }
 
 /**
