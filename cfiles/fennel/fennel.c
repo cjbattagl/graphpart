@@ -61,8 +61,7 @@
 #include "randperm.h"
 
 struct 
-cmdlineopts_t
-{
+cmdlineopts_t {
   char* input_filename;
   char* input_file_format;
   char* output_filename;
@@ -70,8 +69,7 @@ cmdlineopts_t
 } opts;
 
 static void
-usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
-{
+usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args) {
   fprintf (out, "Usage:\n");
   fprintf (out, "fennel <in-filename> <in-format> <out-filename> <out-format> [options]\n");
   fprintf (out, "<in-filename>:   name of file containing the sparse matrix to read in\n");
@@ -85,8 +83,7 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
   fprintf (out, "EX: ./fennel -v 'test.mtx' 'MM'\n");
 }
 
-int main (int argc, char *argv[])
-{
+int main (int argc, char *argv[]) {
   extern int optind;
 
   enum sparse_matrix_file_format_t informat = 0;
@@ -97,12 +94,11 @@ int main (int argc, char *argv[])
   int errcode = 0;
 
   bebop_default_initialize (argc, argv, &errcode);
-  if (errcode != 0)
-    {
+  if (errcode != 0) {
       fprintf (stderr, "*** Failed to initialize BeBOP Utility Library "
 	       "(error code %d) ***\n", errcode);
       bebop_exit (EXIT_FAILURE);
-    }
+  }
 
   const char* matrix_filename = argv[1];
   /* Set the get_options usage function to "usage", instead of using the default
@@ -122,21 +118,19 @@ int main (int argc, char *argv[])
 			      "nything");
   get_options (argc, argv, arglist, NULL);
 
-  if (got_arg_p (arglist, 'a'))
-    {
+  if (got_arg_p (arglist, 'a')) {
       int errcode = do_validate_matrix (argc, argv, arglist);
       destroy_arginfo_list (arglist);
       deinit_timer();
       bebop_exit (errcode); /* stops logging */
-    }
+  }
 
-  if (argc - optind != 2)
-    {
+  if (argc - optind != 3) {
       fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
-	       "e specified, but there should be %d ***\n", argc - optind, 2);
+	       "e specified, but there should be %d ***\n", argc - optind, 3);
       dump_usage (stderr, argv[0], arglist, NULL);
       bebop_exit (EXIT_FAILURE); /* stops logging */
-    }
+  }
 
   opts.input_filename = argv[optind];
   opts.input_file_format = argv[optind+1];
@@ -144,53 +138,46 @@ int main (int argc, char *argv[])
   //opts.output_file_format = argv[optind+3];
 
   if (strcmp (opts.input_file_format, "HB") == 0 || 
-      strcmp (opts.input_file_format, "hb") == 0)
-    informat = HARWELL_BOEING;
+      strcmp (opts.input_file_format, "hb") == 0) { informat = HARWELL_BOEING; }
   else if (strcmp (opts.input_file_format, "MM") == 0 ||
-	   strcmp (opts.input_file_format, "mm") == 0)
-    informat = MATRIX_MARKET;
+	   strcmp (opts.input_file_format, "mm") == 0) { informat = MATRIX_MARKET; }
   else if (strcmp (opts.input_file_format, "ML") == 0 ||
-           strcmp (opts.input_file_format, "ml") == 0)
-    informat = MATLAB;
-  else
-    {
+           strcmp (opts.input_file_format, "ml") == 0) { informat = MATLAB; }
+  else {
       fprintf (stderr, "*** Unsupported input file format \"%s\" ***\n", 
 	       opts.input_file_format);
       dump_usage (stderr, argv[0], arglist, NULL);
       destroy_arginfo_list (arglist);
       bebop_exit (EXIT_FAILURE); /* stops logging */
-    }
+  }
 
-  if (got_arg_p (arglist, 'v'))
-    {
+  if (got_arg_p (arglist, 'v')) {
       printf ("Loading sparse matrix...");
       fflush (stdout); /* Otherwise the message may not be printed until 
 			  after loading is complete */
-    }
+  }
+  
   seconds = get_seconds();
   A = load_sparse_matrix (informat, opts.input_filename);
   seconds = get_seconds() - seconds;
-  if (A == NULL)
-    {
+  if (A == NULL) {
       fprintf (stderr, "*** Failed to load input matrix file \"%s\" ***\n", 
 	       opts.input_filename);
       destroy_arginfo_list (arglist);
       bebop_exit (1); /* stops logging */
-    }
-  if (got_arg_p (arglist, 'v'))
-    printf ("done, in %g seconds\n", seconds);
+  }
+  
+  if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
 
   fprintf (stdout, "\n===== Running fennel =====\n");
-  for (int i=0; i<10000; i++) {
-  int *vorder = genRandPerm(10000); }
+  //int *vorder = genRandPerm(100);
   //run_driver (&(A->repr), "rhist__sequential.out");
 
   destroy_sparse_matrix (A);
   return 0;
 }
 
-static void setup_mv (int n, double** p_b, double** p_x)
-{
+static void setup_mv (int n, double** p_b, double** p_x) {
   if (n <= 0) return;
 
   if (p_b) {
@@ -222,69 +209,57 @@ do_validate_matrix (int argc, char *argv[], struct arginfo* arglist)
   double seconds = 0.0;
   int errcode = 0;
 
-  if (argc - optind != 2)
-    {
+  if (argc - optind != 2) {
       fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
 	       "e specified, but there should be %d ***\n", argc - optind, 2);
       dump_usage (stderr, argv[0], arglist, NULL);
       return -1;
-    }
+  }
 
   opts.input_filename = argv[optind];
   opts.input_file_format = argv[optind+1];
 
   if (strcmp (opts.input_file_format, "HB") == 0 || 
-      strcmp (opts.input_file_format, "hb") == 0)
-    informat = HARWELL_BOEING;
+      strcmp (opts.input_file_format, "hb") == 0) { informat = HARWELL_BOEING; }
   else if (strcmp (opts.input_file_format, "MM") == 0 ||
-	   strcmp (opts.input_file_format, "mm") == 0)
-    informat = MATRIX_MARKET;
+	   strcmp (opts.input_file_format, "mm") == 0) { informat = MATRIX_MARKET; }
   else if (strcmp (opts.input_file_format, "ML") == 0 ||
-           strcmp (opts.input_file_format, "ml") == 0)
-    informat = MATLAB;
-  else
-    {
+           strcmp (opts.input_file_format, "ml") == 0) { informat = MATLAB; }
+  else {
       fprintf (stderr, "*** Unsupported input file format \"%s\" ***\n", 
 	       opts.input_file_format);
       dump_usage (stderr, argv[0], arglist, NULL);
       return -1;
-    }
+  }
 
-  if (got_arg_p (arglist, 'v'))
-    {
+  if (got_arg_p (arglist, 'v')) {
       printf ("Loading sparse matrix...");
       fflush (stdout); /* Otherwise the message may not be printed until 
 			  after loading is complete */
-    }
+  }
+  
   seconds = get_seconds();
   A = load_sparse_matrix (informat, opts.input_filename);
   seconds = get_seconds() - seconds;
-  if (A == NULL)
-    {
+  if (A == NULL) {
       fprintf (stderr, "*** Failed to load input matrix file \"%s\" ***\n", 
 	       opts.input_filename);
       destroy_arginfo_list (arglist);
       return 1;
-    }
-  if (got_arg_p (arglist, 'v'))
-    printf ("done, in %g seconds\n", seconds);
-
-
-  if (got_arg_p (arglist, 'v'))
-    {
+  }
+  if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
+  
+  if (got_arg_p (arglist, 'v')) {
       printf ("Validating sparse matrix...");
       fflush (stdout); 
-    }
+  }
   seconds = get_seconds();
   errcode = valid_sparse_matrix (A);
   seconds = get_seconds() - seconds;
-  if (got_arg_p (arglist, 'v'))
-    printf ("done, in %g seconds\n", seconds);
+  if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
 
-  if (valid_sparse_matrix (A))
-    printf ("\n### Sparse matrix is valid ###\n\n");
-  else 
-    printf ("\n### Invalid sparse matrix! ###\n\n");
+  if (valid_sparse_matrix (A)) { printf ("\n### Sparse matrix is valid ###\n\n"); }
+  else { printf ("\n### Invalid sparse matrix! ###\n\n"); }
 
   destroy_sparse_matrix (A);
   return 0;
