@@ -169,9 +169,7 @@ int main (int argc, char *argv[]) {
   
   if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
 
-  //******************************************************************
-  //********** Run FENNEL ********************************************
-  //******************************************************************
+
   fprintf (stdout, "\n===== Converting to CSR =====\n");
   sp_convert(A, "CSR");
   assert(A->format == CSR);
@@ -181,23 +179,30 @@ int main (int argc, char *argv[]) {
   fprintf (stdout, "m = %d, n = %d, nnz = %d, density = %f\n",repr->m,repr->n,repr->nnz,
     (float)repr->nnz/(float)(repr->m * repr->n));
   
+  // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(A, 2);
+  run_fennel(A, 2); //todo: nparts
+  // *************************************************************
   
-  //******************************************************************
-  //***********/Run FENNEL *******************************************
-  //******************************************************************
   destroy_sparse_matrix (A);
   return 0;
 }
 
 
-static int run_fennel(struct sparse_matrix_t* A, int nparts) {
+static int run_fennel(const struct sparse_matrix_t* A, int nparts) {
+  int *m, *n, *nnz;
+  void** values;
+  int** colidx;
+  int** rowptr;
+  enum symmetry_type_t* symmetry_type;
+  enum symmetric_storage_location_t* symmetric_storage_location;
+  enum value_type_t* value_type;
+
+  unpack_csr_matrix ((const struct csr_matrix_t*)A, m, n, nnz, values, colidx, rowptr, symmetry_type,
+		   symmetric_storage_location, value_type);
+		   
   int *vorder = genRandPerm(100);
 }
-
-
-
 
 /**
  * Perform the matrix validation operation specified by the "-a" command-line option.

@@ -9,7 +9,8 @@
 // Generate a random permutation of 1:size using the "Knuth shuffle"
 int* genRandPerm(int size) {
   int *orderList = (int *) malloc (sizeof (int) * size);
-  assert(*orderList);
+  assert(orderList);
+  
   srand(time(NULL));
   int randomPick, temp = 0;
   int remainingNumbers = size-1;
