@@ -9,6 +9,7 @@ function [B] = fennelvec2 (A, gamma, num_parts)
   %alpha = e*((2^(gamma-1))/m^gamma);
   alpha = sqrt(2)*e/m^1.5;
   parts = logical(zeros(num_parts,m));
+  partslen = zeros(num_parts,1);
   C = A(vorder,vorder);
   
   for v=1:m
@@ -24,6 +25,7 @@ function [B] = fennelvec2 (A, gamma, num_parts)
       end
     end
     parts(best_part_idx,v) = 1;
+    partslen(best_part_idx) = partslen(best_part_idx) + 1;
   end
 
   B_ind = [];

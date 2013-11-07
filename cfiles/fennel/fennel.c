@@ -181,7 +181,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 2, 1.5); //todo: nparts, gamma as inputs
+  run_fennel(repr, 2, 2.5); //todo: nparts, gamma as inputs
   // *************************************************************
   
   destroy_sparse_matrix (A);
@@ -200,14 +200,15 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
 
   unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
 		   &symmetric_storage_location, &value_type);
-		   
+		  
+  // Set alpha
+  float alpha = sqrt(2) * (nnz/pow(n,gamma));
+  // float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
+  fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
+  	   
   // Generate vorder
   fprintf (stdout, "----> Gen rand perm of size %d\n",n);
   int *vorder = genRandPerm(n);
-  
-  // Set alpha
-  float alpha = sqrt(2) * (nnz/pow(n,1.5));
-  // float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
   
   // Allocate partition vectors
   fprintf (stdout, "----> Gen %d partition vectors of size %d\n",nparts,n);
@@ -236,9 +237,8 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   float c1, c2;
   float dc;
   
-  //ismember(idxs, parts{p});
-  //newedges = |ismember(idxs, parts{p})|-length(idxs);
-  for (int i = 0; i<n; i++) {
+  // iterate through nodes in vorder
+  for (int i = 0; i < n; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
     v = vorder[i];
     row = &rowptr[v];
@@ -250,31 +250,57 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; break; }}
     }
     
-    best_score = partscore[0] - ((alpha*(partsize[0]+1,gamma)) - (alpha*(partsize[0],gamma)));
+    // choose optimal partition (initializing first)
+    best_score = partscore[0] - ((alpha*pow(partsize[0]+1,gamma)) - (alpha*pow(partsize[0],gamma)));
     best_part = 0;
     
-    // choose optimal partition
     for (s = 1; s < nparts; s++) {
-      curr_score =  partscore[s] - ((alpha*(partsize[s]+1,gamma)) - (alpha*(partsize[s],gamma)));
-      if (curr_score > best_score) {
-        best_score = curr_score;
-        best_part = s;
-      }
+      curr_score = partscore[s] - ((alpha*pow(partsize[s]+1,gamma)) - (alpha*pow(partsize[s],gamma)));
+      if (curr_score > best_score) { best_score = curr_score; best_part = s; }
     }
     
-    parts[best_part][v] = 1;
-    partsize[best_part]++;
+    parts[best_part][v] = 1; partsize[best_part]++;
+  }
+ 
+  // Compute load balance
+  int max_load = partsize[0];
+  int min_load = partsize[0];
+  for (s = 1; s < nparts; s++) {
+    if (partsize[s] > max_load) {max_load = partsize[s];}
+    if (partsize[s] < min_load) {min_load = partsize[s];}
   }
   
   fprintf (stdout, "\n===== Fennel Complete =====\n");
   fprintf (stdout, "----> Partition sizes: ");
   for (s = 0; s < nparts; s++) {
-      fprintf (stdout, "| %d |", partsize[s]);
+    fprintf (stdout, "| %d |", partsize[s]);
   }
+  fprintf (stdout, "\n----> Load balance: %d / %d = %f\n",max_load,min_load,(float)max_load/min_load);
 
+  // Compute cut quality
+  int cutedges = 0;
+  int v_part = 0;
+  
+  for (int i = 0; i < n; i++) {
+    v = i;
+    row = &rowptr[v];
+    nnz_row = *(row+1) - *(row); //nnz in row
+    
+    // find v's partition
+    for (s = 0; s < nparts; s++) {
+      if (parts[s][node] == 1) { v_part = s; break; }
+      //assert(0); //We shouldn't reach this if every vertex has a partition
+    }
+    
+    // count edges to other partitions
+    for (k = *row; k < ((*row)+nnz_row); k++) {
+      if (parts[v_part][colidx[k]] != 1) { cutedges++; }
+    }
+  }
+  
+  fprintf (stdout, "\n----> Percent edges cut = %d / %d = %f\n",cutedges,nnz,(float)cutedges/nnz);
 
 }
-
 
 /**
  * Perform the matrix validation operation specified by the "-a" command-line option.
