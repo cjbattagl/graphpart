@@ -58,6 +58,7 @@
 #include <bebop/util/util.h>
 
 #include "fennel.h"
+#include "randperm.h"
 
 struct 
 cmdlineopts_t
@@ -74,19 +75,14 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
   fprintf (out, "Usage:\n");
   fprintf (out, "fennel <in-filename> <in-format> <out-filename> <out-format> [options]\n");
   fprintf (out, "<in-filename>:   name of file containing the sparse matrix to read in\n");
-  fprintf (out, "<in-format>:     format of the input file (\"HB\" for Harwell-Boeing, \"ML\" for\n");
-  fprintf (out, "                 Matlab or \"MM\" for MatrixMarket)\n");
-  fprintf (out, "<out-filename>:  name of file to which to output the sparse matrix\n");
-  fprintf (out, "<out-format>:    format of the output file (\"HB\" for Harwell-Boeing, \"ML\" for\n");
-  fprintf (out, "                 Matlab or \"MM\" for MatrixMarket)\n");
+  fprintf (out, "<in-format>:     format of the input file (\"HB\", \"ML\", \"MM\")\n");
+  fprintf (out, "<out-filename>:  name of file to which to output results\n");
   fprintf (out, "[options]: -a -- validate the input matrix only, without outputting anything\n");
-  fprintf (out, "           -e -- expand symmetric into unsymmetric storage (this option is\n");
-  fprintf (out, "                 unnecessary for output to Matlab format, as Matlab format is already\n");
-  fprintf (out, "                 expanded)\n");
+  fprintf (out, "           -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, "           -v  -- verbose mode\n");
   fprintf (out, "           -h  -- print this usage message and exit\n\n");
   fprintf (out, "EX: ./fennel -a 'test.mtx' 'MM'\n");
-  fprintf (out, "EX: ./fennel -v 'test.mtx' 'MM' 'out.mtx' 'MM'\n");
+  fprintf (out, "EX: ./fennel -v 'test.mtx' 'MM'\n");
 }
 
 int main (int argc, char *argv[])
@@ -134,10 +130,10 @@ int main (int argc, char *argv[])
       bebop_exit (errcode); /* stops logging */
     }
 
-  if (argc - optind != 4)
+  if (argc - optind != 2)
     {
       fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
-	       "e specified, but there should be %d ***\n", argc - optind, 4);
+	       "e specified, but there should be %d ***\n", argc - optind, 2);
       dump_usage (stderr, argv[0], arglist, NULL);
       bebop_exit (EXIT_FAILURE); /* stops logging */
     }
@@ -145,7 +141,7 @@ int main (int argc, char *argv[])
   opts.input_filename = argv[optind];
   opts.input_file_format = argv[optind+1];
   opts.output_filename = argv[optind+2];
-  opts.output_file_format = argv[optind+3];
+  //opts.output_file_format = argv[optind+3];
 
   if (strcmp (opts.input_file_format, "HB") == 0 || 
       strcmp (opts.input_file_format, "hb") == 0)
@@ -160,24 +156,6 @@ int main (int argc, char *argv[])
     {
       fprintf (stderr, "*** Unsupported input file format \"%s\" ***\n", 
 	       opts.input_file_format);
-      dump_usage (stderr, argv[0], arglist, NULL);
-      destroy_arginfo_list (arglist);
-      bebop_exit (EXIT_FAILURE); /* stops logging */
-    }
-
-  if (strcmp (opts.output_file_format, "HB") == 0 || 
-      strcmp (opts.output_file_format, "hb") == 0)
-    outformat = HARWELL_BOEING;
-  else if (strcmp (opts.output_file_format, "MM") == 0 ||
-	   strcmp (opts.output_file_format, "mm") == 0)
-    outformat = MATRIX_MARKET;
-  else if (strcmp (opts.output_file_format, "ML") == 0 ||
-           strcmp (opts.output_file_format, "ml") == 0)
-    outformat = MATLAB;
-  else
-    {
-      fprintf (stderr, "*** Unsupported output file format \"%s\" ***\n", 
-	       opts.output_file_format);
       dump_usage (stderr, argv[0], arglist, NULL);
       destroy_arginfo_list (arglist);
       bebop_exit (EXIT_FAILURE); /* stops logging */
@@ -203,6 +181,8 @@ int main (int argc, char *argv[])
     printf ("done, in %g seconds\n", seconds);
 
   fprintf (stdout, "\n===== Running fennel =====\n");
+  for (int i=0; i<10000; i++) {
+  int *vorder = genRandPerm(10000); }
   //run_driver (&(A->repr), "rhist__sequential.out");
 
   destroy_sparse_matrix (A);

@@ -19,7 +19,7 @@ LIBSMC_STATIC = $(SMC_ROOT)/libsparse_matrix_converter$(STATIC_LIB_EXTENSION)
 LIBSMC_DYNAMIC = $(SMC_ROOT)/libsparse_matrix_converter$(DYNAMIC_LIB_EXTENSION)
 
 EXEOUT = fennel
-EXEOBJ = fennel.o  
+EXEOBJ = fennel.o randperm.o
 
 ## Location of SMC header files
 HEADERDIR = $(SMC_ROOT)/include/bebop/smc
@@ -30,6 +30,9 @@ HEADERDIR = $(SMC_ROOT)/include/bebop/smc
 
 .o: 
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	
+.o.cc: 
+	$(CPP) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 #########################################################################
 ## OUTPUT RULES
@@ -39,9 +42,12 @@ HEADERDIR = $(SMC_ROOT)/include/bebop/smc
 
 all: $(EXEOUT)
 
-fennel.o: fennel.c $(HEADERDIR)/sparse_matrix.h $(HEADERDIR)/sparse_matrix_ops.h 
+fennel.o: fennel.c $(HEADERDIR)/sparse_matrix.h $(HEADERDIR)/sparse_matrix_ops.h
 
-$(EXEOUT): $(LIBSMC_STATIC) fennel.o
+randperm.o: randperm.c
+
+
+$(EXEOUT): $(LIBSMC_STATIC) fennel.o randperm.o
 	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o $(EXEOUT) $(EXEOBJ) \
 		$(LIBSMC_STATIC) $(LIBS)
 
