@@ -136,8 +136,7 @@ int main (int argc, char *argv[]) {
   opts.input_filename = argv[optind];
   opts.input_file_format = argv[optind+1];
   opts.output_filename = argv[optind+2];
-  //opts.output_file_format = argv[optind+3];
-
+  
   if (strcmp (opts.input_file_format, "HB") == 0 || 
       strcmp (opts.input_file_format, "hb") == 0) { informat = HARWELL_BOEING; }
   else if (strcmp (opts.input_file_format, "MM") == 0 ||
@@ -171,50 +170,64 @@ int main (int argc, char *argv[]) {
   if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
 
 
-  fprintf (stdout, "\n===== Converting to CSR =====\n");
-  sp_convert(A, "CSR");
-  assert(A->format == CSR);
+  fprintf (stdout, "\n===== Converting to CSC =====\n");
+  sp_convert(A, "CSC");
+  assert(A->format == CSC);
+
+  struct csc_matrix_t* repr = A->repr;
   
-  struct csr_matrix_t* repr = A->repr;
+  fprintf (stdout, "m = %d, n = %d, nnz = %d, density = %f, val type = ",repr->m,repr->n,repr->nnz,
+    (float)repr->nnz/(float)(repr->m * repr->n),repr->value_type);
   
-  fprintf (stdout, "m = %d, n = %d, nnz = %d, density = %f\n",repr->m,repr->n,repr->nnz,
-    (float)repr->nnz/(float)(repr->m * repr->n));
+  switch(repr->value_type) {
+    case REAL:
+      fprintf (stdout, "REAL\n"); break;
+    case PATTERN:
+      fprintf (stdout, "PATTERN\n"); break;
+    case COMPLEX:
+      fprintf (stdout, "COMPLEX\n"); break;
+    default:
+      fprintf (stdout, "ERROR\n"); 
+  }
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 2, 1.4); //todo: nparts, gamma as inputs
+  run_fennel(repr, 2, 1.2); //todo: nparts, gamma as inputs
   // *************************************************************
-  
+  //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
   return 0;
 }
 
 
-static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
+static int run_fennel(const struct csc_matrix_t* A, int nparts, float gamma) {
   int m, n, nnz;
   void* values;
-  int* colidx;
-  int* rowptr;
+  int* colptr;
+  int* rowidx;
   enum symmetry_type_t symmetry_type;
   enum symmetric_storage_location_t symmetric_storage_location;
   enum value_type_t value_type;
   
   double seconds = 0.0;
 
-  unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
+  unpack_csc_matrix (A, &m, &n, &nnz, &values, &rowidx, &colptr, &symmetry_type,
 		   &symmetric_storage_location, &value_type);
-		  
+
   // Set alpha
   float alpha = sqrt(2) * (nnz/pow(n,gamma));
   // float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
   fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
   	   
   // Generate vorder
-  fprintf (stdout, "----> Gen rand perm of size %d\n",n);
+  fprintf (stdout, "----> Gen rand perm... ");
+  seconds = get_seconds();
   int *vorder = genRandPerm(n);
+  seconds = get_seconds() - seconds;
+  fprintf (stdout, "done, in %g seconds\n", seconds);
   
   // Allocate partition vectors
-  fprintf (stdout, "----> Gen %d partition vectors of size %d\n",nparts,n);
+  fprintf (stdout, "----> Gen %d partition vectors\n",nparts);
   bool** parts = (bool**)malloc(nparts * sizeof(bool*));
   for(int i = 0; i < nparts; i++) { 
     parts[i] = (bool*)malloc(n * sizeof(bool));
@@ -223,11 +236,20 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   }
   assert(parts);
   
+  // Assert that vorder is a permutation
+  int sum = 0;
+  for (int i = 0; i < n; i++) { parts[0][vorder[i]] = 1; }
+  for (int i = 0; i < n; i++) { sum = sum + parts[0][vorder[i]]; }
+  fprintf (stdout, "----> Sanity Check: Permutation contains %d unique vertices\n",sum);
+  assert(sum==n);
+  for (int i = 0; i < n; i++) { parts[0][i] = 0; }
+
+  
   // Iterate over vorder
-  fprintf (stdout, "----> Begin outer loop . . . \n");
-  int v, k, s, node;
-  int *row;
-  int nnz_row;
+  fprintf (stdout, "----> Begin outer loop... \n");
+  int vert, k, s, node = 0;
+  int *col;
+  int nnz_col = 0;
   int *partscore = (int*)malloc(nparts * sizeof(int));
   int *partsize = (int*)malloc(nparts * sizeof(int));
   
@@ -235,38 +257,48 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   for (s = 0; s < nparts; s++) { partsize[s] = 0; }
 
   int best_part;
+  int randidx;
+  int emptyverts = 0;
   float curr_score, best_score;
   
   float c1, c2;
   float dc;
-  
+    
   seconds = get_seconds();
   // iterate through nodes in vorder
   for (int i = 0; i < n; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
-    v = vorder[i];
-    row = &rowptr[v];
-    nnz_row = *(row+1) - *(row); //nnz in row
+    vert = vorder[i];
+    col = &colptr[vert];
+    nnz_col = *(col+1) - *col;
+    //fprintf (stdout, " %d ",nnz_col);
+
+   if(nnz_col != 0) {
+      // generate partition scores for each partition
+      for (k = *col; k < ((*col)+nnz_col); k++) {
+        node = rowidx[k];
+        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; /*break;*/ }}
+      }
     
-    // generate partition scores for each partition
-    for (k = *row; k < ((*row)+nnz_row); k++) {
-      node = colidx[k];
-      for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; break; }}
+      // choose optimal partition (initializing first)
+      best_score = (partscore[0]-nnz_col) - ((alpha*pow(partsize[0]+1,gamma)) - (alpha*pow(partsize[0],gamma)));
+      best_part = 0;
+    
+      for (s = 1; s < nparts; s++) {
+        curr_score = (partscore[s]-nnz_col) - ((alpha*pow(partsize[s]+1,gamma)) - (alpha*pow(partsize[s],gamma)));
+        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
+      }
+    
+      parts[best_part][vert] = 1; partsize[best_part]++;
+    } else { 
+      // empty vertex for some reason... assign it to random permutation
+      emptyverts++;
+      randidx = irand(nparts);
+      parts[randidx][vert] = 1;
+      partsize[randidx]++;
     }
-    
-    // choose optimal partition (initializing first)
-    best_score = partscore[0] - ((alpha*pow(partsize[0]+1,gamma)) - (alpha*pow(partsize[0],gamma)));
-    best_part = 0;
-    
-    for (s = 1; s < nparts; s++) {
-      curr_score = partscore[s] - ((alpha*pow(partsize[s]+1,gamma)) - (alpha*pow(partsize[s],gamma)));
-      if (curr_score > best_score) { best_score = curr_score; best_part = s; }
-    }
-    
-    parts[best_part][v] = 1; partsize[best_part]++;
   }
   seconds = get_seconds() - seconds;
-
  
   // Compute load balance
   int max_load = partsize[0];
@@ -278,33 +310,46 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
 
   fprintf (stdout, "\n===== Fennel Complete in %g seconds =====\n", seconds);
   fprintf (stdout, "----> Partition sizes: ");
-  for (s = 0; s < nparts; s++) {
-    fprintf (stdout, "| %d |", partsize[s]);
-  }
+  for (s = 0; s < nparts; s++) { fprintf (stdout, "| %d |", partsize[s]); }
   fprintf (stdout, "\n----> Load balance: %d / %d = %f\n",max_load,min_load,(float)max_load/min_load);
 
   // Compute cut quality
   int cutedges = 0;
   int v_part = 0;
+  int emptyparts = 0; //empty assignments
+  int redparts = 0; //redundant assignments
   
   for (int i = 0; i < n; i++) {
-    v = i;
-    row = &rowptr[v];
-    nnz_row = *(row+1) - *(row); //nnz in row
+    vert = i;
+    col = &colptr[vert];
+    nnz_col = *(col+1) - *(col); //nnz in row
+    v_part = -1;
     
     // find v's partition
     for (s = 0; s < nparts; s++) {
-      if (parts[s][node] == 1) { v_part = s; break; }
-      //assert(0); //We shouldn't reach this if every vertex has a partition
+      if (parts[s][node] == 1) { 
+        if(v_part != -1) { redparts++; } 
+        v_part = s; 
+      }
+    }
+    if (v_part == -1) {
+      v_part = 0;
+      emptyparts++;
     }
     
     // count edges to other partitions
-    for (k = *row; k < ((*row)+nnz_row); k++) {
-      if (parts[v_part][colidx[k]] != 1) { cutedges++; }
+    for (k = *col; k < ((*col)+nnz_col); k++) {
+      if (parts[v_part][rowidx[k]] != 1) { cutedges++; }
     }
   }
   
-  fprintf (stdout, "\n----> Percent edges cut = %d / %d = %f\n",cutedges,nnz,(float)cutedges/nnz);
+  fprintf (stdout, "----> Percent edges cut = %d / %d = %f\n",cutedges,nnz,(float)cutedges/nnz);
+  fprintf (stdout, "----> Percent of random: %f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
+  fprintf (stdout, "===== Sanity Check =====\n");
+
+  fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
+  fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
+  fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
 }
 
 /**
