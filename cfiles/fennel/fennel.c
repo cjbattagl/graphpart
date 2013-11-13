@@ -505,29 +505,29 @@ struct csr_matrix_t* mat_to_csr (struct coo_matrix_t* A) {
 	   * before then are zero.  The rowptr for that first row is also zero. 
 	   */
 	  rowptr[i] = 0;  
-	  fprintf (stdout, "\tset rowptr[%d] to %d\n", i, 0);
+	  //fprintf (stdout, "\tset rowptr[%d] to %d\n", i, 0);
 	  }
       /* For each coord_array entry i, add it to the CSR matrix */
       for (i = 0; i < nnz; i++) {
-      fprintf (stdout, "\ti = %d, c.r[i] = %d, c.c[i] = %d\n", i, coord_array[i].r, coord_array[i].c);
-	  if (coord_array[i].c - index_base > currow) {
+      //fprintf (stdout, "\ti = %d, c.r[i] = %d, c.c[i] = %d\n", i, coord_array[i].r, coord_array[i].c);
+	  if (coord_array[i].r - index_base > currow) {
 	      /* 
 	       * We may jump more than one row at a time, so set the rowptr 
 	       * entries for the empty rows in between.
 	       */
 	      for (j = currow+1; j <= coord_array[i].r - index_base; j++) {
 		    rowptr[j] = i;
-		    fprintf (stdout, "\tset rowptr[%d] to %d\n", j, i);
+		    //fprintf (stdout, "\tset rowptr[%d] to %d\n", j, i);
 		  }
 	      currow = coord_array[i].r - index_base;
 	    }
-		fprintf (stdout, "\tset colidx[%d] to %d\n", i, coord_array[i].c - index_base);
+		//fprintf (stdout, "\tset colidx[%d] to %d\n", i, coord_array[i].c - index_base);
         colidx[i] = coord_array[i].c - index_base;
 	  }
 
       /* Set the last entries in rowptr appropriately */
       for (j = currow+1; j <= m; j++) { rowptr[j] = nnz; 
-      		    fprintf (stdout, "\tset rowptr[%d] to %d\n", j, nnz);
+      //fprintf (stdout, "\tset rowptr[%d] to %d\n", j, nnz);
 }
 
       init_csr_matrix (B, m, n, nnz, NULL, colidx, rowptr, symmetry_type, 
