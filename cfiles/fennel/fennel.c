@@ -276,6 +276,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   int best_part;
   int randidx;
   int emptyverts = 0;
+  int nededges = 0;
   float curr_score, best_score;
   
   float c1, c2;
@@ -296,13 +297,13 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
         node = colidx[k];
         for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; /*break;*/ }}
       }
-    
+        
       // choose optimal partition (initializing first)
-      best_score = (partscore[0]-nnz_row) - ((alpha*pow(partsize[0]+1,gamma)) - (alpha*pow(partsize[0],gamma)));
+      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
       best_part = 0;
     
       for (s = 1; s < nparts; s++) {
-        curr_score = (partscore[s]-nnz_row) - ((alpha*pow(partsize[s]+1,gamma)) - (alpha*pow(partsize[s],gamma)));
+        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]); 
         if (curr_score > best_score) { best_score = curr_score; best_part = s; }
       }
     
@@ -344,7 +345,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     
     // find v's partition
     for (s = 0; s < nparts; s++) {
-      if (parts[s][node] == 1) { 
+      if (parts[s][vert] == 1) { 
         if(v_part != -1) { redparts++; } 
         v_part = s; 
       }
@@ -359,7 +360,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       if (parts[v_part][colidx[k]] != 1) { cutedges++; }
     }
   }
-  
+    
   fprintf (stdout, "----> Percent edges cut = %d / %d = %f\n",cutedges,nnz,(float)cutedges/nnz);
   fprintf (stdout, "----> Percent of random: %f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
   fprintf (stdout, "===== Sanity Check =====\n");
@@ -367,6 +368,10 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
   fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
   fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
+}
+
+float calc_dc(float alpha, float gamma, int len) {
+  return (alpha*pow(len+1,gamma)) - (alpha*pow(len,gamma));
 }
 
 struct csr_matrix_t* mat_to_csr (struct coo_matrix_t* A) {
