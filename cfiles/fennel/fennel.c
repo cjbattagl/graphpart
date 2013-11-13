@@ -231,7 +231,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 2, 1.001); //todo: nparts, gamma as inputs
+  run_fennel(repr, 2, 1.4); //todo: nparts, gamma as inputs
   // *************************************************************
   errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
@@ -253,8 +253,8 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
 		   &symmetric_storage_location, &value_type);
 
   // Set alpha
-  //float alpha = sqrt(2) * (nnz/pow(n,gamma));
-   float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
+  float alpha = sqrt(2) * (nnz/pow(n,gamma));
+  //float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
   fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
   	   
   // Generate vorder
@@ -392,7 +392,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
 }
 
 float calc_dc(float alpha, float gamma, int len) {
-  return (alpha*pow(len+0.01,gamma)) - (alpha*pow(len,gamma));
+  return (alpha*pow(len+0.5,gamma)) - (alpha*pow(len,gamma));
 }
 
 struct csr_matrix_t* mat_to_csr (struct coo_matrix_t* A) {
