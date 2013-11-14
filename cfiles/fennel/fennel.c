@@ -82,8 +82,7 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
   fprintf (out, "[options]: -a -- validate the input matrix only, without outputting anything\n");
   fprintf (out, "           -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, "           -v  -- verbose mode\n");
-  fprintf (out, "EX: ./fennel -a 'test.mtx' 'MM'\n");
-  fprintf (out, "EX: ./fennel -v 'test.mtx' 'MM'\n");
+  fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM'\n");
 }
 
 int main (int argc, char *argv[]) {
@@ -255,17 +254,11 @@ static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
     bool **parts, float alpha, float gamma, int *emptyverts) {
       
   int *partscore = (int*)malloc(nparts * sizeof(int));
-  int vert, k, s, node = 0;
   int *row;
-  int nnz_row = 0;
-
-  int best_part;
-  int randidx;
-  int nededges = 0;
+  int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
   float curr_score, best_score;
-  
   int *vorder = genRandPerm(n);
-  
+
   for (int i = 0; i < n; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
     vert = vorder[i];
@@ -291,7 +284,7 @@ static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
       parts[best_part][vert] = 1; partsize[best_part]++;
     } else { 
       // empty vertex for some reason... assign it to random permutation
-      emptyverts++;
+      (*emptyverts)++;
       randidx = irand(nparts);
       parts[randidx][vert] = 1;
       partsize[randidx]++;
@@ -327,15 +320,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     assert(parts[i]);
   }
   assert(parts);
-  
-  // Assert that vorder is a permutation
-  //int sum = 0;
-  //for (int i = 0; i < n; i++) { parts[0][vorder[i]] = 1; }
-  //for (int i = 0; i < n; i++) { sum = sum + parts[0][vorder[i]]; }
-  //fprintf (stdout, "----> Sanity Check: Permutation contains %d unique vertices\n",sum);
-  //assert(sum==n);
-  //for (int i = 0; i < n; i++) { parts[0][i] = 0; }
-  
+
   // Iterate over vorder
   fprintf (stdout, "----> Begin outer loop... \n");
   int vert, k, s, node = 0;
@@ -348,8 +333,6 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   for (s = 0; s < nparts; s++) { partsize[s] = 0; }
     
   seconds = get_seconds();
-  // iterate through nodes in vorder
-  ////FENNEL KERNEL
   fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
   seconds = get_seconds() - seconds;
  
