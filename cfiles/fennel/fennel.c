@@ -1,4 +1,4 @@
-/** woof
+/**
  * Driver program for our FENNEL implementation
  * Note that this code is a modification of driver code from Bebop,
  * provided with the following LICENSE:
@@ -75,7 +75,7 @@ cmdlineopts_t {
 static void
 usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args) {
   fprintf (out, "Usage:\n");
-  fprintf (out, "fennel <in-filename> <in-format> <out-filename> <out-format> [options]\n");
+  fprintf (out, "fennel [options] <in-filename> <in-format>\n");
   fprintf (out, "<in-filename>:   name of file containing the sparse matrix to read in\n");
   fprintf (out, "<in-format>:     format of the input file (\"HB\", \"ML\", \"MM\")\n");
   fprintf (out, "<out-filename>:  name of file to which to output results\n");
@@ -87,7 +87,6 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
 
 int main (int argc, char *argv[]) {
   extern int optind;
-
   enum sparse_matrix_file_format_t informat = 0;
   enum sparse_matrix_file_format_t outformat = 0;
   struct sparse_matrix_t* A = NULL;
@@ -103,13 +102,7 @@ int main (int argc, char *argv[]) {
   }
 
   const char* matrix_filename = argv[1];
-  /* Set the get_options usage function to "usage", instead of using the default
-   * usage function.  This is necessary because the command-line arguments include
-   * things that are not "options" in the strict sense, because they do not follow
-   * a "-[a-z]".
-   */
   register_usage_function (usage);
-
   arglist = register_arginfo (arglist, 'v', NULLARG, NULL, "If specified, ac"
 			      "tivate verbose mode");
   arglist = register_arginfo (arglist, 'e', NULLARG, NULL, "If specified, ex"
@@ -169,27 +162,22 @@ int main (int argc, char *argv[]) {
   }
   
   if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
-  
-    if (got_arg_p (arglist, 'e'))
-    {
-      if (got_arg_p (arglist, 'v'))
-	{
+  if (got_arg_p (arglist, 'e')) {
+    if (got_arg_p (arglist, 'v')) {
 	  printf ("Expanding sparse matrix into unsymmetric storage...");
-	  fflush (stdout);
+      fflush (stdout);
 	}
-      seconds = get_seconds();
-      errcode = sparse_matrix_expand_symmetric_storage (A);
-      seconds = get_seconds() - seconds;
-      if (errcode != 0)
-	{
+    seconds = get_seconds();
+    errcode = sparse_matrix_expand_symmetric_storage (A);
+    seconds = get_seconds() - seconds;
+    if (errcode != 0) {
 	  fprintf (stderr, "*** Failed to expand matrix into symmetric storage ***\n");
 	  destroy_sparse_matrix (A);
 	  destroy_arginfo_list (arglist);
 	  bebop_exit (2);
 	}
-      if (got_arg_p (arglist, 'v'))
-	printf ("done, in %g seconds\n", seconds);
-    }
+    if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
+  }
 
   fprintf (stdout, "Current format: ");
   switch(A->format) {
@@ -212,7 +200,6 @@ int main (int argc, char *argv[]) {
   }
 
   struct csr_matrix_t* repr = A->repr;
-  
   fprintf (stdout, "m = %d, n = %d, nnz = %d, density = %f, val type = ",repr->m,repr->n,repr->nnz,
     (float)repr->nnz/(float)(repr->m * repr->n),repr->value_type);
   
@@ -239,7 +226,6 @@ int main (int argc, char *argv[]) {
     default:
       fprintf (stdout, "ERROR\n"); 
   }
- 
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
@@ -275,15 +261,13 @@ static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
       // choose optimal partition (initializing first)
       best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
       best_part = 0;
-    
       for (s = 1; s < nparts; s++) {
         curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]); 
         if (curr_score > best_score) { best_score = curr_score; best_part = s; }
       }
     
       parts[best_part][vert] = 1; partsize[best_part]++;
-    } else { 
-      // empty vertex for some reason... assign it to random permutation
+    } else { // empty vertex for some reason... assign it to random permutation
       (*emptyverts)++;
       randidx = irand(nparts);
       parts[randidx][vert] = 1;
@@ -300,13 +284,11 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   enum symmetry_type_t symmetry_type;
   enum symmetric_storage_location_t symmetric_storage_location;
   enum value_type_t value_type;
-  
   double seconds = 0.0;
 
   unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
 		   &symmetric_storage_location, &value_type);
 
-  // Set alpha
   float alpha = sqrt(2) * (nnz/pow(n,gamma));
   //float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
   fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
@@ -382,7 +364,6 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   fprintf (stdout, "----> Percent edges cut = %d / %d = %f\n",cutedges,nnz,(float)cutedges/nnz);
   fprintf (stdout, "----> Percent of random: %f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
   fprintf (stdout, "===== Sanity Check =====\n");
-
   fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
   fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
   fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
@@ -411,7 +392,6 @@ struct csr_matrix_t* mat_to_csr (struct coo_matrix_t* A) {
 
   fprintf (stdout, "=== coo_to_csr ===\n");
   fprintf (stdout, "index_base=%d\n",index_base);
-
   fprintf (stdout, "\tm = %d, n = %d, nnz = %d, value_type = %d\n", m, n, nnz, value_type);
 
   if (A->value_type == REAL)
