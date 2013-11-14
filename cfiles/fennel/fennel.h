@@ -11,4 +11,6 @@ int coord_elem_by_col_pattern (const void* a, const void* b);
 static int coo_to_csr_convert(struct sparse_matrix_t* A);
 float calc_dc(float alpha, float gamma, int len);
 
+static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx, 
+    bool **parts, float alpha, float gamma, int *emptyverts);
 static int run_fennel (const struct csr_matrix_t* A, int nparts, float gamma);

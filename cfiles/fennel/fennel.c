@@ -128,16 +128,16 @@ int main (int argc, char *argv[]) {
       bebop_exit (errcode); /* stops logging */
   }
 
-  if (argc - optind != 3) {
+  if (argc - optind != 2) {
       fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
-	       "e specified, but there should be %d ***\n", argc - optind, 3);
+	       "e specified, but there should be %d ***\n", argc - optind, 2);
       dump_usage (stderr, argv[0], arglist, NULL);
       bebop_exit (EXIT_FAILURE); /* stops logging */
   }
 
   opts.input_filename = argv[optind];
   opts.input_file_format = argv[optind+1];
-  opts.output_filename = argv[optind+2];
+  //opts.output_filename = argv[optind+2];
   
   if (strcmp (opts.input_file_format, "HB") == 0 || 
       strcmp (opts.input_file_format, "hb") == 0) { informat = HARWELL_BOEING; }
@@ -219,11 +219,24 @@ int main (int argc, char *argv[]) {
   
   switch(repr->value_type) {
     case REAL:
-      fprintf (stdout, "REAL\n"); break;
+      fprintf (stdout, "REAL "); break;
     case PATTERN:
-      fprintf (stdout, "PATTERN\n"); break;
+      fprintf (stdout, "PATTERN "); break;
     case COMPLEX:
-      fprintf (stdout, "COMPLEX\n"); break;
+      fprintf (stdout, "COMPLEX "); break;
+    default:
+      fprintf (stdout, "ERROR "); 
+  }
+  
+  switch(repr->symmetry_type) {
+    case SYMMETRIC:
+      fprintf (stdout, "SYMMETRIC\n"); break;
+    case UNSYMMETRIC:
+      fprintf (stdout, "UNSYMMETRIC\n"); break;
+    case SKEW_SYMMETRIC:
+      fprintf (stdout, "SKEW_SYMMETRIC\n"); break;
+    case HERMITIAN:
+      fprintf (stdout, "HERMITIAN\n"); break;
     default:
       fprintf (stdout, "ERROR\n"); 
   }
@@ -238,79 +251,26 @@ int main (int argc, char *argv[]) {
   return 0;
 }
 
-static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
-  int m, n, nnz;
-  void* values;
-  int* colidx;
-  int* rowptr;
-  enum symmetry_type_t symmetry_type;
-  enum symmetric_storage_location_t symmetric_storage_location;
-  enum value_type_t value_type;
-  
-  double seconds = 0.0;
-
-  unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
-		   &symmetric_storage_location, &value_type);
-
-  // Set alpha
-  float alpha = sqrt(2) * (nnz/pow(n,gamma));
-  //float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
-  fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
-  	   
-  // Generate vorder
-  fprintf (stdout, "----> Gen rand perm... ");
-  seconds = get_seconds();
-  int *vorder = genRandPerm(n);
-  seconds = get_seconds() - seconds;
-  fprintf (stdout, "done, in %g seconds\n", seconds);
-  
-  // Allocate partition vectors
-  fprintf (stdout, "----> Gen %d partition vectors\n",nparts);
-  bool** parts = (bool**)malloc(nparts * sizeof(bool*));
-  for(int i = 0; i < nparts; i++) { 
-    parts[i] = (bool*)malloc(n * sizeof(bool));
-    for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros 
-    assert(parts[i]);
-  }
-  assert(parts);
-  
-  // Assert that vorder is a permutation
-  int sum = 0;
-  for (int i = 0; i < n; i++) { parts[0][vorder[i]] = 1; }
-  for (int i = 0; i < n; i++) { sum = sum + parts[0][vorder[i]]; }
-  fprintf (stdout, "----> Sanity Check: Permutation contains %d unique vertices\n",sum);
-  assert(sum==n);
-  for (int i = 0; i < n; i++) { parts[0][i] = 0; }
-
-  
-  // Iterate over vorder
-  fprintf (stdout, "----> Begin outer loop... \n");
+static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx, 
+    bool **parts, float alpha, float gamma, int *emptyverts) {
+      
+  int *partscore = (int*)malloc(nparts * sizeof(int));
   int vert, k, s, node = 0;
   int *row;
   int nnz_row = 0;
-  int *partscore = (int*)malloc(nparts * sizeof(int));
-  int *partsize = (int*)malloc(nparts * sizeof(int));
-  
-  //initialize part sizes to 0
-  for (s = 0; s < nparts; s++) { partsize[s] = 0; }
 
   int best_part;
   int randidx;
-  int emptyverts = 0;
   int nededges = 0;
   float curr_score, best_score;
   
-  float c1, c2;
-  float dc;
-    
-  seconds = get_seconds();
-  // iterate through nodes in vorder
+  int *vorder = genRandPerm(n);
+  
   for (int i = 0; i < n; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
     vert = vorder[i];
     row = &rowptr[vert];
     nnz_row = *(row+1) - *row;
-    //fprintf (stdout, " %d ",nnz_row);
 
    if(nnz_row != 0) {
       // generate partition scores for each partition
@@ -337,6 +297,60 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       partsize[randidx]++;
     }
   }
+}
+
+static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
+  int m, n, nnz;
+  void* values;
+  int* colidx;
+  int* rowptr;
+  enum symmetry_type_t symmetry_type;
+  enum symmetric_storage_location_t symmetric_storage_location;
+  enum value_type_t value_type;
+  
+  double seconds = 0.0;
+
+  unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
+		   &symmetric_storage_location, &value_type);
+
+  // Set alpha
+  float alpha = sqrt(2) * (nnz/pow(n,gamma));
+  //float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
+  fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
+  	   
+  // Allocate partition vectors
+  fprintf (stdout, "----> Gen %d partition vectors\n",nparts);
+  bool** parts = (bool**)malloc(nparts * sizeof(bool*));
+  for(int i = 0; i < nparts; i++) { 
+    parts[i] = (bool*)malloc(n * sizeof(bool));
+    for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros 
+    assert(parts[i]);
+  }
+  assert(parts);
+  
+  // Assert that vorder is a permutation
+  //int sum = 0;
+  //for (int i = 0; i < n; i++) { parts[0][vorder[i]] = 1; }
+  //for (int i = 0; i < n; i++) { sum = sum + parts[0][vorder[i]]; }
+  //fprintf (stdout, "----> Sanity Check: Permutation contains %d unique vertices\n",sum);
+  //assert(sum==n);
+  //for (int i = 0; i < n; i++) { parts[0][i] = 0; }
+  
+  // Iterate over vorder
+  fprintf (stdout, "----> Begin outer loop... \n");
+  int vert, k, s, node = 0;
+  int *row;
+  int nnz_row = 0;
+  int emptyverts = 0;
+  
+  //initialize part sizes
+  int *partsize = (int*)malloc(nparts * sizeof(int));
+  for (s = 0; s < nparts; s++) { partsize[s] = 0; }
+    
+  seconds = get_seconds();
+  // iterate through nodes in vorder
+  ////FENNEL KERNEL
+  fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
   seconds = get_seconds() - seconds;
  
   // Compute load balance
