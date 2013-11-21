@@ -196,7 +196,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 2, 1.5); //todo: nparts, gamma as inputs
+  run_fennel(repr, 4, 1.2); //todo: nparts, gamma as inputs
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
@@ -350,7 +350,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   /////////////////////////////////////////////////////////////////////////////
   ///////////// EXPERIMENTAL: DO ADDITIONAL RUNS ON THE NEW PARTITION /////////
   /////////////////////////////////////////////////////////////////////////////
-  int numruns = 5;
+  int numruns = 6;
   for (int run=1; run<numruns; run++) {
     seconds = get_seconds();
     fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
@@ -469,8 +469,10 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     }
     else {
       fprintf(stdout,"METIS: unhandled case\n");
-    }*/
-  }
+      return -1;
+    }
+    fprintf (stdout, "\tMETIS edges cut = %d / %d = %1.3f\n",edgecut,nnz,(float)edgecut/nnz);
+  }*/
 }
 
 static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj, idx_t **adjncy, idx_t **vwgt, idx_t **adjwgt) {
@@ -483,7 +485,10 @@ static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj
 
     (*xadj)[0] = 0;
     jbar = 0;
+    int nnz_row;
     for (i = 1; i <= n; i++) {
+        nnz_row = rowptr[i] - rowptr[i-1];
+
         for (j = rowptr[i-1]; j < rowptr[i]; j++) {
             if (colidx[j] != i-1) {
                 (*adjncy)[jbar] = colidx[j];
