@@ -61,7 +61,7 @@
 #include <bebop/util/timer.h>
 #include <bebop/util/util.h>
 
-#include <metislib.h>
+#include <metis.h>
 
 #include "fennel.h"
 #include "randperm.h"
@@ -203,7 +203,7 @@ int main (int argc, char *argv[]) {
   return 0;
 }
 
-void csr_to_metis (int n, int *rowptr, int *colidx, idx_t **xadj, idx_t **adjncy, idx_t **vwgt, idx_t **adjwgt) {
+void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj, idx_t **adjncy, idx_t **vwgt, idx_t **adjwgt) {
     int i, j, jbar;
     /* Allocate room for METIS's structure */
     *xadj = (idx_t*) malloc (n+1 * sizeof(idx_t));
