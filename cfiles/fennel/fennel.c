@@ -435,6 +435,75 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   }
   fclose(PartFile);
 
+  //////////////////////////////////
+  //////// METIS RUN ///////////////
+  //////////////////////////////////
+/*
+  idx_t *xadj, *adjncy, *vwgt, *adjwgt, *part, *perm, *iperm, *sep;
+  idx_t options[METIS_NOPTIONS] = {0}, edgecut, sepsize;
+  
+  struct parameter_data params = {
+    0, // wgtflag = 0
+    0, // adjwgt = 0
+    NULL, // vsize = NULL
+  };
+    
+  double *optarray, *partpr, *permpr, *ipermpr, *seppr;
+  METIS_SetDefaultOptions(options);
+  csr_to_metis (n, nnz, rowptr, colidx, &xadj, &adjncy, &vwgt, &adjwgt);
+
+  // Allocate vsize
+  params.vsize = (idx_t*)malloc(sizeof(idx_t)*n);
+
+  if (strcasecmp(funcname,"PartGraphRecursive")==0 ||
+    strcasecmp(funcname,"PartGraphKway")==0 ) {
+
+    // Figure out values for nparts, wgtflag and options
+    if (nrhs < 3) {
+      mexErrMsgTxt ("Third parameter needed: nparts");
+    }
+    nparts = (idx_t) mxGetScalar (NPARTS_IN);
+    if (nrhs >= 4) {
+      parseOptions(prhs[3], options, &params);
+    }
+        
+    if (params.wgtflag == 0) {
+      for (i=0; i<n; ++i) {
+        vwgt[i] = 1;
+      }
+    }
+        
+    if (params.adjwgt == 0) {
+      for (i=0; i<xadj[n]; ++i) {
+        adjwgt[i] = 1;
+      }
+    }
+
+    if (nparts < 2) {
+      mexErrMsgTxt("nparts must be at least 2");
+    }
+
+    // Allocate memory for result of call
+    part = (idx_t*) mxCalloc (n, sizeof(idx_t));
+        
+    idx_t ncon = 1;
+    for (i=0; i<n; ++i) {
+      params.vsize[i] = 1;
+    }
+
+    // Do the call
+    if (strcasecmp(funcname,"PartGraphRecursive") == 0) {
+      checkCall(METIS_PartGraphRecursive (&n, &ncon, xadj, adjncy,
+      vwgt, params.vsize, adjwgt,
+      &nparts, NULL, NULL, options, &edgecut, part)); 
+    } 
+    else if (strcasecmp(funcname, "PartGraphKway") == 0) {
+      checkCall(METIS_PartGraphKway (&n, &ncon, xadj, adjncy, vwgt, params.vsize, adjwgt, &nparts, NULL, NULL, options, &edgecut, part));
+    }
+    else {
+      fprintf(stdout,"METIS: unhandled case\n");
+    }
+*/
 }
 
 static float calc_dc(float alpha, float gamma, int len) {
