@@ -229,7 +229,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 16, 1.5); //todo: nparts, gamma as inputs
+  run_fennel(repr, 32, 1.5); //todo: nparts, gamma as inputs
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
