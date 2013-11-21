@@ -329,6 +329,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   /////////////////////////////////////////////////////////////////////////////
   int numruns = 6;
   for (int run=1; run<numruns; run++) {
+  
     seconds = get_seconds();
     fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
     seconds = get_seconds() - seconds;
@@ -341,16 +342,10 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       if (partsize[s] < min_load) {min_load = partsize[s];}
     }
 
-    //fprintf (stdout, "\n===== Fennel Complete in %g seconds =====\n", seconds);
-    //fprintf (stdout, "----> Partition sizes: ");
-    //for (s = 0; s < nparts; s++) { fprintf (stdout, "| %d |", partsize[s]); }
     fprintf (stdout, "----> Run |%d|: Load balance: %d / %d = %1.2f\t",run,max_load,min_load,(float)max_load/min_load);
-
-    // Compute cut quality
     cutedges = 0;
     emptyparts = 0; //empty assignments
     redparts = 0; //redundant assignments
-  
     cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n);
     
     fprintf (stdout, "\tPercent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
@@ -459,7 +454,6 @@ static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj
 }
   
 int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n) {
-
   int vert, nnz_row, v_part;
   int cutedges = 0;
   int *row;
