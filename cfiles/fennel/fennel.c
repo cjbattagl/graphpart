@@ -196,35 +196,11 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 32, 1.5); //todo: nparts, gamma as inputs
+  run_fennel(repr, 2, 1.5); //todo: nparts, gamma as inputs
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
   return 0;
-}
-
-void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj, idx_t **adjncy, idx_t **vwgt, idx_t **adjwgt) {
-    int i, j, jbar;
-    /* Allocate room for METIS's structure */
-    *xadj = (idx_t*) malloc (n+1 * sizeof(idx_t));
-    *adjncy = (idx_t*) malloc (nnz * sizeof(idx_t));
-    *vwgt = (idx_t*) malloc (n * sizeof(idx_t));
-    *adjwgt = (idx_t*) malloc (nnz * sizeof(idx_t));
-
-    (*xadj)[0] = 0;
-    jbar = 0;
-    for (i = 1; i <= n; i++) {
-        for (j = rowptr[i-1]; j < rowptr[i]; j++) {
-            if (colidx[j] != i-1) {
-                (*adjncy)[jbar] = colidx[j];
-                (*adjwgt)[jbar] = 1;
-                jbar++;
-            } else {
-                (*vwgt)[i-1] = 1;
-            }
-        }
-        (*xadj)[i] = jbar;
-    }
 }
 
 static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
@@ -374,7 +350,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   /////////////////////////////////////////////////////////////////////////////
   ///////////// EXPERIMENTAL: DO ADDITIONAL RUNS ON THE NEW PARTITION /////////
   /////////////////////////////////////////////////////////////////////////////
-  int numruns = 50;
+  int numruns = 5;
   for (int run=1; run<numruns; run++) {
     seconds = get_seconds();
     fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
@@ -438,7 +414,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   //////////////////////////////////
   //////// METIS RUN ///////////////
   //////////////////////////////////
-/*
+
   idx_t *xadj, *adjncy, *vwgt, *adjwgt, *part, *perm, *iperm, *sep;
   idx_t options[METIS_NOPTIONS] = {0}, edgecut, sepsize;
   
@@ -455,62 +431,77 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   // Allocate vsize
   params.vsize = (idx_t*)malloc(sizeof(idx_t)*n);
 
+  // Set which METIS function to do here, or take in command line
+  const char* funcname = "PartGraphRecursive";
+
   if (strcasecmp(funcname,"PartGraphRecursive")==0 ||
     strcasecmp(funcname,"PartGraphKway")==0 ) {
 
-    // Figure out values for nparts, wgtflag and options
-    if (nrhs < 3) {
-      mexErrMsgTxt ("Third parameter needed: nparts");
-    }
-    nparts = (idx_t) mxGetScalar (NPARTS_IN);
-    if (nrhs >= 4) {
-      parseOptions(prhs[3], options, &params);
-    }
-        
+/*  // Figure out addl options:
+    parseOptions(opt, options, &params);
     if (params.wgtflag == 0) {
-      for (i=0; i<n; ++i) {
-        vwgt[i] = 1;
-      }
+      for (i=0; i<n; ++i) { vwgt[i] = 1; }
     }
         
     if (params.adjwgt == 0) {
-      for (i=0; i<xadj[n]; ++i) {
-        adjwgt[i] = 1;
-      }
+      for (i=0; i<xadj[n]; ++i) { adjwgt[i] = 1; }
     }
 
     if (nparts < 2) {
       mexErrMsgTxt("nparts must be at least 2");
     }
-
+*/
+/*
     // Allocate memory for result of call
-    part = (idx_t*) mxCalloc (n, sizeof(idx_t));
+    part = (idx_t*) malloc (n*sizeof(idx_t));
         
     idx_t ncon = 1;
-    for (i=0; i<n; ++i) {
+    for (int i=0; i<n; ++i) {
       params.vsize[i] = 1;
     }
 
     // Do the call
     if (strcasecmp(funcname,"PartGraphRecursive") == 0) {
-      checkCall(METIS_PartGraphRecursive (&n, &ncon, xadj, adjncy,
-      vwgt, params.vsize, adjwgt,
-      &nparts, NULL, NULL, options, &edgecut, part)); 
+      checkCall(METIS_PartGraphRecursive(&n, &ncon, xadj, adjncy, vwgt, params.vsize, adjwgt, &nparts, NULL, NULL, options, &edgecut, part)); 
     } 
     else if (strcasecmp(funcname, "PartGraphKway") == 0) {
       checkCall(METIS_PartGraphKway (&n, &ncon, xadj, adjncy, vwgt, params.vsize, adjwgt, &nparts, NULL, NULL, options, &edgecut, part));
     }
     else {
       fprintf(stdout,"METIS: unhandled case\n");
+    }*/
+  }
+}
+
+static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj, idx_t **adjncy, idx_t **vwgt, idx_t **adjwgt) {
+    int i, j, jbar;
+    /* Allocate room for METIS's structure */
+    *xadj = (idx_t*) malloc (n+1 * sizeof(idx_t));
+    *adjncy = (idx_t*) malloc (nnz * sizeof(idx_t));
+    *vwgt = (idx_t*) malloc (n * sizeof(idx_t));
+    *adjwgt = (idx_t*) malloc (nnz * sizeof(idx_t));
+
+    (*xadj)[0] = 0;
+    jbar = 0;
+    for (i = 1; i <= n; i++) {
+        for (j = rowptr[i-1]; j < rowptr[i]; j++) {
+            if (colidx[j] != i-1) {
+                (*adjncy)[jbar] = colidx[j];
+                (*adjwgt)[jbar] = 1;
+                jbar++;
+            } else {
+                (*vwgt)[i-1] = 1;
+            }
+        }
+        (*xadj)[i] = jbar;
     }
-*/
 }
 
 static float calc_dc(float alpha, float gamma, int len) {
   return (alpha*pow(len+0.5,gamma)) - (alpha*pow(len,gamma));
 }
 
-struct csr_matrix_t* mat_to_csr (struct coo_matrix_t* A) {
+static struct csr_matrix_t* mat_to_csr (struct coo_matrix_t* A) {
   int m = A->m;
   int n = A->n;
   int nnz = A->nnz;
@@ -680,7 +671,7 @@ we need if the matrix is empty */
   return B;
 }
 
-void sort_coo (void* coord_array, const int length, enum value_type_t value_type) {
+static void sort_coo (void* coord_array, const int length, enum value_type_t value_type) {
   fprintf (stdout, "=== sort_coord_elem_array_for_csr_conversion ===\n");
 
   if (value_type == REAL) {
