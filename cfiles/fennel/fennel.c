@@ -308,33 +308,10 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
 
   // Compute cut quality
   int cutedges = 0;
-  int v_part = 0;
   int emptyparts = 0; //empty assignments
   int redparts = 0; //redundant assignments
   
-  for (int i = 0; i < n; i++) {
-    vert = i;
-    row = &rowptr[vert];
-    nnz_row = *(row+1) - *(row); //nnz in row
-    v_part = -1;
-    
-    // find v's partition
-    for (s = 0; s < nparts; s++) {
-      if (parts[s][vert] == 1) {
-        if(v_part != -1) { redparts++; }
-        v_part = s;
-      }
-    }
-    if (v_part == -1) {
-      v_part = 0;
-      emptyparts++;
-    }
-    
-    // count edges to other partitions
-    for (k = *row; k < ((*row)+nnz_row); k++) {
-      if (parts[v_part][colidx[k]] != 1) { cutedges++; }
-    }
-  }
+  cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n);
     
   fprintf (stdout, "----> Percent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
   fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
@@ -371,35 +348,10 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
 
     // Compute cut quality
     cutedges = 0;
-    v_part = 0;
     emptyparts = 0; //empty assignments
     redparts = 0; //redundant assignments
   
-    for (int i = 0; i < n; i++) {
-      vert = i;
-      row = &rowptr[vert];
-      nnz_row = *(row+1) - *(row); //nnz in row
-      v_part = -1;
-      
-      // find v's partition
-      for (s = 0; s < nparts; s++) {
-        if (parts[s][vert] == 1) {
-          if(v_part != -1) { redparts++; }
-          v_part = s;
-        }
-      }
-      if (v_part == -1) {
-        v_part = 0;
-        emptyparts++;
-      }
-      if (run == numruns-1) {
-        fprintf (PartFile, "%d %d\n",vert+1,v_part+1);
-      }
-      // count edges to other partitions
-      for (k = *row; k < ((*row)+nnz_row); k++) {
-        if (parts[v_part][colidx[k]] != 1) { cutedges++; }
-      }
-    }
+    cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n);
     
     fprintf (stdout, "\tPercent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
     if (run == numruns-1) {
@@ -504,6 +456,38 @@ static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj
         }
         (*xadj)[i] = jbar;
     }
+}
+  
+int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n) {
+
+  int vert, nnz_row, v_part;
+  int cutedges = 0;
+  int *row;
+  for (int i = 0; i < n; i++) {
+    vert = i;
+    row = &rowptr[vert];
+    nnz_row = *(row+1) - *(row); //nnz in row
+    v_part = -1;
+    
+    // find v's partition
+    for (int s = 0; s < nparts; s++) {
+      if (parts[s][vert] == 1) {
+        if(v_part != -1) { redparts++; }
+        v_part = s;
+      }
+    }
+    if (v_part == -1) {
+      v_part = 0;
+      emptyparts++;
+    }
+    
+    // count edges to other partitions
+    for (int k = *row; k < ((*row)+nnz_row); k++) {
+      if (parts[v_part][colidx[k]] != 1) { cutedges++; }
+    }
+  }
+  
+  return cutedges;
 }
 
 static float calc_dc(float alpha, float gamma, int len) {
