@@ -1,6 +1,6 @@
 /**
 * Driver program for our FENNEL implementation
-* Note that this code is a modification of driver code from Bebop,
+* Note that portions of this code are adapted from the Sparse Matrix Converter,
 * provided with the following LICENSE:
 *
 * Copyright (c) 2008, Regents of the University of California
@@ -63,6 +63,7 @@
 
 #include "fennel.h"
 #include "randperm.h"
+#include "util.h"
 
 struct
 cmdlineopts_t {
@@ -79,8 +80,7 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
   fprintf (out, "<in-filename>: name of file containing the sparse matrix to read in\n");
   fprintf (out, "<in-format>: format of the input file (\"HB\", \"ML\", \"MM\")\n");
   fprintf (out, "<out-filename>: name of file to which to output results\n");
-  fprintf (out, "[options]: -a -- validate the input matrix only, without outputting anything\n");
-  fprintf (out, " -e -- expand symmetric into unsymmetric storage\n");
+  fprintf (out, "[options]: -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, " -v -- verbose mode\n");
   fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM'\n");
 }
@@ -112,13 +112,6 @@ int main (int argc, char *argv[]) {
                          "lidate the input matrix, without outputting a"
                          "nything");
   get_options (argc, argv, arglist, NULL);
-
-  if (got_arg_p (arglist, 'a')) {
-      int errcode = do_validate_matrix (argc, argv, arglist);
-      destroy_arginfo_list (arglist);
-      deinit_timer();
-      bebop_exit (errcode); /* stops logging */
-  }
 
   if (argc - optind != 2) {
       fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
@@ -154,6 +147,7 @@ int main (int argc, char *argv[]) {
   seconds = get_seconds();
   A = load_sparse_matrix (informat, opts.input_filename);
   seconds = get_seconds() - seconds;
+  
   if (A == NULL) {
       fprintf (stderr, "*** Failed to load input matrix file \"%s\" ***\n",
          opts.input_filename);
@@ -164,32 +158,22 @@ int main (int argc, char *argv[]) {
   if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
   if (got_arg_p (arglist, 'e')) {
     if (got_arg_p (arglist, 'v')) {
-         printf ("Expanding sparse matrix into unsymmetric storage...");
+      printf ("Expanding sparse matrix into unsymmetric storage...");
       fflush (stdout);
-        }
+    }
     seconds = get_seconds();
     errcode = sparse_matrix_expand_symmetric_storage (A);
     seconds = get_seconds() - seconds;
     if (errcode != 0) {
-         fprintf (stderr, "*** Failed to expand matrix into symmetric storage ***\n");
-         destroy_sparse_matrix (A);
-         destroy_arginfo_list (arglist);
-         bebop_exit (2);
-        }
+      fprintf (stderr, "*** Failed to expand matrix into symmetric storage ***\n");
+      destroy_sparse_matrix (A);
+      destroy_arginfo_list (arglist);
+      bebop_exit (2);
+    }
     if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
   }
-
-  fprintf (stdout, "Current format: ");
-  switch(A->format) {
-    case CSR:
-      fprintf (stdout, "CSR\n"); break;
-    case COO:
-      fprintf (stdout, "COO\n"); break;
-    case CSC:
-      fprintf (stdout, "CSC\n"); break;
-    default:
-      fprintf (stdout, "ERROR\n");
-  }
+  const char* format = format_to_string(A->format);
+  fprintf (stdout, "Current format: %s",format);
 
   fprintf (stdout, "\n===== Converting to CSR =====\n");
   if(A->format == COO) {
@@ -200,32 +184,13 @@ int main (int argc, char *argv[]) {
   }
 
   struct csr_matrix_t* repr = A->repr;
-  fprintf (stdout, "m = %d, n = %d, nnz = %d, density = %f, val type = ",repr->m,repr->n,repr->nnz,
-    (float)repr->nnz/(float)(repr->m * repr->n),repr->value_type);
-  
-  switch(repr->value_type) {
-    case REAL:
-      fprintf (stdout, "REAL "); break;
-    case PATTERN:
-      fprintf (stdout, "PATTERN "); break;
-    case COMPLEX:
-      fprintf (stdout, "COMPLEX "); break;
-    default:
-      fprintf (stdout, "ERROR ");
-  }
-  
-  switch(repr->symmetry_type) {
-    case SYMMETRIC:
-      fprintf (stdout, "SYMMETRIC\n"); break;
-    case UNSYMMETRIC:
-      fprintf (stdout, "UNSYMMETRIC\n"); break;
-    case SKEW_SYMMETRIC:
-      fprintf (stdout, "SKEW_SYMMETRIC\n"); break;
-    case HERMITIAN:
-      fprintf (stdout, "HERMITIAN\n"); break;
-    default:
-      fprintf (stdout, "ERROR\n");
-  }
+  const char* type = value_type_to_string(repr->value_type);
+  const char* sym_type = symmetry_type_to_string(repr->symmetry_type);
+
+  fprintf (stdout, "m = %d, n = %d, nnz = %d, density = %f, val type = %s%s",
+    repr->m,repr->n,repr->nnz,
+    (float)repr->nnz/(float)(repr->m * repr->n),
+    type,sym_type);
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
@@ -235,6 +200,8 @@ int main (int argc, char *argv[]) {
   destroy_sparse_matrix (A);
   return 0;
 }
+
+
 
 static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
     bool **parts, float alpha, float gamma, int *emptyverts) {
@@ -324,7 +291,6 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     
   seconds = get_seconds();
   fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
- 
   seconds = get_seconds() - seconds;
  
   // Compute load balance
@@ -436,15 +402,16 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   }
     
   fprintf (stdout, "----> Percent edges cut = %d / %d = %f\n",cutedges,nnz,(float)cutedges/nnz);
-  //fprintf (stdout, "----> Percent of random: %f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
   //fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
   //fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
   //fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
   }
   fclose(PartFile);
+    fprintf (stdout, "----> Percent of random: %f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
+
 }
 
-float calc_dc(float alpha, float gamma, int len) {
+static float calc_dc(float alpha, float gamma, int len) {
   return (alpha*pow(len+0.5,gamma)) - (alpha*pow(len,gamma));
 }
 
@@ -508,10 +475,10 @@ we need if the matrix is empty */
       fprintf (stdout, "\tReal value specialization\n");
 
       /*
-* Having sorted the elements of the coordinate array, first by initial
-* row, then within each row by initial column, now the first row with
-* nonzeros is coord_array[0].r.
-*/
+      * Having sorted the elements of the coordinate array, first by initial
+      * row, then within each row by initial column, now the first row with
+      * nonzeros is coord_array[0].r.
+      */
       fprintf (stdout, "\tInitializing start of rowptr\n");
       currow = coord_array[0].r - index_base;
       for (i = 0; i <= currow; i++)
@@ -634,76 +601,6 @@ void sort_coo (void* coord_array, const int length, enum value_type_t value_type
   fprintf (stdout, "=== Done with sort_coord_elem_array_for_csr_conversion ===\n");
 }
 
-
-/**
-* Perform the matrix validation operation specified by the "-a" command-line option.
-*/
-static int
-do_validate_matrix (int argc, char *argv[], struct arginfo* arglist)
-{
-  extern int optind;
-
-  enum sparse_matrix_file_format_t informat = 0;
-  struct sparse_matrix_t* A = NULL;
-  double seconds = 0.0;
-  int errcode = 0;
-
-  if (argc - optind != 2) {
-      fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
-         "e specified, but there should be %d ***\n", argc - optind, 2);
-      dump_usage (stderr, argv[0], arglist, NULL);
-      return -1;
-  }
-
-  opts.input_filename = argv[optind];
-  opts.input_file_format = argv[optind+1];
-
-  if (strcmp (opts.input_file_format, "HB") == 0 ||
-      strcmp (opts.input_file_format, "hb") == 0) { informat = HARWELL_BOEING; }
-  else if (strcmp (opts.input_file_format, "MM") == 0 ||
-         strcmp (opts.input_file_format, "mm") == 0) { informat = MATRIX_MARKET; }
-  else if (strcmp (opts.input_file_format, "ML") == 0 ||
-           strcmp (opts.input_file_format, "ml") == 0) { informat = MATLAB; }
-  else {
-      fprintf (stderr, "*** Unsupported input file format \"%s\" ***\n",
-         opts.input_file_format);
-      dump_usage (stderr, argv[0], arglist, NULL);
-      return -1;
-  }
-
-  if (got_arg_p (arglist, 'v')) {
-      printf ("Loading sparse matrix...");
-      fflush (stdout); /* Otherwise the message may not be printed until
-                         after loading is complete */
-  }
-  
-  seconds = get_seconds();
-  A = load_sparse_matrix (informat, opts.input_filename);
-  seconds = get_seconds() - seconds;
-  if (A == NULL) {
-      fprintf (stderr, "*** Failed to load input matrix file \"%s\" ***\n",
-         opts.input_filename);
-      destroy_arginfo_list (arglist);
-      return 1;
-  }
-  if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
-  
-  if (got_arg_p (arglist, 'v')) {
-      printf ("Validating sparse matrix...");
-      fflush (stdout);
-  }
-  seconds = get_seconds();
-  errcode = valid_sparse_matrix (A);
-  seconds = get_seconds() - seconds;
-  if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
-
-  if (valid_sparse_matrix (A)) { printf ("\n### Sparse matrix is valid ###\n\n"); }
-  else { printf ("\n### Invalid sparse matrix! ###\n\n"); }
-
-  destroy_sparse_matrix (A);
-  return 0;
-}
-
 static int coo_to_csr_convert(struct sparse_matrix_t* A) {
   assert(A->format == COO);
   struct csr_matrix_t* B = mat_to_csr (A->repr);
@@ -713,85 +610,3 @@ static int coo_to_csr_convert(struct sparse_matrix_t* A) {
   return 0;
 }
 
-int coord_elem_by_row_real (const void* a, const void* b) {
-  struct coord_elem_t
-  {
-    int r;
-    int c;
-    double val;
-  };
-
-  const struct coord_elem_t* x = ((struct coord_elem_t*) a);
-  const struct coord_elem_t* y = ((struct coord_elem_t*) b);
-
-  if (x->r < y->r)
-    return -1;
-  else if (x->r > y->r)
-    return +1;
-
-  /* else */
-  return 0;
-}
-
-int coord_elem_by_row_pattern (const void* a, const void* b) {
-  struct coord_elem_t
-  {
-    int r;
-    int c;
-  };
-
-  const struct coord_elem_t* x = ((struct coord_elem_t*) a);
-  const struct coord_elem_t* y = ((struct coord_elem_t*) b);
-
-  if (x->r < y->r)
-    return -1;
-  else if (x->r > y->r)
-    return +1;
-
-  /* else */
-  return 0;
-}
-
-
-/**
-* Compares two coordinate-array elements by their column indices, and
-* returns values like strcmp does. Comparison function for sorting.
-*/
-int coord_elem_by_col_real (const void* a, const void* b) {
-  struct coord_elem_t
-  {
-    int r;
-    int c;
-    double val;
-  };
-
-  const struct coord_elem_t* x = ((struct coord_elem_t*) a);
-  const struct coord_elem_t* y = ((struct coord_elem_t*) b);
-
-  if (x->c < y->c)
-    return -1;
-  else if (x->c > y->c)
-    return +1;
-
-  /* else */
-  return 0;
-}
-
-int coord_elem_by_col_pattern (const void* a, const void* b) {
-  struct coord_elem_t
-  {
-    int r;
-    int c;
-  };
-
-  const struct coord_elem_t* x = ((struct coord_elem_t*) a);
-  const struct coord_elem_t* y = ((struct coord_elem_t*) b);
-
-  if (x->c < y->c)
-    return -1;
-  else if (x->c > y->c)
-    return +1;
-
-  /* else */
-  return 0;
-}
