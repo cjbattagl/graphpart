@@ -472,7 +472,8 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       return -1;
     }
     fprintf (stdout, "\tMETIS edges cut = %d / %d = %1.3f\n",edgecut,nnz,(float)edgecut/nnz);
-  }*/
+    */
+  }
 }
 
 static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj, idx_t **adjncy, idx_t **vwgt, idx_t **adjwgt) {
