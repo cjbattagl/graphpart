@@ -229,7 +229,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 2, 1.4); //todo: nparts, gamma as inputs
+  run_fennel(repr, 16, 1.5); //todo: nparts, gamma as inputs
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
@@ -270,15 +270,15 @@ static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
       }
       for (s = 0; s < nparts; s++) { parts[s][vert] = 0; }
       parts[best_part][vert] = 1;
-      int sum=0;
-      for (s = 0; s < nparts; s++) { sum += parts[s][vert]; }
-      assert(sum==1);
+      //int sum=0;
+      //for (s = 0; s < nparts; s++) { sum += parts[s][vert]; }
+      //assert(sum==1);
       partsize[best_part]++;
       
     } else { // empty vertex for some reason... assign it to random permutation
-      (*emptyverts)++;
+      emptyverts++;
       randidx = irand(nparts);
-      for (s = 1; s < nparts; s++) { parts[s][vert] = 0; }
+      //for (s = 1; s < nparts; s++) { parts[s][vert] = 0; }
       parts[randidx][vert] = 1;
       partsize[randidx]++;
     }
@@ -324,6 +324,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     
   seconds = get_seconds();
   fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
+ 
   seconds = get_seconds() - seconds;
  
   // Compute load balance
@@ -376,8 +377,13 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
   fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
   
+  FILE *PartFile;
+  PartFile = fopen("parts.mat", "w");
+  assert(PartFile != NULL);
+  
   /////////////IEFUHEIWFIWUEHFIUWHEFIUHWEFIUHWEIFUHWIEUFHIWFE
-  for (int run=1; run<20; run++) {
+  int numruns = 50;
+  for (int run=1; run<numruns; run++) {
   seconds = get_seconds();
   fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
   seconds = get_seconds() - seconds;
@@ -420,7 +426,9 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       v_part = 0;
       emptyparts++;
     }
-    
+    if (run == numruns-1) {
+      fprintf (PartFile, "%d %d\n",vert+1,v_part+1);
+    }
     // count edges to other partitions
     for (k = *row; k < ((*row)+nnz_row); k++) {
       if (parts[v_part][colidx[k]] != 1) { cutedges++; }
@@ -433,6 +441,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   //fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
   //fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
   }
+  fclose(PartFile);
 }
 
 float calc_dc(float alpha, float gamma, int len) {
