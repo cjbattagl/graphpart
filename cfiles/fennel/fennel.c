@@ -196,7 +196,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 4, 1.2); //todo: nparts, gamma as inputs
+  run_fennel(repr, 2, 1.2); //todo: nparts, gamma as inputs
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
@@ -426,7 +426,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     
   double *optarray, *partpr, *permpr, *ipermpr, *seppr;
   METIS_SetDefaultOptions(options);
-  csr_to_metis (n, nnz, rowptr, colidx, &xadj, &adjncy, &vwgt, &adjwgt);
+  //csr_to_metis (n, nnz, rowptr, colidx, &xadj, &adjncy, &vwgt, &adjwgt);
 
   // Allocate vsize
   params.vsize = (idx_t*)malloc(sizeof(idx_t)*n);
@@ -451,27 +451,30 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       mexErrMsgTxt("nparts must be at least 2");
     }
 */
-/*
+
     // Allocate memory for result of call
-    part = (idx_t*) malloc (n*sizeof(idx_t));
+/*    part = (idx_t*) malloc (n*sizeof(idx_t));
         
     idx_t ncon = 1;
     for (int i=0; i<n; ++i) {
       params.vsize[i] = 1;
     }
-
+    
+    idx_t n_i = (idx_t)n;
+    idx_t nparts_i = (idx_t)nparts;
+    
     // Do the call
     if (strcasecmp(funcname,"PartGraphRecursive") == 0) {
-      checkCall(METIS_PartGraphRecursive(&n, &ncon, xadj, adjncy, vwgt, params.vsize, adjwgt, &nparts, NULL, NULL, options, &edgecut, part)); 
+      checkCall(METIS_PartGraphRecursive(&n_i, &ncon, xadj, adjncy, vwgt, params.vsize, adjwgt, &nparts_i, NULL, NULL, options, &edgecut, part)); 
     } 
     else if (strcasecmp(funcname, "PartGraphKway") == 0) {
-      checkCall(METIS_PartGraphKway (&n, &ncon, xadj, adjncy, vwgt, params.vsize, adjwgt, &nparts, NULL, NULL, options, &edgecut, part));
+      checkCall(METIS_PartGraphKway (&n_i, &ncon, xadj, adjncy, vwgt, params.vsize, adjwgt, &nparts_i, NULL, NULL, options, &edgecut, part));
     }
     else {
       fprintf(stdout,"METIS: unhandled case\n");
       return -1;
     }
-    fprintf (stdout, "\tMETIS edges cut = %d / %d = %1.3f\n",edgecut,nnz,(float)edgecut/nnz);
+    fprintf (stdout, "\tMETIS edges cut = %d / %d = %1.3f\n",(int)edgecut,nnz,(float)edgecut/nnz);
     */
   }
 }
