@@ -11,3 +11,14 @@ static int run_fennel (const struct csr_matrix_t* A, int nparts, float gamma);
 static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx, 
     bool **parts, float alpha, float gamma, int *emptyverts);
 static float calc_dc(float alpha, float gamma, int len);
+
+struct parameter_data {
+#define METISMEX_OPTION_WGTFLAG -1
+    int wgtflag;
+#define METISMEX_OPTION_ADJWGT -2
+    int adjwgt;
+#define METISMEX_OPTION_VSIZE -3
+    idx_t *vsize;
+};
+
+#define FUNCNAMELEN 25

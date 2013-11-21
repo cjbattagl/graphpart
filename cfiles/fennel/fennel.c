@@ -211,7 +211,6 @@ void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj, idx_t
     *vwgt = (idx_t*) malloc (n * sizeof(idx_t));
     *adjwgt = (idx_t*) malloc (nnz * sizeof(idx_t));
 
-    /* Scan the matrix, not copying diagonal terms, and rounding doubles to integer weights */
     (*xadj)[0] = 0;
     jbar = 0;
     for (i = 1; i <= n; i++) {
@@ -371,7 +370,6 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   FILE *PartFile;
   PartFile = fopen("parts.mat", "w");
   assert(PartFile != NULL);
-  
   
   /////////////////////////////////////////////////////////////////////////////
   ///////////// EXPERIMENTAL: DO ADDITIONAL RUNS ON THE NEW PARTITION /////////
