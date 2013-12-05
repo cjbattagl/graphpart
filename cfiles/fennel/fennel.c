@@ -585,7 +585,6 @@ int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool *
     }
     
     if (out != NULL) {
-      fprintf (stdout, "%d %d\n",i+1,v_part+1);
       fprintf (out, "%d %d\n",i+1,v_part+1);
     }
     

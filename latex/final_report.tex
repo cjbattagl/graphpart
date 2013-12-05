@@ -107,7 +107,10 @@ In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG p
 
 \subsubsection{FENNEL Heuristic}
 
+\subsection{Possible Advantages of Streaming Partitioning}
+The most salient property of streaming partitioning is its speed: it can partition the graph in a single sweep, with $O(|E|)$ memory access, storage, and run time. Existing graph partitioners require the whole graph to be represented in memory, whereas streaming graph partitioning can process vertices as they arrive.
 
+Another qualitative advantage that we propose is the
 
 \section{Implementation}
 Our first goal was to implement the generalized WDG partitioner FENNEL, and test it on a wide variety of real-world and synthetic graphs. Our initial `test-bed' was implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices. As we scaled to larger graphs, the outer for-loop in the code (which iterates over each vertex) began to take an infeasible amount of time, so we implemented a more fully-featured test-bed in C. Our code is located at~\url{https://github.com/cjbattagl/graphpart/}
@@ -123,6 +126,20 @@ We measured the overall quality of partitions by the \textit{fraction of cut edg
 \[\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\]
 
 \subsubsection{SNAP Data Set}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=.70] {figures/astroPh8.png}
+\caption[Caption for]{Spy plot of ca-AstroPh 8-partition ($\lambda=0.253$)}
+\label{fig:3}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=.60] {figures/roadNet-CA8.png}
+\caption[Caption for]{Spy plot of roadNet-CA 8-partition ($\lambda=0.177$). This illustrates how a streaming algorithm cannot take into account the spatial/planar properties of a graph.}
+\label{fig:4}
+\end{figure}
 
 
 \begin{figure}
@@ -175,6 +192,11 @@ wiki-Vote  & 8297 & 103689 & no & yes & 0.2\\
 
 \subsubsection{Synthetic Graphs}
 \dots
+
+\section{Additional Passes}
+Another operation we explored was performing additional passes of partitioning on a pre-partitioned graph. The reasoning is that the partitioner is fast enough that it may be faster to do $n$ passes than use a slower mainstream graph partitioner, for some value of $n$. To explore this idea, we perform a number of passes on the SNAP data set, and observe qualitatively which graphs benefit the most. 
+
+The algorithm is simple: once we have computed the first partition, we retain the original partition mapping. Then, as we make another pass, we compute the new objective function using the partition mapping that has already been filled in. Vertices may then be switched to new partitions. This mitigates poor partitioning decisions that may have been made at the beginning of the algorithm, when there was not as much information. 
 
 \bibliographystyle{plain}
 \bibliography{bib}
