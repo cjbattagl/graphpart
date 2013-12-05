@@ -421,20 +421,18 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   /////////////////////////////////////////////////////////////////////////////
   ///////////// EXPERIMENTAL: DO ADDITIONAL RUNS ON THE NEW PARTITION /////////
   /////////////////////////////////////////////////////////////////////////////
-  float probs[14] = {1.0, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.25, 0.2, 0.1, 0.05, 0.01};
-  for (int p = 0; p<13; p++) {
+
   for (s = 0; s < nparts; s++) { partsize[s] = 0; }
   for(int i = 0; i < nparts; i++) {
       for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros
   }
-  float prob = probs[p];
-  int numruns = 3;
-  for (int run=1; run<numruns; run++) {
+  int numruns = 10;
+  for (int run=0; run<numruns; run++) {
   
     seconds = get_seconds();
     fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
     seconds = get_seconds() - seconds;
-   fprintf (stdout, "\n %g seconds =====\n", seconds);
+   //fprintf (stdout, "\n %g seconds =====\n", seconds);
 
  
     // Compute load balance  
@@ -456,16 +454,13 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     else {
       cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile);
     }
-            fprintf (stdout, "\tProb: %f \t Percent edges cut = %d / %d = %1.3f\n",prob, cutedges,nnz,(float)cutedges/nnz);
-
+    fprintf (stdout, "Percent edges cut = %d / %d = %1.3f\n", cutedges,nnz,(float)cutedges/nnz);
     if (run == numruns-1) {
-
-      //fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
-      //fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
-      //fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
-      //fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
+    //fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
+    //fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
+    //fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
+    //fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
     }
-  }
   fclose(PartFile);
 
   //////////////////////////////////
@@ -590,6 +585,7 @@ int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool *
     }
     
     if (out != NULL) {
+      fprintf (stdout, "%d %d\n",i+1,v_part+1);
       fprintf (out, "%d %d\n",i+1,v_part+1);
     }
     

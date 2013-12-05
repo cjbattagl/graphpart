@@ -92,18 +92,21 @@ Streaming partitioning is dependent on the order in which vertices arrive. For i
 Assuming vertices arrive in some order, a heuristic makes a partition decision, given vertex $v$, and capacity constraint $C$ (where $C$ is generally $\approx \frac{(\epsilon+|V|)}{n}$ Stanton presents the following heuristics, roughly in order from most naive to most complex~\cite{Stanton:2012:SGP:2339530.2339722}: (only the un-buffered heuristics are presented)
 
 \begin{enumerate}
-\item Balanced: assign $v$ to partition of minimum size, with random tie breaking.
-\item Chunking: divide input stream into chunks of size $C$.
-\item Hashing: assign $v$ to $H(v)$, where $H$ is hash function $F:V\to\{1\dots k\}$
-\item Weighted Deterministic Greedy (WDG): Assign $v$ to partition that it has most edges to, weighted by the relative size of each partition (weight function can be linear or exponential).
-\item Weighted Randomized Greedy: Assign $v$ randomly according to a probability distribution defined by the weights of each partition in WDG.
-\item Weighted Triangles: Assign $v$ to partition whose intersection with $v$ contains the most triangles, weighted by the relative size of each partition.
-\item Balance Big: for high-degree $v$, use Balanced. For low-degree $v$, use WDG. 
+\item \textbf{Balanced:} assign $v$ to partition of minimum size, with random tie breaking.
+\item \textbf{Chunking:} divide input stream into chunks of size $C$.
+\item \textbf{Hashing:} assign $v$ to $H(v)$, where $H$ is hash function $F:V\to\{1\dots k\}$
+\item \textbf{Weighted Deterministic Greedy (WDG):} Assign $v$ to partition that it has most edges to, weighted by the relative size of each partition (weight function can be linear or exponential).
+\item \textbf{Weighted Randomized Greedy:} Assign $v$ randomly according to a probability distribution defined by the weights of each partition in WDG.
+\item \textbf{Weighted Triangles:} Assign $v$ to partition whose intersection with $v$ contains the most triangles, weighted by the relative size of each partition.
+\item \textbf{Balance Big:} for high-degree $v$, use Balanced. For low-degree $v$, use WDG. 
 \end{enumerate}
 
 Of note is that many major graph-processing toolkits such as GraphLab~\cite{Low:2012:DGF:2212351.2212354} use the hashed (random) partitioning method, which essentially produces a worst-case edgecut of size $\frac{k-1}{k}|E|$, but which has the benefit that $H(v)$ can be called at any time to return the compute node that owns $v$. 
 
 In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG performed far better than any other partitioner. FENNEL~\cite{tsourakakis2012fennel} is a heuristic that generalizes the WDG partitioner for any weight function, and provides a somewhat more rigorous theoretical framework. 
+
+\subsubsection{FENNEL Heuristic}
+
 
 
 \section{Implementation}
@@ -121,12 +124,12 @@ We measured the overall quality of partitions by the \textit{fraction of cut edg
 
 \subsubsection{SNAP Data Set}
 
-{
+
 \begin{figure}
-\caption{Basic properties of graphs in SNAP data set}
+\caption{Basic properties of graphs in SNAP data set with $\lambda$ for one pass}
 \rowcolors{2}{green!25}{yellow!30}
 \centering
-\begin{tabular}{ *6l }    \toprule
+{ \begin{tabular}{ *6l }    \toprule
 \emph{Data Set} & $N$ & $nnz$ & \emph{sym} & \emph{power-law?} & $\lambda$ \\\midrule 
 amazon0302 & 262111 & 1234877 & no & yes & 0.2\\ 
 amazon0312 & 400727 & 3200440 & no & yes & 0.2\\ 
@@ -164,9 +167,10 @@ web-Stanford & 281903 & 2312497 & no & yes & 0.2\\
 wiki-Talk & 2394385 & 5021410 & no & yes & 0.2\\ 
 wiki-Vote  & 8297 & 103689 & no & yes & 0.2\\ 
  \hline
-\end{tabular}
-\end{figure}\par
+\end{tabular}\par
 }
+\end{figure}
+
 \dots
 
 \subsubsection{Synthetic Graphs}
