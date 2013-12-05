@@ -193,6 +193,13 @@ int main (int argc, char *argv[]) {
     repr->m,repr->n,repr->nnz,
     (float)repr->nnz/(float)(repr->m * repr->n),
     type,sym_type);
+    
+  FILE *LambdaFile;
+  LambdaFile = fopen("lambda.txt", "a");
+  assert(LambdaFile != NULL);
+  fprintf(LambdaFile, "%s",opts.input_filename);
+  fprintf(LambdaFile, " ");
+  fclose(LambdaFile);
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
@@ -418,6 +425,11 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   PartFile = fopen("parts.mat", "w");
   assert(PartFile != NULL);
   
+  FILE *LambdaFile;
+  LambdaFile = fopen("lambda.txt", "a");
+  assert(LambdaFile != NULL);
+
+  
   /////////////////////////////////////////////////////////////////////////////
   ///////////// EXPERIMENTAL: DO ADDITIONAL RUNS ON THE NEW PARTITION /////////
   /////////////////////////////////////////////////////////////////////////////
@@ -434,7 +446,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     seconds = get_seconds() - seconds;
    //fprintf (stdout, "\n %g seconds =====\n", seconds);
 
- 
+
     // Compute load balance  
     max_load = partsize[0];
     min_load = partsize[0];
@@ -455,6 +467,8 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile);
     }
     fprintf (stdout, "Percent edges cut = %d / %d = %1.3f\n", cutedges,nnz,(float)cutedges/nnz);
+    fprintf(LambdaFile, "%1.3f, ",(float)cutedges/nnz);
+
     if (run == numruns-1) {
     //fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
     //fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
@@ -463,6 +477,9 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     }
   }
   fclose(PartFile);
+      fprintf(LambdaFile, "\n");
+
+  fclose(LambdaFile);
 
   //////////////////////////////////
   //////// METIS RUN ///////////////

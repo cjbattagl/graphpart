@@ -123,7 +123,10 @@ Once we have our graph stored as a matrix in CSR form, we can perform a simulati
 \subsection{Evaluation}
 
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
-\[\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\]
+\begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}
+
+In general, we can compare this to the expected quality of a random partition:
+\begin{align}\lambda_r = \frac{k-1}{k} \end{align}
 
 \subsubsection{SNAP Data Set}
 
