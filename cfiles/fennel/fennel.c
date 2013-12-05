@@ -196,7 +196,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 2, 1.2); //todo: nparts, gamma as inputs
+  run_fennel(repr, 8, 1.5); //todo: nparts, gamma as inputs
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
@@ -211,8 +211,8 @@ static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
   int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
   float curr_score, best_score;
   int *vorder = genRandPerm(n);
+  int oldpart;
 
-  for (s = 0; s < nparts; s++) { partsize[s] = 0; }
   emptyverts = 0;
 
   for (int i = 0; i < n; i++) {
@@ -220,7 +220,7 @@ static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
     vert = vorder[i];
     row = &rowptr[vert];
     nnz_row = *(row+1) - *row;
-
+    oldpart = -1;
    if(nnz_row != 0) {
       // generate partition scores for each partition
       for (k = *row; k < ((*row)+nnz_row); k++) {
@@ -235,21 +235,114 @@ static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
         curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
         if (curr_score > best_score) { best_score = curr_score; best_part = s; }
       }
-      for (s = 0; s < nparts; s++) { parts[s][vert] = 0; }
+      for (s = 0; s < nparts; s++) { 
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
       parts[best_part][vert] = 1;
       //int sum=0;
       //for (s = 0; s < nparts; s++) { sum += parts[s][vert]; }
       //assert(sum==1);
       partsize[best_part]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
       
     } else { // empty vertex for some reason... assign it to random permutation
       emptyverts++;
       randidx = irand(nparts);
-      //for (s = 1; s < nparts; s++) { parts[s][vert] = 0; }
+      for (s = 1; s < nparts; s++) {
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
       parts[randidx][vert] = 1;
       partsize[randidx]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
     }
   }
+  
+  free(vorder);
+}
+
+static int sample_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
+    bool **parts, float alpha, float gamma, int *emptyverts, float prob) {
+      
+  int *partscore = (int*)malloc(nparts * sizeof(int));
+  int *row;
+  int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
+  float curr_score, best_score;
+  int *vorder = genRandPerm(n);
+  int oldpart;
+
+  emptyverts = 0;
+
+  for (int i = 0; i < n; i++) {
+    for (s = 0; s < nparts; s++) { partscore[s]=0; }
+    vert = vorder[i];
+    row = &rowptr[vert];
+    nnz_row = *(row+1) - *row;
+    int *randOrder = genRandPerm(nnz_row);
+
+    oldpart = -1;
+   if(nnz_row != 0) {
+      // generate partition scores for each partition
+      k = *row;
+      
+      int end = floor(prob*nnz_row);
+      int end_idx = (nnz_row > 200) ? end : nnz_row;
+      
+      for (int j=0; j<end_idx; j++) {
+        node = colidx[k + randOrder[j]];
+        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; /*break;*/ }}
+      }
+      
+      // choose optimal partition (initializing first)
+      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
+      best_part = 0;
+      for (s = 1; s < nparts; s++) {
+        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
+        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
+      }
+      for (s = 0; s < nparts; s++) { 
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
+      parts[best_part][vert] = 1;
+      //int sum=0;
+      //for (s = 0; s < nparts; s++) { sum += parts[s][vert]; }
+      //assert(sum==1);
+      partsize[best_part]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+      
+    } else { // empty vertex for some reason... assign it to random permutation
+      emptyverts++;
+      randidx = irand(nparts);
+      for (s = 1; s < nparts; s++) {
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
+      parts[randidx][vert] = 1;
+      partsize[randidx]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+    }
+    free(randOrder);
+  }
+  
+  free(vorder);
 }
 
 static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
@@ -288,7 +381,8 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   
   //initialize part sizes
   int *partsize = (int*)malloc(nparts * sizeof(int));
-    
+  for (s = 0; s < nparts; s++) { partsize[s] = 0; }
+
   seconds = get_seconds();
   fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
   seconds = get_seconds() - seconds;
@@ -311,7 +405,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   int emptyparts = 0; //empty assignments
   int redparts = 0; //redundant assignments
   
-  cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n);
+  cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL);
     
   fprintf (stdout, "----> Percent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
   fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
@@ -327,12 +421,21 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   /////////////////////////////////////////////////////////////////////////////
   ///////////// EXPERIMENTAL: DO ADDITIONAL RUNS ON THE NEW PARTITION /////////
   /////////////////////////////////////////////////////////////////////////////
-  int numruns = 6;
+  float probs[14] = {1.0, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.25, 0.2, 0.1, 0.05, 0.01};
+  for (int p = 0; p<13; p++) {
+  for (s = 0; s < nparts; s++) { partsize[s] = 0; }
+  for(int i = 0; i < nparts; i++) {
+      for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros
+  }
+  float prob = probs[p];
+  int numruns = 3;
   for (int run=1; run<numruns; run++) {
   
     seconds = get_seconds();
     fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
     seconds = get_seconds() - seconds;
+   fprintf (stdout, "\n %g seconds =====\n", seconds);
+
  
     // Compute load balance  
     max_load = partsize[0];
@@ -342,18 +445,25 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       if (partsize[s] < min_load) {min_load = partsize[s];}
     }
 
-    fprintf (stdout, "----> Run |%d|: Load balance: %d / %d = %1.2f\t",run,max_load,min_load,(float)max_load/min_load);
+    //fprintf (stdout, "----> Run |%d|: Load balance: %d / %d = %1.2f\t",run,max_load,min_load,(float)max_load/min_load);
     cutedges = 0;
     emptyparts = 0; //empty assignments
     redparts = 0; //redundant assignments
-    cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n);
     
-    fprintf (stdout, "\tPercent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
+    if (run < numruns-1) {
+      cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL);
+    }
+    else {
+      cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile);
+    }
+            fprintf (stdout, "\tProb: %f \t Percent edges cut = %d / %d = %1.3f\n",prob, cutedges,nnz,(float)cutedges/nnz);
+
     if (run == numruns-1) {
-      fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
-      fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
-      fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
-      fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
+
+      //fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
+      //fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
+      //fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
+      //fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
     }
   }
   fclose(PartFile);
@@ -398,9 +508,9 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       mexErrMsgTxt("nparts must be at least 2");
     }
 */
-
+/*
     // Allocate memory for result of call
-/*    part = (idx_t*) malloc (n*sizeof(idx_t));
+    part = (idx_t*) malloc (n*sizeof(idx_t));
         
     idx_t ncon = 1;
     for (int i=0; i<n; ++i) {
@@ -411,6 +521,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     idx_t nparts_i = (idx_t)nparts;
     
     // Do the call
+    seconds = get_seconds();
     if (strcasecmp(funcname,"PartGraphRecursive") == 0) {
       checkCall(METIS_PartGraphRecursive(&n_i, &ncon, xadj, adjncy, vwgt, params.vsize, adjwgt, &nparts_i, NULL, NULL, options, &edgecut, part)); 
     } 
@@ -421,8 +532,10 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       fprintf(stdout,"METIS: unhandled case\n");
       return -1;
     }
-    fprintf (stdout, "\tMETIS edges cut = %d / %d = %1.3f\n",(int)edgecut,nnz,(float)edgecut/nnz);
-    */
+    seconds = get_seconds() - seconds;
+    fprintf (stdout, "\n===== METIS Complete in %g seconds =====\n", seconds);
+    fprintf (stdout, "\tMETIS edges cut = %d / %d = %1.3f\n",(int)edgecut,nnz,(float)edgecut/nnz);*/
+  }
   }
 }
 
@@ -442,6 +555,7 @@ static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj
 
         for (j = rowptr[i-1]; j < rowptr[i]; j++) {
             if (colidx[j] != i-1) {
+                //fprintf(stdout,"%d ",jbar);
                 (*adjncy)[jbar] = colidx[j];
                 (*adjwgt)[jbar] = 1;
                 jbar++;
@@ -453,7 +567,7 @@ static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj
     }
 }
   
-int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n) {
+int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out) {
   int vert, nnz_row, v_part;
   int cutedges = 0;
   int *row;
@@ -473,6 +587,10 @@ int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool *
     if (v_part == -1) {
       v_part = 0;
       emptyparts++;
+    }
+    
+    if (out != NULL) {
+      fprintf (out, "%d %d\n",i+1,v_part+1);
     }
     
     // count edges to other partitions

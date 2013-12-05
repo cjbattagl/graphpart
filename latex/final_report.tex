@@ -4,12 +4,15 @@
 \usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage{cite}
+\usepackage{xparse}
 %\usepackage{algorithmic}
 %\usepackage{algorithm}
 \usepackage{todonotes}
 \usepackage{url}
-\usepackage{tikz}
 \usetikzlibrary{arrows}
+
+\usepackage{tikz}
+\usetikzlibrary{calc,fit,shapes}
 
 \usepackage{caption}
 \usepackage{subcaption}
@@ -34,6 +37,7 @@
             breakatwhitespace=false,                        % sets if automatic breaks should only happen at whitespace
             escapeinside={\%*}{*)}                          % if you want to add a comment within your code
 }
+
 
 \setlength{\paperwidth}{8.5in}
 \setlength{\paperheight}{11in}
@@ -61,19 +65,30 @@
 \maketitle
 
 \begin{abstract}
-Graph partitioning is the process of dividing a graph into subgraphs such that the number of edges between subgraphs is reduced. Our project investigates the process of partitioning a graph using a \emph{streaming} partitioner, which must make partition decisions as each vertex is read from memory, simulating an online algorithm that must process nodes as they arrive. We demonstrate and analyze streaming graph partitioning on a wide spectrum of real-world and synthetic graphs, as well as explore iterative ways of improving partition quality. 
+Graph partitioning is the process of dividing a graph into subgraphs such that the number of edges between subgraphs is reduced. Our project investigates the process of partitioning a graph using a \emph{streaming} partitioner, which must make partition decisions as each vertex is read from memory, simulating an online algorithm that must process nodes as they arrive. In this project, we demonstrate and analyze streaming graph partitioning on a wide spectrum of real-world and synthetic graphs, as well as explore ways of improving partition quality. 
 \end{abstract}
 
 \section{Graph Partitioning} \vspace{-10 pt}
-Graph partitioning has been a part of theoretical computer science for decades, but has seen increasing attention since the 1990s as a method of partitioning problems to increase parallel locality. The balanced graph partitioning problem can be stated as such: we wish to partition the nodes of a graph into $k$ components with capacity $(1+\epsilon)\frac{N}{k}$, such that cost is minimized, where cost is generally the number of edges that cross partition boundaries. Requiring both balance and cost-minimization places this problem in NP-complete, because it becomes a minimum-bisection problem~\cite{Garey:1979:CIG:578533}.
+Graph partitioning has been a standard problem in theoretical computer science for decades, but has seen increasing attention since the 1990s as a method of partitioning problems to increase parallel locality. The balanced graph partitioning problem can be stated as such: we wish to partition the nodes of a graph into $k$ components with capacity $(1+\epsilon)\frac{N}{k}$, such that cost is minimized, where cost is generally the number of edges that cross partition boundaries. While satisfying either the capacity constraint or the partitioning objective on their own is trivial, requiring both balance and cost-minimization places this problem in NP-complete, because it becomes a minimum-bisection problem~\cite{Garey:1979:CIG:578533}.
 
-Offline graph partitioning algorithms, where the graph is allowed to exist in memory, have existed for decades. Hundreds of variants of such algorithms likely now exist, and range from spatial methods to spectral methods~\cite{arora2009expander}. The most scalable and effective graph partitioners on massive datasets are currently multi-level partitioners, which contract the graph to a small number of vertices, and then heuristically optimize the problem on each subsequent expansion~\cite{karypis1998multilevel}. 
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=.60] {figures/graphpart.png}
+\caption[Caption for]{Graph 4-partition shown with corresponding adjacency matrix \footnotemark}
+\label{fig:0}
+\end{figure}
+
+\footnotetext{Source: Jim Demmel's CS267 Lectures,~\url{http://www.cs.berkeley.edu/~demmel/cs267}}
+
+Offline graph partitioning algorithms, where the graph is allowed to exist in memory with total information about edges, have existed for decades. Hundreds of variants of such algorithms likely now exist, and range from spatial methods~\cite{Gilbert95geometricmesh} to spectral methods~\cite{arora2009expander}. The most scalable and effective graph partitioners on massive datasets are currently multi-level partitioners, which recursively contract the graph to a small number of vertices, and then heuristically optimize the problem on each subsequent expansion~\cite{karypis1998multilevel}. 
 
 \section{Streaming Graph Partitioning}\vspace{-10 pt}
-Streaming graph partitioning has only been introduced in the last couple of years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}, as graphs grow to the point where they may not fit into memory, or must be distributed to compute nodes on the fly. In the streaming model, input data (vertices) arrive sequentially from a generating source (such as a web-crawler), and must be partitioned as they arrive. As an example, partitioning the Twitter graph can take nearly a day using the fastest offline algorithms, but can take a matter of minutes using a streaming algorithm.
+Streaming graph partitioning has only been introduced in the last couple of years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}, as graphs grow to the point where they may not fit into memory, or must be distributed to compute nodes on the fly. In the streaming model, input data (vertices) arrive sequentially from a generating source (such as a web-crawler), and must be partitioned as they arrive. As an example, partitioning a 26GB Twitter follower graph can take nearly a day using the fastest offline algorithms, but can take a matter of minutes using a streaming algorithm.
+
+Streaming partitioning is dependent on the order in which vertices arrive. For instance, a web crawler might generate vertices in an order that represents a Breadth-First or Depth-First traversal of the web, or we may receive vertices in a random order. An analysis of streaming algorithms may also consider an adversarial ordering that produces the worst possible results~\cite{Stanton:2012:SGP:2339530.2339722}. For the purposes of this project we always consider a random ordering. 
 
 \subsection{Streaming Heuristics}
-Assuming vertices arrive in a stream (which may come in a BFS, DFS, random, or adversarial ordering), a heuristic makes a partition decision, given vertex $v$, and capacity constraint $C$ (where $C$ is generally $\approx \frac{(\epsilon+|V|)}{n}$ Stanton presents the following heuristics, roughly in order from most naive to most complex~\cite{Stanton:2012:SGP:2339530.2339722}: (only the un-buffered heuristics are presented)
+Assuming vertices arrive in some order, a heuristic makes a partition decision, given vertex $v$, and capacity constraint $C$ (where $C$ is generally $\approx \frac{(\epsilon+|V|)}{n}$ Stanton presents the following heuristics, roughly in order from most naive to most complex~\cite{Stanton:2012:SGP:2339530.2339722}: (only the un-buffered heuristics are presented)
 
 \begin{enumerate}
 \item Balanced: assign $v$ to partition of minimum size, with random tie breaking.
@@ -90,10 +105,8 @@ Of note is that many major graph-processing toolkits such as GraphLab~\cite{Low:
 In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG performed far better than any other partitioner. FENNEL~\cite{tsourakakis2012fennel} is a heuristic that generalizes the WDG partitioner for any weight function, and provides a somewhat more rigorous theoretical framework. 
 
 
-\section{Initial Steps}
-Our first goal was to implement the partitioning methods developed in recent literature, and test them with on synthetic graphs. This paves the way for us to make further contributions to the field (given that we can now compare any techniques we come up with to the techniques in the literature).
-
-Our `test-bed' is implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices, and code is very easy to prototype. Our code located at~\url{https://github.com/cjbattagl/graphpart/tree/master/mfiles}
+\section{Implementation}
+Our first goal was to implement the generalized WDG partitioner FENNEL, and test it on a wide variety of real-world and synthetic graphs. Our initial `test-bed' was implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices. As we scaled to larger graphs, the outer for-loop in the code (which iterates over each vertex) began to take an infeasible amount of time, so we implemented a more fully-featured test-bed in C. Our code is located at~\url{https://github.com/cjbattagl/graphpart/}
 
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \[\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\]
@@ -176,52 +189,78 @@ As our early experiments demonstrate, we are also able to investigate the qualit
 \end{enumerate}
 
 
-\section{Example MATLAB Code}
-Here is an example of MATLAB code that we developed to perform a streaming heurisic (FENNEL) on an input graph. In this case, streaming order is a random permutation on $\{1\dots N\}$.
-\begin{verbatim}
-%Input: Adjacency Matrix A, Weight parameter gamma
-%Output: Bisected adjacency matrix B = A(p,p)
-function [B] = fennel (A, gamma)
-  vorder = randperm(size(A,1));
-
-  m = size(A,1);
-  e = nnz(A);
-
-  alpha = sqrt(2)*e/m^1.5;
-
-  p1 = [];
-  p2 = [];
-  
-  for v=vorder
-    idxs = find(A(v,:));  %get N(v)
-
-    [~, loc] = ismember(idxs, p1); %set loc to idxs of intersect(N(v), S1)
-    loc = find(loc); %length(loc) is now number of edges between v, S1
-    p1newedges = -length(idxs) + length(loc); %p1newedges is number of edges between v, V \ S1 = e(v, V \ S1)
-    clear loc
-    
-    [~, loc] = ismember(idxs, p2);
-    loc = find(loc);
-    p2newedges = -length(idxs) + length(loc);
-
-    % if h(S2) + h(S1 U {v}) > h(S1) + h(S2 U {v})
-    if (p1newedges - dc(length(p1),alpha, gamma)) >= (p2newedges - dc(length(p2),alpha,gamma))
-      p1 = [p1 v];
-    else
-      p2 = [p2 v];
-    end
-  end
-
-  B = A([p1 p2],[p1 p2]); 
-end
-
-function [dy] = dc(x, alpha, gamma)
-  dy = c(x+1, alpha, gamma) - c(x, alpha, gamma);
-end
-\end{verbatim}
-
 \bibliographystyle{plain}
 \bibliography{bib}
 
+\newpage
+\appendix
+\section{\\Streaming Partitioner Code} \label{App:AppendixA}
+% the \\ insures the section title is centered below the phrase: AppendixA
+
+\begin{verbatim}
+static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
+    bool **parts, float alpha, float gamma, int *emptyverts) {
+      
+  int *partscore = (int*)malloc(nparts * sizeof(int));
+  int *row;
+  int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
+  float curr_score, best_score;
+  int *vorder = genRandPerm(n);
+  int oldpart;
+
+  emptyverts = 0;
+
+  for (int i = 0; i < n; i++) {
+    for (s = 0; s < nparts; s++) { partscore[s]=0; }
+    vert = vorder[i];
+    row = &rowptr[vert];
+    nnz_row = *(row+1) - *row;
+    oldpart = -1;
+   if(nnz_row != 0) {
+      // generate partition scores for each partition
+      for (k = *row; k < ((*row)+nnz_row); k++) {
+        node = colidx[k];
+        for (s = 0; s < nparts; s++) { if (parts[s][node]==1) {partscore[s]++;}}
+      }
+        
+      // choose optimal partition (initializing first)
+      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
+      best_part = 0;
+      for (s = 1; s < nparts; s++) {
+        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
+        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
+      }
+      for (s = 0; s < nparts; s++) { 
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
+      parts[best_part][vert] = 1;
+      partsize[best_part]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+      
+    } else { // empty vertex for some reason... assign it to random permutation
+      emptyverts++;
+      randidx = irand(nparts);
+      for (s = 1; s < nparts; s++) {
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
+      parts[randidx][vert] = 1;
+      partsize[randidx]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+    }
+  }
+  
+  free(vorder);
+}
+\end{verbatim}
 
 \end{document}
