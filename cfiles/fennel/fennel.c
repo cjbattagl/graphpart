@@ -461,6 +461,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     //fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
     //fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
     }
+  }
   fclose(PartFile);
 
   //////////////////////////////////
@@ -530,7 +531,6 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     seconds = get_seconds() - seconds;
     fprintf (stdout, "\n===== METIS Complete in %g seconds =====\n", seconds);
     fprintf (stdout, "\tMETIS edges cut = %d / %d = %1.3f\n",(int)edgecut,nnz,(float)edgecut/nnz);*/
-  }
   }
 }
 
