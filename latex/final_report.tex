@@ -54,15 +54,18 @@
 
 \DeclareGraphicsRule{.JPG}{eps}{*}{`jpeg2ps #1}
 
-\title{Streaming Graph Partitioning \\ Progress Update}
+\title{Project: Streaming Graph Partitioning}
 \author{Casey Battaglino\\Robert Pienta}
-\date{}
+%\date{}
 \begin{document}
 \maketitle
-\section*{Introduction} \vspace{-10 pt}
-Our project investigates the process of partitioning a graph using a \emph{streaming} partitioner. Graph partitioning has been a part of theoretical computer science for decades, but saw increasing attention in the 1990s as a method of partitioning problems to increase parallel locality. 
 
-The balanced graph partitioning problem can be stated as such: we wish to partition the nodes of a graph into $k$ components with capacity $(1+\epsilon)\frac{N}{k}$, such that cost is minimized, where cost is generally the number of edges that cross partition boundaries. Requiring both balance and cost-minimization places this problem in NP-complete, because it becomes a minimum-bisection problem~\cite{Garey:1979:CIG:578533}.
+\begin{abstract}
+Graph partitioning is the process of dividing a graph into subgraphs such that the number of edges between subgraphs is reduced. Our project investigates the process of partitioning a graph using a \emph{streaming} partitioner, which must make partition decisions as each vertex is read from memory, simulating an online algorithm that must process nodes as they arrive. We demonstrate and analyze streaming graph partitioning on a wide spectrum of real-world and synthetic graphs, as well as explore iterative ways of improving partition quality. 
+\end{abstract}
+
+\section{Graph Partitioning} \vspace{-10 pt}
+Graph partitioning has been a part of theoretical computer science for decades, but has seen increasing attention since the 1990s as a method of partitioning problems to increase parallel locality. The balanced graph partitioning problem can be stated as such: we wish to partition the nodes of a graph into $k$ components with capacity $(1+\epsilon)\frac{N}{k}$, such that cost is minimized, where cost is generally the number of edges that cross partition boundaries. Requiring both balance and cost-minimization places this problem in NP-complete, because it becomes a minimum-bisection problem~\cite{Garey:1979:CIG:578533}.
 
 Offline graph partitioning algorithms, where the graph is allowed to exist in memory, have existed for decades. Hundreds of variants of such algorithms likely now exist, and range from spatial methods to spectral methods~\cite{arora2009expander}. The most scalable and effective graph partitioners on massive datasets are currently multi-level partitioners, which contract the graph to a small number of vertices, and then heuristically optimize the problem on each subsequent expansion~\cite{karypis1998multilevel}. 
 
