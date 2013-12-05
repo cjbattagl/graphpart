@@ -1350,7 +1350,7 @@ coo_to_csr (struct coo_matrix_t* A)
       /* For each coord_array entry i, add it to the CSR matrix */
       for (i = 0; i < nnz; i++)
 	{
-	  if (coord_array[i].c - index_base > currow)
+	  if (coord_array[i].r - index_base > currow)
 	    {
 	      /* 
 	       * We may jump more than one row at a time, so set the rowptr 
