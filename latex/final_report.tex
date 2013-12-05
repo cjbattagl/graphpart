@@ -108,85 +108,20 @@ In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG p
 \section{Implementation}
 Our first goal was to implement the generalized WDG partitioner FENNEL, and test it on a wide variety of real-world and synthetic graphs. Our initial `test-bed' was implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices. As we scaled to larger graphs, the outer for-loop in the code (which iterates over each vertex) began to take an infeasible amount of time, so we implemented a more fully-featured test-bed in C. Our code is located at~\url{https://github.com/cjbattagl/graphpart/}
 
+\subsection{Features}
+Our implementation can read graphs in three formats (Harwell-Boeing, Matlab, and Matrix-Market Formats). This allows us to read in the entire SNAP graph archive~\cite{Leskovec-data}. It can read in symmetric (undirected) and unsymmetric (directed) graphs. Once the graph is read in, we convert it from unordered triplet format to Compressed Sparse Row format, which allows us to iterate through the neighbor list of any node in linear time, as well as compute the degree of any node in constant time.
+
+Once we have our graph stored as a matrix in CSR form, we can perform a simulation of streaming $k-$partitioning. First we generate the traversal order of the graph (a random vertex order, which we generate using a Knuth Shuffle). We maintain a data structure that contains the assignment of every assigned vertex to its partition. Thus, for a given vertex, we can compute the number of edges from that vertex to each partition by iterating over each edge incident to the vertex. We also maintain a running total of vertices in each partition. This process lets us compute the FENNEL algorithm in $O(|E|)=O(nnz(A))$ time. 
+
+\subsection{Evaluation}
+
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \[\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\]
 
-We investigated the results for the simplest case of partition, the bi-partition or 2-partition, but will continue our tests onto generic k-partitions.  
-We have also performed an analysis of the parameters used by FENNEL.
-
-\section*{Synthetic Tests} \vspace{-10 pt}
-Our initial tests focus on the partitioner FENNEL which purports to have comparable performance in the quality of partitions with METIS, but with drastically faster computation time on large graphs. 
-
-\begin{figure}[ht]
-\centering
-\caption{A sample adjacency matrix for a partitioned ER graph (n=1000, m=1962), $\gamma = 1.5$}
-\includegraphics[scale=.65] {figures/adj_spy.png}
-\label{fig:1}
-\end{figure}
-
-\subsection*{Experiments} \vspace{-10 pt}
-We examined the quality of FENNEL partitions over ER graphs with 1000 nodes and variable numbers of edges. Each point is the average of multiple ER graph partitions. Figure~\ref{fig:1} shows an example partition that we produced on an Erdos-Renyi graph, and demonstrates how a spy plot can be used to eyeball the quality of a partition.
-
-\begin{figure}[ht]
-\caption{FENNEL experiments investigating partition quality versus graph density and parameter choice.} 
-\begin{subfigure}[b]{0.5\textwidth}
-\caption{Average $\lambda$ of partition compared against varied density ER graphs (n=1000).  FENNEL's performance quickly degrades as the random graph grows in edge-density.}
-\label{figure:quality}
-\centering
-\includegraphics[width=\textwidth] {figures/varied_er_p.png}
-\end{subfigure}
-\begin{subfigure}[b]{0.5\textwidth}
-\caption{Average $\lambda$ of partition compared against varied $\gamma$ for ER graph (n=1000, p=0.001)  The results on $(1,2)$ do not yield differences in performance on ER Graphs.}
-\label{figure:gamma}
-\includegraphics[width=\textwidth] {figures/varied_gamma.png}
-\end{subfigure}
-\end{figure}
-FENNEL uses a deterministic greedy partitioner penalized via a cost function of the form $c(x) = \alpha x^\gamma$, where $x$ is the number of nodes in a partition. 
-For $1\le\gamma\le 2$ the cost function balances between adding the new vertex to the partition with the largest number of neighbors and the least number of non-neighbors respectively.
-Next we investigated the input parameters to the FENNEL costs function in Figure \ref{figure:quality}.  
-
-Note that in Figure \ref{figure:gamma}, the increase in the cost function past a quadratic incurs a sharp loss in quality as it very heavily suggests the placement of vertices into partitions with the lowest number of non-neighbors.
-
-We tested two suggestions for $\alpha$ with multiple runs on ER graphs.
-The results shown in Table \ref{table:qualityalpha}
-\begin{table}[ht]
-\centering
-\caption{The quality of partitions by choice of $\alpha$}
-\label{table:qualityalpha}
-\begin{tabular}{r | r}\hline
-Graph & Ave $\lambda$ \\ \hline &\\
-$\sqrt{2}\frac{m}{n^1.5}$ & 18.17\\ &\\
-$\vspace{3pt}m\frac{2^\gamma-1}{n^\gamma} $&18.37\\
-\end{tabular}
-\end{table}
-
+\dots
 
 
 In order to test scale-free distributions we chose to use Kronecker generated scale free network with $n=8192, m=16384$. (Note: Table~\ref{table:quality} is just a small subset of what we plan to investigate).
-
-\begin{table}[h]
-\centering
-\caption{The quality of partitions}
-\label{table:quality}
-\begin{tabular}{r | c}\hline
-Graph & $\lambda$ \\ \hline
-ER & \\
-Kronecker Scale-Free & 30.80\\
-others & etc..\\
-\end{tabular}
-\end{table}
-\newpage
-\section{Current Status}
-We have currently implemented the basic heuristics (balanced, chunking, hashing), the greedy heuristics (deterministic/random greedy), and the generalized partitioner FENNEL. We have generators for E-R, hidden-partition, and Power-Law (RMAT/Kronecker) graphs, and we have also downloaded the entire SNAP real-world network data set and the Twitter graph. Thus, we have a test-bed upon which we can test any of our additional contributions. 
-
-As our early experiments demonstrate, we are also able to investigate the quality of partitioners as the parameters of the random graphs change, which is not an experiment performed in the literature. This is of particular interest for Kronecker Power-Law graphs, which are seeded with 4 parameters (which can be fitted to real-world graphs using a \texttt{Kron-Fit}  package).
-
-\section{Next Steps}
-\begin{enumerate}
-\item Propose new partitioning heuristics and evaluate them.
-\item Investigate critical points of failure of heuristics on random graph models, and justify.
-\item Evaluate heuristics with other objective functions (such as edge-partitioning).
-\end{enumerate}
 
 
 \bibliographystyle{plain}
