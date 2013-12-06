@@ -202,7 +202,7 @@ int main (int argc, char *argv[]) {
   LambdaFile = fopen("lambda.txt", "a");
   assert(LambdaFile != NULL);
   fprintf(LambdaFile, "%s",opts.input_filename);
-  fprintf(LambdaFile, " ");
+  fprintf(LambdaFile, " ,");
   fclose(LambdaFile);
   
   // ********** Run FENNEL ***************************************
@@ -442,7 +442,7 @@ static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   for(int i = 0; i < nparts; i++) {
       for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros
   }
-  int numruns = 10;
+  int numruns = 2;
   for (int run=0; run<numruns; run++) {
   
     seconds = get_seconds();
