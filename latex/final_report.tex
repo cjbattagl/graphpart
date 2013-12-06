@@ -72,7 +72,7 @@ Graph partitioning is the process of dividing a graph into subgraphs such that t
 \section{Graph Partitioning} \vspace{-10 pt}
 Graph partitioning has been a standard problem in theoretical computer science for decades, but has seen increasing attention since the 1990s as a method of partitioning problems to increase parallel locality. The balanced graph partitioning problem can be stated as such: we wish to partition the nodes of a graph into $k$ components with capacity $(1+\epsilon)\frac{N}{k}$, such that cost is minimized, where cost is generally the number of edges that cross partition boundaries. While satisfying either the capacity constraint or the partitioning objective on their own is trivial, requiring both balance and cost-minimization places this problem in NP-complete, because it becomes a minimum-bisection problem~\cite{Garey:1979:CIG:578533}.
 
-\begin{figure}[ht]
+\begin{figure}[h]
 \centering
 \includegraphics[scale=.60] {figures/graphpart.png}
 \caption[Caption for]{Graph 4-partition shown with corresponding adjacency matrix \footnotemark}
@@ -86,7 +86,7 @@ Offline graph partitioning algorithms, where the graph is allowed to exist in me
 \section{Streaming Graph Partitioning}\vspace{-10 pt}
 Streaming graph partitioning has only been introduced in the last couple of years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}, as graphs grow to the point where they may not fit into memory, or must be distributed to compute nodes on the fly. In the streaming model, input data (vertices) arrive sequentially from a generating source (such as a web-crawler), and must be partitioned as they arrive. As an example, partitioning a 26GB Twitter follower graph can take nearly a day using the fastest offline algorithms, but can take a matter of minutes using a streaming algorithm.
 
-Streaming partitioning is dependent on the order in which vertices arrive. For instance, a web crawler might generate vertices in an order that represents a Breadth-First or Depth-First traversal of the web, or we may receive vertices in a random order. An analysis of streaming algorithms may also consider an adversarial ordering that produces the worst possible results~\cite{Stanton:2012:SGP:2339530.2339722}. For the purposes of this project we always consider a random ordering. 
+Streaming partitioning is dependent on the order in which vertices arrive. For instance, a web crawler might generate vertices in an order that represents a Breadth-First or Depth-First traversal of the web, or we may receive vertices in a random order. An analysis of streaming algorithms may also consider an adversarial ordering that produces the worst possible results~\cite{Stanton:2012:SGP:2339530.2339722}. For the purposes of this project we always consider a random ordering, because in the literature it is always on par with or better than other orderings. 
 
 \subsection{Streaming Heuristics}
 Assuming vertices arrive in some order, a heuristic makes a partition decision, given vertex $v$, and capacity constraint $C$ (where $C$ is generally $\approx \frac{(\epsilon+|V|)}{n}$ Stanton presents the following heuristics, roughly in order from most naive to most complex~\cite{Stanton:2012:SGP:2339530.2339722}: (only the un-buffered heuristics are presented)
@@ -103,17 +103,15 @@ Assuming vertices arrive in some order, a heuristic makes a partition decision, 
 
 Of note is that many major graph-processing toolkits such as GraphLab~\cite{Low:2012:DGF:2212351.2212354} use the hashed (random) partitioning method, which essentially produces a worst-case edgecut of size $\frac{k-1}{k}|E|$, but which has the benefit that $H(v)$ can be called at any time to return the compute node that owns $v$. 
 
-In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG performed far better than any other partitioner. FENNEL~\cite{tsourakakis2012fennel} is a heuristic that generalizes the WDG partitioner for any weight function, and provides a somewhat more rigorous theoretical framework. 
+In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG performed far better than any other partitioner. FENNEL~\cite{tsourakakis2012fennel} is a heuristic that generalizes the WDG partitioner for any weight function, and provides a somewhat more rigorous theoretical framework. For this project, we always consider a WDG partitioner. 
 
 \subsubsection{FENNEL Heuristic}
 
 \subsection{Why Use Streaming Partitioning?}
 The most salient property of streaming partitioning is its speed: it can partition the graph in a single sweep, with $O(|E|)$ memory access, storage, and run time. Existing graph partitioners require the whole graph to be represented in memory, whereas streaming graph partitioning can process vertices as they arrive.
 
-Another qualitative advantage that we propose is the
-
 \section{Implementation}
-Our first goal was to implement the generalized WDG partitioner FENNEL, and test it on a wide variety of real-world and synthetic graphs. Our initial `test-bed' was implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices. As we scaled to larger graphs, the outer for-loop in the code (which iterates over each vertex) began to take an infeasible amount of time, so we implemented a more fully-featured test-bed in C. Our code is located at~\url{https://github.com/cjbattagl/graphpart/}
+Our first goal was to implement the generalized WDG partitioner FENNEL, and test it on a wide variety of real-world and synthetic graphs. Our initial `test-bed' was implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices. As we scaled to larger graphs, the outer for-loop in the code (which iterates over each vertex) began to take an infeasible amount of time, so we implemented a more fully-featured test-bed in C. Our code is located at~\url{https://github.com/cjbattagl/graphpart/}.
 
 \subsection{Features}
 Our implementation can read graphs in three formats (Harwell-Boeing, Matlab, and Matrix-Market Formats). This allows us to read in the entire SNAP graph archive~\cite{Leskovec-data}. It can read in symmetric (undirected) and unsymmetric (directed) graphs. Once the graph is read in, we convert it from unordered triplet format to Compressed Sparse Row format, which allows us to iterate through the neighbor list of any node in linear time, as well as compute the degree of any node in constant time.
@@ -125,29 +123,23 @@ Once we have our graph stored as a matrix in CSR form, we can perform a simulati
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}
 
-In general, we can compare this to the expected quality of a random $k-$partition:
-\begin{align}\lambda_r = \frac{k-1}{k} \end{align}
+In general, we can compare this to the expected quality of a random $k-$partition. To estimate this we just assume that each block has the same density of nonzeros, so we compute the fraction of nonzeros expected to be in non-diagonal blocks:
+\begin{align}\lambda_r = \frac{k^2 - k}{k^2} = \frac{k-1}{k} \end{align}
+
+Thus, the improvement in edgecut from a random partitioning can be computed as $\frac{\lambda}{\lambda_r}$
 
 
 
 \subsubsection{SNAP Data Set}
 
-
-\begin{figure}
+\begin{figure}[h!]
 \centering
-\begin{minipage}{.7\textwidth}
-  \includegraphics[width=\textwidth]{figures/astroPh8.png}
+  \includegraphics[width=.7\textwidth]{figures/astroPh8.png}
   \caption{Spy plot of ca-AstroPh 8-partition ($\lambda=0.253$)}
-\end{minipage}%
-\hfill
-\begin{minipage}{.7\textwidth}
-  \includegraphics[width=\textwidth]{figures/astroPh8.png}
-  \caption{My other caption here}
-\end{minipage}
 \end{figure}
 
 
-\begin{figure}[ht]
+\begin{figure}[h!]
 \centering
 \includegraphics[scale=.60] {figures/roadNet-CA8.png}
 \caption[Caption for]{Spy plot of roadNet-CA 8-partition ($\lambda=0.177$). This illustrates how a streaming algorithm cannot take into account the spatial/planar properties of a graph.}
@@ -202,23 +194,23 @@ wiki-Vote  & 8297 & 103689 & no & yes & 0.688\\
 \dots
 
 \subsubsection{Synthetic Graphs}
-\dots
+To generate synthetic graphs we used the Stanford Network Analysis Platform (SNAP) random graph generator.
 
 \section{Additional Passes}
 Another operation we explored was performing additional passes of partitioning on a pre-partitioned graph. The reasoning is that the partitioner is fast enough that it may be faster to do $n$ passes than use a slower mainstream graph partitioner, for some value of $n$. To explore this idea, we perform a number of passes on the SNAP data set, and observe qualitatively which graphs benefit the most. 
 
 The algorithm is simple: once we have computed the first partition, we retain the original partition mapping. Then, as we make another pass, we compute the new objective function using the partition mapping that has already been filled in. Vertices may then be switched to new partitions. This mitigates poor partitioning decisions that may have been made at the beginning of the algorithm, when there was not as much information. 
 
-\begin{figure}[ht]
+\begin{figure}[h]
 \centering
 \includegraphics[scale=0.7] {figures/fracLambda.png}
 \caption[Caption for]{Improvement in $\lambda$ after 5 WDG passes.}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[h]
 \centering
-\includegraphics[scale=0.5] {figures/line_plot_lambda}
-\caption[Caption for]{Improvement in $\lambda$ after 5 WDG passes.}
+\includegraphics[scale=0.55] {figures/line_plot_lambda}
+\caption[Caption for]{$\lambda$ over multiple passes. $k=8, \lambda_r = 0.87$}
 \end{figure}
 
 
@@ -226,75 +218,5 @@ The algorithm is simple: once we have computed the first partition, we retain th
 \bibliographystyle{plain}
 \bibliography{bib}
 
-\newpage
-\appendix
-\section{\\Streaming Partitioner Code} \label{App:AppendixA}
-% the \\ insures the section title is centered below the phrase: AppendixA
-
-\begin{verbatim}
-static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
-    bool **parts, float alpha, float gamma, int *emptyverts) {
-      
-  int *partscore = (int*)malloc(nparts * sizeof(int));
-  int *row;
-  int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
-  float curr_score, best_score;
-  int *vorder = genRandPerm(n);
-  int oldpart;
-
-  emptyverts = 0;
-
-  for (int i = 0; i < n; i++) {
-    for (s = 0; s < nparts; s++) { partscore[s]=0; }
-    vert = vorder[i];
-    row = &rowptr[vert];
-    nnz_row = *(row+1) - *row;
-    oldpart = -1;
-   if(nnz_row != 0) {
-      // generate partition scores for each partition
-      for (k = *row; k < ((*row)+nnz_row); k++) {
-        node = colidx[k];
-        for (s = 0; s < nparts; s++) { if (parts[s][node]==1) {partscore[s]++;}}
-      }
-        
-      // choose optimal partition (initializing first)
-      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
-      best_part = 0;
-      for (s = 1; s < nparts; s++) {
-        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
-        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
-      }
-      for (s = 0; s < nparts; s++) { 
-        if (parts[s][vert] == 1) {
-          oldpart = s;
-        }
-        parts[s][vert] = 0; 
-      }
-      parts[best_part][vert] = 1;
-      partsize[best_part]++;
-      if (oldpart >= 0) {
-        partsize[oldpart]--;
-      }
-      
-    } else { // empty vertex for some reason... assign it to random permutation
-      emptyverts++;
-      randidx = irand(nparts);
-      for (s = 1; s < nparts; s++) {
-        if (parts[s][vert] == 1) {
-          oldpart = s;
-        }
-        parts[s][vert] = 0; 
-      }
-      parts[randidx][vert] = 1;
-      partsize[randidx]++;
-      if (oldpart >= 0) {
-        partsize[oldpart]--;
-      }
-    }
-  }
-  
-  free(vorder);
-}
-\end{verbatim}
 
 \end{document}

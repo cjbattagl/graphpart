@@ -84,7 +84,7 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
   fprintf (out, "<out-filename>: name of file to which to output results\n");
   fprintf (out, "[options]: -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, " -v -- verbose mode\n");
-  fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM'\n");
+  fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM' 4\n");
 }
 
 int main (int argc, char *argv[]) {
@@ -107,23 +107,27 @@ int main (int argc, char *argv[]) {
   register_usage_function (usage);
   arglist = register_arginfo (arglist, 'v', NULLARG, NULL, "If specified, ac"
                          "tivate verbose mode");
+                         
+
   arglist = register_arginfo (arglist, 'e', NULLARG, NULL, "If specified, ex"
                          "pand the input matrix from symmetric storage "
                          "into unsymmetric storage");
   arglist = register_arginfo (arglist, 'a', NULLARG, NULL, "If specified, va"
                          "lidate the input matrix, without outputting a"
                          "nything");
+
   get_options (argc, argv, arglist, NULL);
 
-  if (argc - optind != 2) {
+  if (argc - optind != 3) {
       fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
-         "e specified, but there should be %d ***\n", argc - optind, 2);
+         "e specified, but there should be %d ***\n", argc - optind, 3);
       dump_usage (stderr, argv[0], arglist, NULL);
       bebop_exit (EXIT_FAILURE); /* stops logging */
   }
 
   opts.input_filename = argv[optind];
   opts.input_file_format = argv[optind+1];
+  int parts = atoi(argv[optind+2]);
   //opts.output_filename = argv[optind+2];
   
   if (strcmp (opts.input_file_format, "HB") == 0 ||
@@ -203,7 +207,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, 8, 1.5); //todo: nparts, gamma as inputs
+  run_fennel(repr, parts, 1.5); //todo: nparts, gamma as inputs
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);
