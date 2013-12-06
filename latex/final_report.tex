@@ -81,7 +81,7 @@ Graph partitioning has been a standard problem in theoretical computer science f
 
 \footnotetext{Source: Jim Demmel's CS267 Lectures,~\url{http://www.cs.berkeley.edu/~demmel/cs267}}
 
-Offline graph partitioning algorithms, where the graph is allowed to exist in memory with total information about edges, have existed for decades. Hundreds of variants of such algorithms likely now exist, and range from spatial methods~\cite{Gilbert95geometricmesh} to spectral methods~\cite{arora2009expander}. The most scalable and effective graph partitioners on massive datasets are currently multi-level partitioners, which recursively contract the graph to a small number of vertices, and then heuristically optimize the problem on each subsequent expansion~\cite{karypis1998multilevel}. 
+Offline graph partitioning algorithms, where the graph is allowed to exist in memory with total information about edges, have existed for decades. Hundreds of variants of such algorithms now exist, and range from spatial methods~\cite{Gilbert95geometricmesh} to spectral methods~\cite{arora2009expander}. The most scalable and effective graph partitioners on massive datasets are currently multi-level partitioners, which recursively contract the graph to a small number of vertices, and then heuristically optimize the problem on each subsequent expansion~\cite{karypis1998multilevel}. 
 
 \section{Streaming Graph Partitioning}\vspace{-10 pt}
 Streaming graph partitioning has only been introduced in the last couple of years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}, as graphs grow to the point where they may not fit into memory, or must be distributed to compute nodes on the fly. In the streaming model, input data (vertices) arrive sequentially from a generating source (such as a web-crawler), and must be partitioned as they arrive. As an example, partitioning a 26GB Twitter follower graph can take nearly a day using the fastest offline algorithms, but can take a matter of minutes using a streaming algorithm.
@@ -107,7 +107,7 @@ In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG p
 
 \subsubsection{FENNEL Heuristic}
 
-\subsection{Possible Advantages of Streaming Partitioning}
+\subsection{Why Use Streaming Partitioning?}
 The most salient property of streaming partitioning is its speed: it can partition the graph in a single sweep, with $O(|E|)$ memory access, storage, and run time. Existing graph partitioners require the whole graph to be represented in memory, whereas streaming graph partitioning can process vertices as they arrive.
 
 Another qualitative advantage that we propose is the
@@ -125,17 +125,27 @@ Once we have our graph stored as a matrix in CSR form, we can perform a simulati
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}
 
-In general, we can compare this to the expected quality of a random partition:
+In general, we can compare this to the expected quality of a random $k-$partition:
 \begin{align}\lambda_r = \frac{k-1}{k} \end{align}
+
+
 
 \subsubsection{SNAP Data Set}
 
-\begin{figure}[ht]
+
+\begin{figure}
 \centering
-\includegraphics[scale=.70] {figures/astroPh8.png}
-\caption[Caption for]{Spy plot of ca-AstroPh 8-partition ($\lambda=0.253$)}
-\label{fig:3}
+\begin{minipage}{.7\textwidth}
+  \includegraphics[width=\textwidth]{figures/astroPh8.png}
+  \caption{Spy plot of ca-AstroPh 8-partition ($\lambda=0.253$)}
+\end{minipage}%
+\hfill
+\begin{minipage}{.7\textwidth}
+  \includegraphics[width=\textwidth]{figures/astroPh8.png}
+  \caption{My other caption here}
+\end{minipage}
 \end{figure}
+
 
 \begin{figure}[ht]
 \centering
@@ -146,46 +156,44 @@ In general, we can compare this to the expected quality of a random partition:
 
 
 \begin{figure}
-\caption{Basic properties of graphs in SNAP data set with $\lambda$ for one pass}
-\rowcolors{2}{green!25}{yellow!30}
+\caption{Basic properties of graphs in SNAP data set~\cite{Leskovec-data}, and $\lambda$ for one pass. $\lambda_r=0.87$}
+\rowcolors{2}{blue!05}{blue!15}
 \centering
 { \begin{tabular}{ *6l }    \toprule
-\emph{Data Set} & $N$ & $nnz$ & \emph{sym} & \emph{power-law?} & $\lambda$ \\\midrule 
-amazon0302 & 262111 & 1234877 & no & yes & 0.2\\ 
-amazon0312 & 400727 & 3200440 & no & yes & 0.2\\ 
-amazon0505 & 410236 & 3356824 & no & yes & 0.2\\ 
-amazon0601 & 403394 & 3387388 & no & yes & 0.2\\ 
-as-735 & 7716 & 26467 & yes & yes & 0.2\\ 
-as-caida & 31379 & 106762 & no & yes & 0.2\\ 
-as-Skitter & 1696415 & 22190596 & yes & yes & 0.2\\ 
-ca-AstroPh & 18772 & 396160 & yes & yes & 0.2\\ 
-ca-CondMat & 23133 & 186936 & yes & yes & 0.2\\ 
-ca-GrQc & 5242 & 28980 & yes & yes & 0.2\\ 
-ca-HepPh & 12008 & 237010 & yes & yes & 0.2\\ 
-ca-HepTh & 9877 & 51971 & yes & yes & 0.2\\ 
-cit-HepPh & 34546 & 421578 & no & yes & 0.2\\ 
-cit-HepTh & 27770 & 352807 & no & yes & 0.2\\ 
-cit-Patents & 3774768 & 16518948 & no & yes & 0.2\\ 
-email-Enron & 36692 & 367662 & yes & yes & 0.2\\ 
-email-EuAll & 265214 & 420045 & no & yes & 0.2\\ 
-Oregon-1 & 11492 & 46818 & yes & yes & 0.2\\ 
-Oregon-2 & 11806 & 65460 & no & yes & 0.2\\ 
-p2p-Gnutella04 & 10879 & 39994 & no & yes & 0.2\\ 
-roadNet-CA & 1971281 & 5533214 & yes & no & 0.2\\ 
-roadNet-PA & 1090920 & 3083796 & yes & no & 0.2\\ 
-roadNet-TX & 1393383 & 3843320 & yes & no & 0.2\\ 
-soc-Epinions1 & 75888 & 508837 & no & yes & 0.2\\ 
-soc-LiveJournal1 & 4847571 & 68993773 & no & yes & 0.2\\ 
-soc-sign-epinions & 131828 & 841372 & no & yes & 0.2\\ 
-soc-sign-Slashdot081106 & 77357 & 516575 & no & yes & 0.2\\ 
-soc-Slashdot0811 & 77360 & 905468 & no & yes & 0.2\\ 
-soc-Slashdot0902 & 82168 & 948464 & no & yes & 0.2\\ 
-web-BerkStan & 685230 & 7600595 & no & yes & 0.2\\ 
-web-Google & 916428 & 5105039 & no & yes & 0.2\\ 
-web-NotreDame & 325729 & 1497134 & no & yes & 0.2\\ 
-web-Stanford & 281903 & 2312497 & no & yes & 0.2\\ 
-wiki-Talk & 2394385 & 5021410 & no & yes & 0.2\\ 
-wiki-Vote  & 8297 & 103689 & no & yes & 0.2\\ 
+\emph{Data Set} & $N$ & $nnz$ & \emph{sym} & \emph{power-law?} & $\lambda, k=8$ \\\midrule 
+amazon0302 & 262111 & 1234877 & no & yes & 0.37\\ 
+amazon0312 & 400727 & 3200440 & no & yes & 0.38\\ 
+amazon0505 & 410236 & 3356824 & no & yes & 0.37\\ 
+amazon0601 & 403394 & 3387388 & no & yes & 0.36\\ 
+as-735 & 7716 & 26467 & yes & yes & 0.44\\ 
+as-Skitter & 1696415 & 22190596 & yes & yes & 0.324\\ 
+ca-AstroPh & 18772 & 396160 & yes & yes & 0.413\\ 
+ca-CondMat & 23133 & 186936 & yes & yes & 0.398\\ 
+ca-GrQc & 5242 & 28980 & yes & yes & 0.241\\ 
+ca-HepPh & 12008 & 237010 & yes & yes & 0.192\\ 
+ca-HepTh & 9877 & 51971 & yes & yes & 0.378\\ 
+cit-HepPh & 34546 & 421578 & no & yes & 0.646\\ 
+cit-HepTh & 27770 & 352807 & no & yes & 0.605\\ 
+cit-Patents & 3774768 & 16518948 & no & yes & 0.726\\ 
+email-Enron & 36692 & 367662 & yes & yes & 0.407\\ 
+email-EuAll & 265214 & 420045 & no & yes & 0.538\\ 
+Oregon-1 & 11492 & 46818 & yes & yes & 0.406\\ 
+Oregon-2 & 11806 & 65460 & no & yes & 0.429\\ 
+p2p-Gnutella04 & 10879 & 39994 & no & yes & 0.747\\ 
+roadNet-CA & 1971281 & 5533214 & yes & no & 0.36\\ 
+roadNet-PA & 1090920 & 3083796 & yes & no & 0.36\\ 
+roadNet-TX & 1393383 & 3843320 & yes & no & 0.358\\ 
+soc-Epinions1 & 75888 & 508837 & no & yes & 0.34\\ 
+soc-LiveJournal1 & 4847571 & 68993773 & no & yes & 0.463\\ 
+soc-sign-epinions & 131828 & 841372 & no & yes & 0.34\\ 
+soc-Slashdot0811 & 77360 & 905468 & no & yes & 0.417\\ 
+soc-Slashdot0902 & 82168 & 948464 & no & yes & 0.382\\ 
+web-BerkStan & 685230 & 7600595 & no & yes & 0.301\\ 
+web-Google & 916428 & 5105039 & no & yes & 0.336\\ 
+web-NotreDame & 325729 & 1497134 & no & yes & 0.345\\ 
+web-Stanford & 281903 & 2312497 & no & yes & 0.34\\ 
+wiki-Talk & 2394385 & 5021410 & no & yes & 0.752\\ 
+wiki-Vote  & 8297 & 103689 & no & yes & 0.688\\ 
  \hline
 \end{tabular}\par
 }
@@ -200,6 +208,20 @@ wiki-Vote  & 8297 & 103689 & no & yes & 0.2\\
 Another operation we explored was performing additional passes of partitioning on a pre-partitioned graph. The reasoning is that the partitioner is fast enough that it may be faster to do $n$ passes than use a slower mainstream graph partitioner, for some value of $n$. To explore this idea, we perform a number of passes on the SNAP data set, and observe qualitatively which graphs benefit the most. 
 
 The algorithm is simple: once we have computed the first partition, we retain the original partition mapping. Then, as we make another pass, we compute the new objective function using the partition mapping that has already been filled in. Vertices may then be switched to new partitions. This mitigates poor partitioning decisions that may have been made at the beginning of the algorithm, when there was not as much information. 
+
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=0.7] {figures/fracLambda.png}
+\caption[Caption for]{Improvement in $\lambda$ after 5 WDG passes.}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[scale=0.5] {figures/line_plot_lambda}
+\caption[Caption for]{Improvement in $\lambda$ after 5 WDG passes.}
+\end{figure}
+
+
 
 \bibliographystyle{plain}
 \bibliography{bib}
