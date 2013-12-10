@@ -110,7 +110,7 @@ In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG p
 \subsection{Why Use Streaming Partitioning?}
 The most salient property of streaming partitioning is its speed: it can partition the graph in a single sweep, with $O(|E|)$ memory access, storage, and run time. Existing graph partitioners require the whole graph to be represented in memory, whereas streaming graph partitioning can process vertices as they arrive.
 
-As an example, partitioning a 26GB Twitter follower graph can take nearly a day using the fastest offline algorithms, but can take a matter of minutes using a streaming algorithm.
+As an example, partitioning a 26GB Twitter follower graph can take nearly a day using the fastest offline algorithms, but can take a matter of minutes using a streaming algorithm, with similar partition quality~\cite{tsourakakis2012fennel}. This also suggests that we could do multiple passes of a streaming partitioner (using the same or different heuristics) to further improve the partitioning, all in a fraction of the time that an offline partitioner would take to terminate. 
 
 \section{Implementation}
 Our first goal was to implement the generalized WDG partitioner FENNEL, and test it on a wide variety of real-world and synthetic graphs. Our initial `test-bed' was implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices. As we scaled to larger graphs, the outer for-loop in the code (which iterates over each vertex) began to take an infeasible amount of time, so we implemented a more fully-featured test-bed in C. Our MATLAB and C code is located at~\url{https://github.com/cjbattagl/graphpart/}. The C code makes significant use of BeBoP's Sparse Matrix Converter:~\url{http://bebop.cs.berkeley.edu/smc/}.
@@ -259,7 +259,7 @@ We hope to contrast this performance to that of METIS in the future. (We have im
 \label{fig:04}
 \end{figure}
 
-\begin{figure}[h]
+\begin{figure}[h!]
 \centering
 \includegraphics[scale=0.65] {figures/cutvsdens}
 \caption[Caption for]{Cut quality vs nonzero density for each of the graphs in Figure~\ref{table:big}. The graph shows no noticeable correlation.}
@@ -275,12 +275,10 @@ We hope to contrast this performance to that of METIS in the future. (We have im
 
 One set of outlying (poorly-performing) data points we noticed was the Gnutella networks. While Gnutella networks exhibit power-law-like topology, elements of their algorithm truncate nodes from ever becoming extremely large. This does not match other social network topologies. The data sets also have extremely low clustering coefficient and a very small number of closed triangles. \cite{Ripeanu:2002:MGN:613352.613670}. This makes the Gnutella data set an anomaly compared to the others. 
 
-Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions. However, the encouraging side to this is that every partition was unexpectedly good. While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, one-pass algorithm is capable of significantly reducing communication in their parallel computation, and that several further passes can further reduce edge cut by up to a factor of 3. Isolated comparisons to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2). This makes streaming partitioning a valid alternative to be integrated within distributed-memory, on-the-fly algorithms for big-data.
+Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions. However, the encouraging side to this is that every partition was unexpectedly good. While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, one-pass algorithm is capable of significantly reducing communication in their parallel computation, and that several further passes can further reduce edge cut by up to a factor of 3. Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2). This makes streaming partitioning a valid alternative to be integrated within distributed-memory, on-the-fly algorithms for big-data.
 
-One interesting fact of note is that when we ran multiple passes on the graphs, one partition would become populated by very high-degree vertices. We attribute this 
+One interesting fact of note is that when we ran multiple passes on the graphs, one partition would become populated by very high-degree vertices. We see this in Figure~\ref{fig:dense}. We attribute this to the notion that scale-free graphs have a ``dense core'' surrounded by a less-dense periphery. This is qualitatively noticed when scale-free graphs are embedded in a spectral space~\cite{Lang04findinggood}. This dense partition tends to strongly emerge as we continue to make further passes of the streaming algorithm, and is what we attribute to the improvement in overall partition quality.
 
-\subsection{`Dense' core of scale-free graphs'}
-In figure~\ref{fig:dense} we see 
 \begin{figure}[h!]
 \centering
   \includegraphics[width=.7\textwidth]{figures/astroPh8.png}
@@ -288,10 +286,81 @@ In figure~\ref{fig:dense} we see
   \label{fig:dense}
 \end{figure}
 
+\section{Future Work}
+Our goal is adapt our C code into a distributed-memory streaming partitioner, and use it as a proof of concept that streaming partitioning is an effective way of increasing the performance of irregular, sparse distributed computations without taking a performance penalty. We are particularly interested in accelerating computations on large web- and social-network graphs. Along the way, we also wish to make a more critical comparison to METIS, in both partition quality and timing.
 
 
+\newpage
 \bibliographystyle{plain}
 \bibliography{bib}
+
+\appendix{Appendix A: C Code Example}
+\subsection*{Partitioning kernel}
+\begin{verbatim}
+static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
+    bool **parts, float alpha, float gamma, int *emptyverts) {
+      
+  int *partscore = (int*)malloc(nparts * sizeof(int));
+  int *row;
+  int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
+  float curr_score, best_score;
+  int *vorder = genRandPerm(n);
+  int oldpart;
+
+  emptyverts = 0;
+
+  for (int i = 0; i < n; i++) {
+    for (s = 0; s < nparts; s++) { partscore[s]=0; }
+    vert = vorder[i];
+    row = &rowptr[vert];
+    nnz_row = *(row+1) - *row;
+    oldpart = -1;
+   if(nnz_row != 0) {
+      // generate partition scores for each partition
+      for (k = *row; k < ((*row)+nnz_row); k++) {
+        node = colidx[k];
+        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; }}
+      }
+        
+      // choose optimal partition (initializing first)
+      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
+      best_part = 0;
+      for (s = 1; s < nparts; s++) {
+        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
+        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
+      }
+      for (s = 0; s < nparts; s++) { 
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
+      parts[best_part][vert] = 1;
+      partsize[best_part]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+      
+    } else { // empty vertex for some reason... assign it to random permutation
+      emptyverts++;
+      randidx = irand(nparts);
+      for (s = 1; s < nparts; s++) {
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
+      parts[randidx][vert] = 1;
+      partsize[randidx]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+    }
+  }
+  
+  free(vorder);
+}
+\end{verbatim}
 
 
 \end{document}
