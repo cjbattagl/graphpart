@@ -214,7 +214,7 @@ int main (int argc, char *argv[]) {
   return 0;
 }
 
-static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
+int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
     bool **parts, float alpha, float gamma, int *emptyverts) {
       
   int *partscore = (int*)malloc(nparts * sizeof(int));
@@ -281,7 +281,7 @@ static int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
   free(vorder);
 }
 
-static int sample_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
+int sample_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
     bool **parts, float alpha, float gamma, int *emptyverts, float prob) {
       
   int *partscore = (int*)malloc(nparts * sizeof(int));
@@ -356,7 +356,7 @@ static int sample_kernel(int n, int nparts, int *partsize, int *rowptr, int *col
   free(vorder);
 }
 
-static int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
+int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   int m, n, nnz;
   void* values;
   int* colidx;
