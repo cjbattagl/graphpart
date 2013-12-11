@@ -41,13 +41,13 @@ cmdlineopts_t {
 static void
 usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args) {
   fprintf (out, "Usage:\n");
-  fprintf (out, "fennel [options] <in-filename> <in-format>\n");
+  fprintf (out, "mpifennel [options] <in-filename> <in-format>\n");
   fprintf (out, "<in-filename>: name of file containing the sparse matrix to read in\n");
   fprintf (out, "<in-format>: format of the input file (\"HB\", \"ML\", \"MM\")\n");
   fprintf (out, "<out-filename>: name of file to which to output results\n");
   fprintf (out, "[options]: -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, " -v -- verbose mode\n");
-  fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM' 4\n");
+  fprintf (out, "EX: (MPIRUN) ./mpifennel -v -e 'test.mtx' 'MM' 4\n");
 }
 
 int main (int argc, char *argv[]) {
@@ -64,24 +64,17 @@ int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator
   int world_size;
   MPI_Comm_size(communicator, &world_size);
   
-  if (world_rank == root) {
-  extern int optind;
-  enum sparse_matrix_file_format_t informat = 0;
-  enum sparse_matrix_file_format_t outformat = 0;
-  struct sparse_matrix_t* A = NULL;
-  struct arginfo *arglist = NULL;
-  double seconds = 0.0;
-  int errcode = 0;
-
-  
-  int world_rank;
-  MPI_Comm_rank(communicator, &world_rank);
-  int world_size;
-  MPI_Comm_size(communicator, &world_size);
-
   // For now we are simulating a parallel file system, so root process reads
   // in the data and then scatters the graph
   if (world_rank == root) {
+    extern int optind;
+    enum sparse_matrix_file_format_t informat = 0;
+    enum sparse_matrix_file_format_t outformat = 0;
+    struct sparse_matrix_t* A = NULL;
+    struct arginfo *arglist = NULL;
+    double seconds = 0.0;
+    int errcode = 0;
+
     bebop_default_initialize (argc, argv, &errcode);
     if (errcode != 0) {
         fprintf (stderr, "*** Failed to initialize BeBOP Utility Library "
