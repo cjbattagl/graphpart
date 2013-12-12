@@ -59,14 +59,15 @@ int main (int argc, char *argv[]) {
 
 int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator) {
   // MPI STATS ///////
-  int world_rank;
-  MPI_Comm_rank(communicator, &world_rank);
-  int world_size;
-  MPI_Comm_size(communicator, &world_size);
+  int numprocs, rank;
+  MPI_Comm_rank(communicator, &rank);
+  MPI_Comm_size(communicator, &numprocs);
+  
+  int n;
   
   // For now we are simulating a parallel file system, so root process reads
   // in the data and then scatters the graph
-  if (world_rank == root) {
+  if (rank == root) {
     extern int optind;
     enum sparse_matrix_file_format_t informat = 0;
     enum sparse_matrix_file_format_t outformat = 0;
@@ -184,14 +185,82 @@ int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator
     fprintf(LambdaFile, " ,");
     fclose(LambdaFile);
     
-    // Now scatter repr to all processes
-    // ...
+    int m, nnz;
+    void* values;
+    int* colidx, rowptr;
+    enum symmetry_type_t symmetry_type;
+    enum symmetric_storage_location_t symmetric_storage_location;
+    enum value_type_t value_type;
+
+    unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
+                 &symmetric_storage_location, &value_type);
+                 
+    // Only process 0 has n, so broadcast ...
+    MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD); 
+    MPI_Barrier(MPI_COMM_WORLD);
   }
-  else { //We are not master process
   
+  // Every processor should have n at this point, so allocate local ir
+  // so that we can scatter ir
+  int p = numprocs;
+  int bound = ceil(n/p);
+  int nnz_local;
+  int* ir_local = (int*)malloc(sizeof(int)*bound);
+
+  // Now scatter repr to all processes from root
+  if (rank == 0) {
+    // bound = ceil(N/p)
+    // Resize ir to p*bound
+    // Send ir[rank*bound .. (rank+1)*bound - 1] to p_rank  (Scatter of width bound)
+    // Send cidx[ir[rank*bound] .. ir[(rank+1)*bound - 1]] to p_rank  (Using MPI_Send ... )
+    
+    // Create ir2, a resized rowptr
+    int* ir2 = (int*)malloc(sizeof(int) * p*bound);
+    
+    // Copy rowptr to ir2
+    // Todo: switch to memcpy
+    int i;
+    for (i = 0; i<n; i++) { ir2[i] = rowptr[i]; }
+    for (i = n; i<bound*n; i++) { ir2[i] = rowptr[n-1]; } //extend ir2 to have empty nodes
+    
+    // Scatter row ptr
+    MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, MPI_COMM_WORLD);
+
+    // OK.. now to scatter the colidx we need to first compute the subindices that
+    // belong to each process... we'll store this in an array that we can then scatter
+    // so that processes can allocate their slices
+    
+    int* startidxs = (int*)malloc(sizeof(int)*p);
+    int* endidxs = (int*)malloc(sizeof(int)*p);
+    int* nnz_per_proc = (int*)malloc(sizeof(int)*p);
+
+    for (i = 0; i<p; i++) { 
+      startvert = p*bound; 
+      endvert = (p+1)*bound - 1;
+      startidxs[i] = ir2[startvert];
+      endidxs[i] = ir2[endvert];
+      nnz_per_proc[i] = endidxs[i] - startidxs[i];
+    }
+    
+    MPI_Scatter(nnz_per_proc, 1, MPI_INT, nnz_local, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  // Every processor should have nnz_local at this point, so allocate local colidx
+  // so that we can scatter colidx
+  int* colidx_local = (int*)malloc(sizeof(int)*nnz_local);
+  
+  // Now scatter colidx to all processes from root
+  if (rank == 0) {
+    int i;
+    for (i=0; i<p; i++) {
+      MPI_Send(colidx + startidxs[i], nnz_per_proc[i], MPI_INT, i, 0, MPI_COMM_WORLD);
+    }
   }
   
-  // Make sure data has been read by master process
+  
+  MPI_Recv(colidx_local, nnz_local, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  
+  
   MPI_Barrier(MPI_COMM_WORLD);
 
   // ********** Run FENNEL ***************************************

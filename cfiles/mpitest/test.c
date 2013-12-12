@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
 }
 
 
+// do an all gather using the MPI command
 void do_gather() {
   int numprocs, rank, namelen;
   char processor_name[MPI_MAX_PROCESSOR_NAME];
@@ -28,19 +29,20 @@ void do_gather() {
   for (int i=0; i<numprocs*localsize; i++) { data[i] = 0; }
   for (int i=0; i<localsize; i++) { localdata[i] = rank; }
   
-  //printf("Process %d on %s out of %d, ", rank, processor_name, numprocs);
-  //for (int i=0; i<numprocs; i++) { printf("%d ", data[i]); }
-  //printf("\n");
   MPI_Barrier(MPI_COMM_WORLD);
   
-  MPI_Allgather(localdata, localsize, MPI_INT, data, localsize, MPI_INT, MPI_COMM_WORLD);
-  //for (int i=0; i<numprocs; i++) { MPI_Bcast(data+i,1,MPI_INT,i,MPI_COMM_WORLD); }
+  // Send half of localdata. Collective should place it in data in a strided manner
+  // (important for dist partitioner)
+  int offset = localsize/2;
+  
+  MPI_Allgather(localdata+offset, offset, MPI_INT, data+offset, localsize, MPI_INT, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
   printf("Process %d on %s out of %d, ", rank, processor_name, numprocs);
   for (int i=0; i<numprocs * localsize; i++) { printf("%d ", data[i]); }
   printf("\n");
 }
 
+// do a stupid allgather by broadcasting from every process using an offset
 void do_stupid_gather() {
   int numprocs, rank, namelen;
   char processor_name[MPI_MAX_PROCESSOR_NAME];
