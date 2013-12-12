@@ -184,7 +184,7 @@ int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator
     fprintf(LambdaFile, " ,");
     fclose(LambdaFile);
     
-    // Now scater repr to all processes
+    // Now scatter repr to all processes
     // ...
   }
   else { //We are not master process
@@ -199,5 +199,9 @@ int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator
   run_mpi_fennel(repr, parts, 1.5, rank); //todo: nparts, gamma as inputs
   // *************************************************************
   destroy_sparse_matrix (A);
+  
+  /* END */
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Finalize();
   return 0;
 }
