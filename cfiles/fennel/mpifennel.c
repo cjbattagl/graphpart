@@ -188,23 +188,21 @@ int main (int argc, char *argv[]) {
                  &symmetric_storage_location, &value_type);
                  
     // Only process 0 has n, so broadcast ...
-    MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD); 
   }
-  
+  MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD); 
   MPI_Barrier(MPI_COMM_WORLD);
-
 
   // Every processor should have n at this point, so allocate local ir
   // so that we can scatter ir
   int p = numprocs;
-  int bound = ceil(n/p);
+  int bound = ceil((float)n/p);
   int nnz_local;
   int* ir_local = (int*)malloc(sizeof(int)*bound);
   
   int* startidxs;
   int* endidxs;
   int* nnz_per_proc;
-
+  int* ir2;
   // Now scatter repr to all processes from root
   if (rank == 0) {
     // bound = ceil(N/p)
@@ -213,18 +211,24 @@ int main (int argc, char *argv[]) {
     // Send cidx[ir[rank*bound] .. ir[(rank+1)*bound - 1]] to p_rank  (Using MPI_Send ... )
     
     // Create ir2, a resized rowptr
-    int* ir2 = (int*)malloc(sizeof(int) * p*bound);
+    ir2 = (int*)malloc(sizeof(int) * p*bound);
     
     // Copy rowptr to ir2
     // Todo: switch to memcpy
     int i;
     for (i = 0; i<n; i++) { ir2[i] = rowptr[i]; }
-    for (i = n; i<bound*n; i++) { ir2[i] = rowptr[n-1]; } //extend ir2 to have empty nodes
+    for (i = n; i<bound*p; i++) { ir2[i] = rowptr[n]; } //extend ir2 to have empty nodes
     
     // Scatter row ptr
-    MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
-}
-/*
+    //MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
+  }
+  
+  //fprintf(stdout,"bound = %d\n",bound);
+  MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
+  assert(n);
+  assert(p);
+
+  if (rank == 0) {
     // OK.. now to scatter the colidx we need to first compute the subindices that
     // belong to each process... we'll store this in an array that we can then scatter
     // so that processes can allocate their slices
@@ -233,39 +237,43 @@ int main (int argc, char *argv[]) {
     endidxs = (int*)malloc(sizeof(int)*p);
     nnz_per_proc = (int*)malloc(sizeof(int)*p);
 
-    for (i = 0; i<p; i++) { 
-      int startvert = p*bound; 
-      int endvert = (p+1)*bound - 1;
+    fprintf(stdout,"Computing vertex bounds . . .\n");
+    for (int i = 0; i<p; i++) { 
+      int startvert = i*bound; 
+      int endvert = (i+1)*bound - 1;
       startidxs[i] = ir2[startvert];
       endidxs[i] = ir2[endvert];
       nnz_per_proc[i] = endidxs[i] - startidxs[i];
-    }
-    
-    MPI_Scatter(nnz_per_proc, 1, MPI_INT, &nnz_local, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
+      fprintf(stdout,"Bound for p%d from %d to %d \n",i,startvert,endvert);
 
+    }
+  }
+  
+  MPI_Scatter(nnz_per_proc, 1, MPI_INT, &nnz_local, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Barrier(MPI_COMM_WORLD);
 
   // Every processor should have nnz_local at this point, so allocate local colidx
   // so that we can scatter colidx
   int* colidx_local = (int*)malloc(sizeof(int)*nnz_local);
-  
+ 
   // Now scatter colidx to all processes from root
   if (rank == 0) {
-    int i;
-    for (i=0; i<p; i++) {
+  //  int i;
+    for (int i=0; i<p; i++) {
       MPI_Send(colidx + startidxs[i], nnz_per_proc[i], MPI_INT, i, 0, MPI_COMM_WORLD);
     }
   }
   
   MPI_Recv(colidx_local, nnz_local, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  
-  
+
   // ir_local points to colidx idxs, so we need to normalize
   // so that it points to colidx_local
   int ir_offset = ir_local[0];
   for (int i=0; i<bound; i++) { ir_local[i] -= ir_offset; }
   
   MPI_Barrier(MPI_COMM_WORLD);
+  
+  fprintf(stdout,"Process %d has %d nonzeros\n",p,nnz_local);
 
   // ********** Run FENNEL ***************************************
   //fprintf (stdout, "\n===== Running fennel =====\n");
