@@ -241,7 +241,7 @@ int main (int argc, char *argv[]) {
     for (int i = 0; i<p; i++) { 
       int startvert = i*bound; 
       int endvert = (i+1)*bound - 1;
-      startidxs[i] = ir2[startvert];
+      startidxs[i] = ir2[startvert-1];
       endidxs[i] = ir2[endvert];
       nnz_per_proc[i] = endidxs[i] - startidxs[i];
       fprintf(stdout,"Bound for p%d from %d to %d \n",i,startvert,endvert);
@@ -273,7 +273,16 @@ int main (int argc, char *argv[]) {
   
   MPI_Barrier(MPI_COMM_WORLD);
   
-  fprintf(stdout,"Process %d has %d nonzeros\n",p,nnz_local);
+  fprintf(stdout,"Process %d has %d nonzeros\n",rank,nnz_local);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+  // Reduce nnz_local to assert that it is the same
+  int tot_nnz_for_assert;
+  MPI_Reduce(&nnz_local, &tot_nnz_for_assert, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  
+  if (rank == 0) {
+    fprintf(stdout,"Total nnz: %d\n",tot_nnz_for_assert);
+  }
 
   // ********** Run FENNEL ***************************************
   //fprintf (stdout, "\n===== Running fennel =====\n");
