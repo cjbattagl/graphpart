@@ -51,22 +51,22 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
 
 int main (int argc, char *argv[]) {
   MPI_Init(NULL, NULL);
-  int world_rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  main_sub(argc, argv, 0, MPI_COMM_WORLD);
-}
 
-int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator) {
   // MPI STATS ///////
   int numprocs, rank;
-  MPI_Comm_rank(communicator, &rank);
-  MPI_Comm_size(communicator, &numprocs);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   
-  int n;
+  int m,n, nnz;
+  void *values;
+  int *colidx, *rowptr;
+  enum symmetry_type_t symmetry_type;
+  enum symmetric_storage_location_t symmetric_storage_location;
+  enum value_type_t value_type;
   
   // For now we are simulating a parallel file system, so root process reads
   // in the data and then scatters the graph
-  if (rank == root) {
+  if (rank == 0) {
     extern int optind;
     enum sparse_matrix_file_format_t informat = 0;
     enum sparse_matrix_file_format_t outformat = 0;
@@ -183,15 +183,8 @@ int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator
     fprintf(LambdaFile, "%s",opts.input_filename);
     fprintf(LambdaFile, " ,");
     fclose(LambdaFile);
-    
-    int m, nnz;
-    void* values;
-    int* colidx, rowptr;
-    enum symmetry_type_t symmetry_type;
-    enum symmetric_storage_location_t symmetric_storage_location;
-    enum value_type_t value_type;
 
-    unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
+    unpack_csr_matrix (A->repr, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
                  &symmetric_storage_location, &value_type);
                  
     // Only process 0 has n, so broadcast ...
@@ -223,7 +216,7 @@ int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator
     for (i = n; i<bound*n; i++) { ir2[i] = rowptr[n-1]; } //extend ir2 to have empty nodes
     
     // Scatter row ptr
-    MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, MPI_COMM_WORLD);
+    MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
 
     // OK.. now to scatter the colidx we need to first compute the subindices that
     // belong to each process... we'll store this in an array that we can then scatter
@@ -234,8 +227,8 @@ int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator
     int* nnz_per_proc = (int*)malloc(sizeof(int)*p);
 
     for (i = 0; i<p; i++) { 
-      startvert = p*bound; 
-      endvert = (p+1)*bound - 1;
+      int startvert = p*bound; 
+      int endvert = (p+1)*bound - 1;
       startidxs[i] = ir2[startvert];
       endidxs[i] = ir2[endvert];
       nnz_per_proc[i] = endidxs[i] - startidxs[i];
