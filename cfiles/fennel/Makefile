@@ -4,6 +4,8 @@ BBU_ROOT=$(EXT_ROOT)/bebop_util
 BBM_ROOT=$(EXT_ROOT)/bebop_make
 MET_ROOT=$(EXT_ROOT)/metis-5.1.0
 
+MPICC=mpicc
+
 include $(BBM_ROOT)/options
 include $(BBM_ROOT)/Makefile.include
 include $(BBM_ROOT)/ecl
@@ -19,8 +21,8 @@ LIBSMC_STATIC = $(SMC_ROOT)/libsparse_matrix_converter$(STATIC_LIB_EXTENSION)
 ## Filename of dynamic library
 LIBSMC_DYNAMIC = $(SMC_ROOT)/libsparse_matrix_converter$(DYNAMIC_LIB_EXTENSION)
 
-EXEOUT = fennel
-EXEOBJ = fennel.o util.o randperm.o
+EXEOUT = fennel #mpifennel
+EXEOBJ = fennel.o fennel_kernel.o util.o randperm.o 
 
 ## Location of SMC header files
 HEADERDIR = $(SMC_ROOT)/include/bebop/smc
@@ -31,7 +33,7 @@ HEADERDIR = $(SMC_ROOT)/include/bebop/smc
 
 .o: 
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
-	
+
 .o.cc: 
 	$(CPP) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
@@ -43,15 +45,24 @@ HEADERDIR = $(SMC_ROOT)/include/bebop/smc
 
 all: $(EXEOUT)
 
+#mpifennel.o: mpifennel.c $(HEADERDIR)/sparse_matrix.h $(HEADERDIR)/sparse_matrix_ops.h
+#	$(MPICC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
 fennel.o: fennel.c $(HEADERDIR)/sparse_matrix.h $(HEADERDIR)/sparse_matrix_ops.h
+
+fennel_kernel.o: fennel_kernel.c $(HEADERDIR)/sparse_matrix.h $(HEADERDIR)/sparse_matrix_ops.h
 
 randperm.o: randperm.c
 
 util.o: util.c
 
-$(EXEOUT): $(LIBSMC_STATIC) fennel.o randperm.o util.o
-	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o $(EXEOUT) $(EXEOBJ) \
+fennel: $(LIBSMC_STATIC) fennel.o fennel_kernel.o randperm.o util.o
+	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o fennel $(EXEOBJ) \
 		$(LIBSMC_STATIC) $(LIBS)
+
+#mpifennel: $(LIBSMC_STATIC) mpifennel.m fennel.o randperm.o util.o
+#	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o mpifennel $(EXEOBJ) \
+#	$(LIBSMC_STATIC) $(LIBS)
 
 	
 ##########################################################################

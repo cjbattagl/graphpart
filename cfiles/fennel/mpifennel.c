@@ -23,7 +23,6 @@
 #include <bebop/util/timer.h>
 #include <bebop/util/util.h>
 
-#include <metis.h>
 #include <mpi.h>
 
 #include "fennel.h"
@@ -261,11 +260,16 @@ int main_sub (int argc, char *argv[], int count, int root, MPI_Comm communicator
   
   MPI_Recv(colidx_local, nnz_local, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  
   
+  // ir_local points to colidx idxs, so we need to normalize
+  // so that it points to colidx_local
+  int ir_offset = ir_local[0];
+  for (int i=0; i<bound; i++) { ir_local[i] -= ir_offset; }
+  
   MPI_Barrier(MPI_COMM_WORLD);
 
   // ********** Run FENNEL ***************************************
   //fprintf (stdout, "\n===== Running fennel =====\n");
-  run_mpi_fennel(repr, parts, 1.5, rank); //todo: nparts, gamma as inputs
+  //run_mpi_fennel(repr, parts, 1.5, rank); //todo: nparts, gamma as inputs
   // *************************************************************
   destroy_sparse_matrix (A);
   
