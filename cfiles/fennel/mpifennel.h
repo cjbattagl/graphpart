@@ -1,1 +1,1 @@
-static void usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args);
+static void mpi_usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args);

@@ -22,7 +22,8 @@ LIBSMC_STATIC = $(SMC_ROOT)/libsparse_matrix_converter$(STATIC_LIB_EXTENSION)
 LIBSMC_DYNAMIC = $(SMC_ROOT)/libsparse_matrix_converter$(DYNAMIC_LIB_EXTENSION)
 
 EXEOUT = fennel mpifennel
-EXEOBJ = fennel.o fennel_kernel.o util.o randperm.o 
+FEXEOBJ = fennel.o fennel_kernel.o util.o randperm.o 
+MEXEOBJ = mpifennel.o fennel_kernel.o util.o randperm.o 
 
 ## Location of SMC header files
 HEADERDIR = $(SMC_ROOT)/include/bebop/smc
@@ -57,11 +58,11 @@ randperm.o: randperm.c
 util.o: util.c
 
 fennel: $(LIBSMC_STATIC) fennel.o fennel_kernel.o randperm.o util.o
-	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o fennel $(EXEOBJ) \
+	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o fennel $(FEXEOBJ) \
 		$(LIBSMC_STATIC) $(LIBS)
 
 mpifennel: $(LIBSMC_STATIC) mpifennel.o fennel_kernel.o randperm.o util.o
-	$(LINKER) $(CPPFLAGS) $(CFLAGS) -o mpifennel $(EXEOBJ) \
+	mpicc $(CPPFLAGS) $(CFLAGS) -o mpifennel $(MEXEOBJ) \
 	$(LIBSMC_STATIC) $(LIBS)
 
 	

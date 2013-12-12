@@ -25,7 +25,7 @@
 
 #include <mpi.h>
 
-#include "fennel.h"
+#include "mpifennel.h"
 #include "randperm.h"
 #include "util.h"
 
@@ -38,7 +38,7 @@ cmdlineopts_t {
 } opts;
 
 static void
-usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args) {
+mpi_usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args) {
   fprintf (out, "Usage:\n");
   fprintf (out, "mpifennel [options] <in-filename> <in-format>\n");
   fprintf (out, "<in-filename>: name of file containing the sparse matrix to read in\n");
@@ -57,7 +57,7 @@ int main (int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   
-  int m,n, nnz;
+  int m,n,nnz;
   void *values;
   int *colidx, *rowptr;
   enum symmetry_type_t symmetry_type;
@@ -83,7 +83,7 @@ int main (int argc, char *argv[]) {
     }
 
     const char* matrix_filename = argv[1];
-    register_usage_function (usage);
+    register_usage_function (mpi_usage);
     arglist = register_arginfo (arglist, 'v', NULLARG, NULL, "If specified, ac"
                            "tivate verbose mode");
                          
@@ -189,15 +189,21 @@ int main (int argc, char *argv[]) {
                  
     // Only process 0 has n, so broadcast ...
     MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD); 
-    MPI_Barrier(MPI_COMM_WORLD);
   }
   
+  MPI_Barrier(MPI_COMM_WORLD);
+
+
   // Every processor should have n at this point, so allocate local ir
   // so that we can scatter ir
   int p = numprocs;
   int bound = ceil(n/p);
   int nnz_local;
   int* ir_local = (int*)malloc(sizeof(int)*bound);
+  
+  int* startidxs;
+  int* endidxs;
+  int* nnz_per_proc;
 
   // Now scatter repr to all processes from root
   if (rank == 0) {
@@ -217,14 +223,15 @@ int main (int argc, char *argv[]) {
     
     // Scatter row ptr
     MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
-
+}
+/*
     // OK.. now to scatter the colidx we need to first compute the subindices that
     // belong to each process... we'll store this in an array that we can then scatter
     // so that processes can allocate their slices
     
-    int* startidxs = (int*)malloc(sizeof(int)*p);
-    int* endidxs = (int*)malloc(sizeof(int)*p);
-    int* nnz_per_proc = (int*)malloc(sizeof(int)*p);
+    startidxs = (int*)malloc(sizeof(int)*p);
+    endidxs = (int*)malloc(sizeof(int)*p);
+    nnz_per_proc = (int*)malloc(sizeof(int)*p);
 
     for (i = 0; i<p; i++) { 
       int startvert = p*bound; 
@@ -234,9 +241,10 @@ int main (int argc, char *argv[]) {
       nnz_per_proc[i] = endidxs[i] - startidxs[i];
     }
     
-    MPI_Scatter(nnz_per_proc, 1, MPI_INT, nnz_local, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Scatter(nnz_per_proc, 1, MPI_INT, &nnz_local, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
   }
+
 
   // Every processor should have nnz_local at this point, so allocate local colidx
   // so that we can scatter colidx
@@ -249,7 +257,6 @@ int main (int argc, char *argv[]) {
       MPI_Send(colidx + startidxs[i], nnz_per_proc[i], MPI_INT, i, 0, MPI_COMM_WORLD);
     }
   }
-  
   
   MPI_Recv(colidx_local, nnz_local, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  
   
@@ -264,10 +271,9 @@ int main (int argc, char *argv[]) {
   //fprintf (stdout, "\n===== Running fennel =====\n");
   //run_mpi_fennel(repr, parts, 1.5, rank); //todo: nparts, gamma as inputs
   // *************************************************************
-  destroy_sparse_matrix (A);
+  //destroy_sparse_matrix (A);
   
   /* END */
-  MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   return 0;
 }
