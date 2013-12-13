@@ -35,7 +35,7 @@ cmdlineopts_t {
   char* input_file_format;
   char* output_filename;
   char* output_file_format;
-} opts;
+} opts;  
 
 static void
 mpi_usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args) {
@@ -46,7 +46,7 @@ mpi_usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_a
   fprintf (out, "<out-filename>: name of file to which to output results\n");
   fprintf (out, "[options]: -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, " -v -- verbose mode\n");
-  fprintf (out, "EX: (MPIRUN) ./mpifennel -v -e 'test.mtx' 'MM' 4\n");
+  fprintf (out, "EX: mpirun -np 4 ./mpifennel -v -e 'test.mtx' 'MM'\n");
 }
 
 int main (int argc, char *argv[]) {
@@ -79,6 +79,7 @@ int main (int argc, char *argv[]) {
     if (errcode != 0) {
         fprintf (stderr, "*** Failed to initialize BeBOP Utility Library "
            "(error code %d) ***\n", errcode);
+        MPI_Finalize();
         bebop_exit (EXIT_FAILURE);
     }
 
@@ -97,17 +98,17 @@ int main (int argc, char *argv[]) {
 
     get_options (argc, argv, arglist, NULL);
 
-    if (argc - optind != 3) {
+    if (argc - optind != 2) {
         fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
-           "e specified, but there should be %d ***\n", argc - optind, 3);
+           "e specified, but there should be %d ***\n", argc - optind, 2);
         dump_usage (stderr, argv[0], arglist, NULL);
+        MPI_Finalize();
         bebop_exit (EXIT_FAILURE); /* stops logging */
     }
 
     opts.input_filename = argv[optind];
     opts.input_file_format = argv[optind+1];
-    int parts = atoi(argv[optind+2]);
-    //opts.output_filename = argv[optind+2];
+    int parts = rank; //atoi(argv[optind+2]);
   
     if (strcmp (opts.input_file_format, "HB") == 0 ||
         strcmp (opts.input_file_format, "hb") == 0) { informat = HARWELL_BOEING; }
@@ -120,6 +121,7 @@ int main (int argc, char *argv[]) {
            opts.input_file_format);
         dump_usage (stderr, argv[0], arglist, NULL);
         destroy_arginfo_list (arglist);
+        MPI_Finalize();
         bebop_exit (EXIT_FAILURE); /* stops logging */
     }
 
@@ -137,6 +139,7 @@ int main (int argc, char *argv[]) {
         fprintf (stderr, "*** Failed to load input matrix file \"%s\" ***\n",
            opts.input_filename);
         destroy_arginfo_list (arglist);
+        MPI_Finalize();
         bebop_exit (1); /* stops logging */
     }
   
@@ -153,6 +156,7 @@ int main (int argc, char *argv[]) {
         fprintf (stderr, "*** Failed to expand matrix into symmetric storage ***\n");
         destroy_sparse_matrix (A);
         destroy_arginfo_list (arglist);
+        MPI_Finalize();
         bebop_exit (2);
       }
       if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
@@ -187,13 +191,13 @@ int main (int argc, char *argv[]) {
     unpack_csr_matrix (A->repr, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
                  &symmetric_storage_location, &value_type);
                  
-    // Only process 0 has n, so broadcast ...
   }
+  
+  // Only process 0 has n, so broadcast ...
   MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD); 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  // Every processor should have n at this point, so allocate local ir
-  // so that we can scatter ir
+  // Allocate local rowptr so that we can scatter global rowptr
   int p = numprocs;
   int bound = ceil((float)n/p);
   int nnz_local;
@@ -203,6 +207,7 @@ int main (int argc, char *argv[]) {
   int* endidxs;
   int* nnz_per_proc;
   int* ir2;
+  
   // Now scatter repr to all processes from root
   if (rank == 0) {
     // bound = ceil(N/p)
@@ -245,7 +250,6 @@ int main (int argc, char *argv[]) {
       endidxs[i] = ir2[endvert];
       nnz_per_proc[i] = endidxs[i] - startidxs[i];
       fprintf(stdout,"Bound for p%d from %d to %d \n",i,startvert,endvert);
-
     }
   }
   
@@ -274,7 +278,6 @@ int main (int argc, char *argv[]) {
   MPI_Barrier(MPI_COMM_WORLD);
   
   fprintf(stdout,"Process %d has %d nonzeros\n",rank,nnz_local);
-    MPI_Barrier(MPI_COMM_WORLD);
 
   // Reduce nnz_local to assert that it is the same
   int tot_nnz_for_assert;
