@@ -79,7 +79,7 @@ int main (int argc, char *argv[]) {
     if (errcode != 0) {
         fprintf (stderr, "*** Failed to initialize BeBOP Utility Library "
            "(error code %d) ***\n", errcode);
-        MPI_Finalize();
+        MPI_Abort(MPI_COMM_WORLD,-1);
         bebop_exit (EXIT_FAILURE);
     }
 
@@ -102,7 +102,7 @@ int main (int argc, char *argv[]) {
         fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
            "e specified, but there should be %d ***\n", argc - optind, 2);
         dump_usage (stderr, argv[0], arglist, NULL);
-        MPI_Finalize();
+        MPI_Abort(MPI_COMM_WORLD,-1);
         bebop_exit (EXIT_FAILURE); /* stops logging */
     }
 
@@ -121,7 +121,7 @@ int main (int argc, char *argv[]) {
            opts.input_file_format);
         dump_usage (stderr, argv[0], arglist, NULL);
         destroy_arginfo_list (arglist);
-        MPI_Finalize();
+        MPI_Abort(MPI_COMM_WORLD,-1);
         bebop_exit (EXIT_FAILURE); /* stops logging */
     }
 
@@ -139,7 +139,7 @@ int main (int argc, char *argv[]) {
         fprintf (stderr, "*** Failed to load input matrix file \"%s\" ***\n",
            opts.input_filename);
         destroy_arginfo_list (arglist);
-        MPI_Finalize();
+        MPI_Abort(MPI_COMM_WORLD,-1);
         bebop_exit (1); /* stops logging */
     }
   
@@ -156,7 +156,7 @@ int main (int argc, char *argv[]) {
         fprintf (stderr, "*** Failed to expand matrix into symmetric storage ***\n");
         destroy_sparse_matrix (A);
         destroy_arginfo_list (arglist);
-        MPI_Finalize();
+        MPI_Abort(MPI_COMM_WORLD,-1);
         bebop_exit (2);
       }
       if (got_arg_p (arglist, 'v')) { printf ("done, in %g seconds\n", seconds); }
