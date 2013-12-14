@@ -229,6 +229,9 @@ int main (int argc, char *argv[]) {
   }
   
   //fprintf(stdout,"bound = %d\n",bound);
+  
+  if (rank == 0) { fprintf(stdout,"=== Sending vertices to processes ===\n"); }
+
   MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
   assert(n);
   assert(p);
@@ -242,14 +245,14 @@ int main (int argc, char *argv[]) {
     endidxs = (int*)malloc(sizeof(int)*p);
     nnz_per_proc = (int*)malloc(sizeof(int)*p);
 
-    fprintf(stdout,"Computing vertex bounds . . .\n");
     for (int i = 0; i<p; i++) { 
       int startvert = i*bound; 
       int endvert = (i+1)*bound - 1;
-      startidxs[i] = ir2[startvert-1];
+      startidxs[i] = (i > 0) ? ir2[startvert] : 0;
       endidxs[i] = ir2[endvert];
       nnz_per_proc[i] = endidxs[i] - startidxs[i];
-      fprintf(stdout,"Bound for p%d from %d to %d \n",i,startvert,endvert);
+      //fprintf(stdout,"Bound for p%d from %d to %d \n",i,startvert,endvert);
+      //fprintf(stdout,"startidxs[%d] = %d\n",i,startidxs[i]);
     }
   }
   
@@ -259,34 +262,44 @@ int main (int argc, char *argv[]) {
   // Every processor should have nnz_local at this point, so allocate local colidx
   // so that we can scatter colidx
   int* colidx_local = (int*)malloc(sizeof(int)*nnz_local);
- 
+
   // Now scatter colidx to all processes from root
+  
   if (rank == 0) {
-  //  int i;
+    fprintf(stdout,"=== Sending nnzs to processes ===\n");
     for (int i=0; i<p; i++) {
+      //fprintf(stdout,"Sending from %d to %d, offset %d, length %d\n",rank,i,startidxs[i],nnz_per_proc[i]);
       MPI_Send(colidx + startidxs[i], nnz_per_proc[i], MPI_INT, i, 0, MPI_COMM_WORLD);
     }
   }
-  
+
   MPI_Recv(colidx_local, nnz_local, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  
 
   // ir_local points to colidx idxs, so we need to normalize
   // so that it points to colidx_local
   int ir_offset = ir_local[0];
   for (int i=0; i<bound; i++) { ir_local[i] -= ir_offset; }
-  
-  MPI_Barrier(MPI_COMM_WORLD);
-  
-  fprintf(stdout,"Process %d has %d nonzeros\n",rank,nnz_local);
-
   // Reduce nnz_local to assert that it is the same
+  
+  //////////////// SANITY CHECKS ///////////////////////////////////////
+  /*MPI_Barrier(MPI_COMM_WORLD);
+  fprintf(stdout,"First nz on proc %d: %d. global node id=%d\n",rank,ir_offset,rank*bound);
   int tot_nnz_for_assert;
   MPI_Reduce(&nnz_local, &tot_nnz_for_assert, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-  
-  if (rank == 0) {
-    fprintf(stdout,"Total nnz: %d\n",tot_nnz_for_assert);
+  MPI_Barrier(MPI_COMM_WORLD);
+  if (rank == 0) { fprintf(stdout,"Total nnz: %d\n",tot_nnz_for_assert); }
+  int sum = 0;
+  int tot_counted_nnz_for_assert;
+  for (int i=0; i<bound-1; i++) { sum += ir_local[i+1] - ir_local[i]; }
+  MPI_Reduce(&sum, &tot_counted_nnz_for_assert, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Barrier(MPI_COMM_WORLD);
+  fprintf(stdout,"IR counted nnz on proc %d: %d, difference of %d\n",rank,sum,nnz_local-sum);
+  for (int i=0; i<nnz_local; i++) { 
+    if (colidx_local[i] < 0 || colidx_local[i] > n) { fprintf(stdout,"%d ",colidx_local[i]); }
   }
+  ////////////////////////////////////////////////////////////////////// */
 
+  int local_vertex_offset = rank*bound; // add to all local vertex id's to get global id
   // ********** Run FENNEL ***************************************
   //fprintf (stdout, "\n===== Running fennel =====\n");
   //run_mpi_fennel(repr, parts, 1.5, rank); //todo: nparts, gamma as inputs
