@@ -315,8 +315,8 @@ int main (int argc, char *argv[]) {
   return 0;
 }
 
-int mpi_fennel_kernel(int n, int n_local, int nparts, int *partsize, int *rowptr, int *colidx,
-    bool **parts, float alpha, float gamma, int *emptyverts) {
+int mpi_fennel_kernel(int n, int n_local, int offset, int nparts, int *partsize, 
+    int *rowptr, int *colidx, int **parts, float alpha, float gamma, int *emptyverts) {
       
   int *partscore = (int*)malloc(nparts * sizeof(int));
   int *row;
@@ -348,14 +348,14 @@ int mpi_fennel_kernel(int n, int n_local, int nparts, int *partsize, int *rowptr
         if (curr_score > best_score) { best_score = curr_score; best_part = s; }
       }
       for (s = 0; s < nparts; s++) { 
-        if (parts[s][vert] == 1) {
+        if (parts[s][offset + vert] == 1) {
           oldpart = s;
         }
-        parts[s][vert] = 0; 
+        parts[s][offset + vert] = 0; 
       }
-      parts[best_part][vert] = 1;
+      parts[best_part][offset + vert] = 1;
       //int sum=0;
-      //for (s = 0; s < nparts; s++) { sum += parts[s][vert]; }
+      //for (s = 0; s < nparts; s++) { sum += parts[s][offset + vert]; }
       //assert(sum==1);
       partsize[best_part]++;
       if (oldpart >= 0) {
@@ -366,12 +366,12 @@ int mpi_fennel_kernel(int n, int n_local, int nparts, int *partsize, int *rowptr
       emptyverts++;
       randidx = irand(nparts);
       for (s = 1; s < nparts; s++) {
-        if (parts[s][vert] == 1) {
+        if (parts[s][offset + vert] == 1) {
           oldpart = s;
         }
-        parts[s][vert] = 0; 
+        parts[s][offset + vert] = 0; 
       }
-      parts[randidx][vert] = 1;
+      parts[randidx][offset + vert] = 1;
       partsize[randidx]++;
       if (oldpart >= 0) {
         partsize[oldpart]--;
@@ -397,9 +397,9 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
           
   // Allocate partition vectors
   if (rank==0) { fprintf (stdout, "p0:----> Gen %d partition vectors\n",nparts); }
-  bool** parts = (bool**)malloc(nparts * sizeof(bool*));
+  int** parts = (int**)malloc(nparts * sizeof(int*));
   for(int i = 0; i < nparts; i++) {
-    parts[i] = (bool*)malloc(n * sizeof(bool));
+    parts[i] = (int*)malloc(n * sizeof(int));
     for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros
     assert(parts[i]);
   }
@@ -415,9 +415,9 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
   //initialize part sizes
   int *partsize = (int*)malloc(nparts * sizeof(int));
   for (s = 0; s < nparts; s++) { partsize[s] = 0; }
-
+/*
   seconds = get_seconds();
-  mpi_fennel_kernel(n, n_local, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
+  mpi_fennel_kernel(n, n_local, v_offset, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
   seconds = get_seconds() - seconds;
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -428,27 +428,35 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
     if (partsize[s] > max_load) {max_load = partsize[s];}
     if (partsize[s] < min_load) {min_load = partsize[s];}
   }
-
+ 
   //fprintf (stdout, "\n===== Fennel Complete in %g seconds =====\n", seconds);
   fprintf (stdout, "----> Partition sizes: ");
   for (s = 0; s < nparts; s++) { fprintf (stdout, "| %d |", partsize[s]); }
   MPI_Barrier(MPI_COMM_WORLD);
   fprintf (stdout, "\n----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
-/*
+
   // Compute cut quality
   int cutedges = 0;
   int emptyparts = 0; //empty assignments
   int redparts = 0; //redundant assignments
-  
-  cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL);
-    
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  //for (s=0; s<nparts; s++) {
+     //MPI_Allgather(parts[0], n, MPI_INT, parts+v_offset, n/nparts, MPI_INT, MPI_COMM_WORLD);
+  //}
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  if (rank==-1) {
+  cutedges = mpi_compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL);
+
   fprintf (stdout, "----> Percent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
   fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
   fprintf (stdout, "===== Sanity Check =====\n");
   fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
   fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
   fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
-  
+  }
+/*  
   //FILE *PartFile;
   //PartFile = fopen("parts.mat", "w");
   //assert(PartFile != NULL);
@@ -470,7 +478,7 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
   for (int run=0; run<numruns; run++) {
   
     seconds = get_seconds();
-    mpi_fennel_kernel(n, n_local, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
+    mpi_fennel_kernel(n, n_local, v_offset, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
     seconds = get_seconds() - seconds;
    //fprintf (stdout, "\n %g seconds =====\n", seconds);
 
@@ -511,7 +519,7 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
   */
 }
   
-static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out) {
+static int mpi_compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, int **parts, int nparts, int n, FILE *out) {
   int vert, nnz_row, v_part;
   int cutedges = 0;
   int *row;
