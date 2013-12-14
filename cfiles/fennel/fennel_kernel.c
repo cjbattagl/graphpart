@@ -398,7 +398,7 @@ static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj
     }
 }
   
-int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out) {
+static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out) {
   int vert, nnz_row, v_part;
   int cutedges = 0;
   int *row;

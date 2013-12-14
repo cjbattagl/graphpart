@@ -282,31 +282,271 @@ int main (int argc, char *argv[]) {
   // Reduce nnz_local to assert that it is the same
   
   //////////////// SANITY CHECKS ///////////////////////////////////////
-  /*MPI_Barrier(MPI_COMM_WORLD);
-  fprintf(stdout,"First nz on proc %d: %d. global node id=%d\n",rank,ir_offset,rank*bound);
+  //MPI_Barrier(MPI_COMM_WORLD);
+  //fprintf(stdout,"First nz on proc %d: %d. global node id=%d\n",rank,ir_offset,rank*bound);
   int tot_nnz_for_assert;
   MPI_Reduce(&nnz_local, &tot_nnz_for_assert, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
-  if (rank == 0) { fprintf(stdout,"Total nnz: %d\n",tot_nnz_for_assert); }
+  //if (rank == 0) { fprintf(stdout,"Total nnz: %d\n",tot_nnz_for_assert); }
   int sum = 0;
   int tot_counted_nnz_for_assert;
   for (int i=0; i<bound-1; i++) { sum += ir_local[i+1] - ir_local[i]; }
   MPI_Reduce(&sum, &tot_counted_nnz_for_assert, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
-  fprintf(stdout,"IR counted nnz on proc %d: %d, difference of %d\n",rank,sum,nnz_local-sum);
+  //fprintf(stdout,"IR counted nnz on proc %d: %d, difference of %d\n",rank,sum,nnz_local-sum);
+  if (nnz_local-sum != 0) { 
+    fprintf(stdout,"===== ERROR: not all nnzs were communicated ===\n");
+    MPI_Abort(MPI_COMM_WORLD,-1);
+    bebop_exit (EXIT_FAILURE);
+  }
   for (int i=0; i<nnz_local; i++) { 
     if (colidx_local[i] < 0 || colidx_local[i] > n) { fprintf(stdout,"%d ",colidx_local[i]); }
   }
-  ////////////////////////////////////////////////////////////////////// */
+  //////////////////////////////////////////////////////////////////////
 
   int local_vertex_offset = rank*bound; // add to all local vertex id's to get global id
-  // ********** Run FENNEL ***************************************
-  //fprintf (stdout, "\n===== Running fennel =====\n");
-  //run_mpi_fennel(repr, parts, 1.5, rank); //todo: nparts, gamma as inputs
+  // ********** Run MPI FENNEL ***************************************
+  if (rank==0) { fprintf (stdout, "===== Running mpi fennel =====\n"); }
+  //mpi_run_fennel(repr, parts, 1.5, rank); //todo: nparts, gamma as inputs
   // *************************************************************
   //destroy_sparse_matrix (A);
   
   /* END */
   MPI_Finalize();
   return 0;
+}
+
+int mpi_fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
+    bool **parts, float alpha, float gamma, int *emptyverts) {
+      
+  int *partscore = (int*)malloc(nparts * sizeof(int));
+  int *row;
+  int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
+  float curr_score, best_score;
+  int *vorder = genRandPerm(n);
+  int oldpart;
+
+  emptyverts = 0;
+
+  for (int i = 0; i < n; i++) {
+    for (s = 0; s < nparts; s++) { partscore[s]=0; }
+    vert = vorder[i];
+    row = &rowptr[vert];
+    nnz_row = *(row+1) - *row;
+    oldpart = -1;
+   if(nnz_row != 0) {
+      // generate partition scores for each partition
+      for (k = *row; k < ((*row)+nnz_row); k++) {
+        node = colidx[k];
+        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; /*break;*/ }}
+      }
+        
+      // choose optimal partition (initializing first)
+      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
+      best_part = 0;
+      for (s = 1; s < nparts; s++) {
+        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
+        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
+      }
+      for (s = 0; s < nparts; s++) { 
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
+      parts[best_part][vert] = 1;
+      //int sum=0;
+      //for (s = 0; s < nparts; s++) { sum += parts[s][vert]; }
+      //assert(sum==1);
+      partsize[best_part]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+      
+    } else { // empty vertex for some reason... assign it to random permutation
+      emptyverts++;
+      randidx = irand(nparts);
+      for (s = 1; s < nparts; s++) {
+        if (parts[s][vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][vert] = 0; 
+      }
+      parts[randidx][vert] = 1;
+      partsize[randidx]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+    }
+  }
+  
+  free(vorder);
+}
+
+int mpi_run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
+  int m, n, nnz;
+  void* values;
+  int* colidx;
+  int* rowptr;
+  enum symmetry_type_t symmetry_type;
+  enum symmetric_storage_location_t symmetric_storage_location;
+  enum value_type_t value_type;
+  double seconds = 0.0;
+
+  unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
+                 &symmetric_storage_location, &value_type);
+
+  float alpha = sqrt(2) * (nnz/pow(n,gamma));
+  //float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
+  fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
+          
+  // Allocate partition vectors
+  fprintf (stdout, "----> Gen %d partition vectors\n",nparts);
+  bool** parts = (bool**)malloc(nparts * sizeof(bool*));
+  for(int i = 0; i < nparts; i++) {
+    parts[i] = (bool*)malloc(n * sizeof(bool));
+    for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros
+    assert(parts[i]);
+  }
+  assert(parts);
+
+  // Iterate over vorder
+  fprintf (stdout, "----> Begin outer loop... \n");
+  int vert, k, s, node = 0;
+  int *row;
+  int nnz_row = 0;
+  int emptyverts;
+  
+  //initialize part sizes
+  int *partsize = (int*)malloc(nparts * sizeof(int));
+  for (s = 0; s < nparts; s++) { partsize[s] = 0; }
+
+  seconds = get_seconds();
+  mpi_fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
+  seconds = get_seconds() - seconds;
+ 
+  // Compute load balance
+  int max_load = partsize[0];
+  int min_load = partsize[0];
+  for (s = 1; s < nparts; s++) {
+    if (partsize[s] > max_load) {max_load = partsize[s];}
+    if (partsize[s] < min_load) {min_load = partsize[s];}
+  }
+
+  fprintf (stdout, "\n===== Fennel Complete in %g seconds =====\n", seconds);
+  fprintf (stdout, "----> Partition sizes: ");
+  for (s = 0; s < nparts; s++) { fprintf (stdout, "| %d |", partsize[s]); }
+  fprintf (stdout, "\n----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
+
+  // Compute cut quality
+  int cutedges = 0;
+  int emptyparts = 0; //empty assignments
+  int redparts = 0; //redundant assignments
+  
+  cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL);
+    
+  fprintf (stdout, "----> Percent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
+  fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
+  fprintf (stdout, "===== Sanity Check =====\n");
+  fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
+  fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
+  fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
+  
+  FILE *PartFile;
+  PartFile = fopen("parts.mat", "w");
+  assert(PartFile != NULL);
+  
+  FILE *LambdaFile;
+  LambdaFile = fopen("lambda.txt", "a");
+  assert(LambdaFile != NULL);
+
+  
+  /////////////////////////////////////////////////////////////////////////////
+  ///////////// EXPERIMENTAL: DO ADDITIONAL RUNS ON THE NEW PARTITION /////////
+  /////////////////////////////////////////////////////////////////////////////
+
+  for (s = 0; s < nparts; s++) { partsize[s] = 0; }
+  for(int i = 0; i < nparts; i++) {
+      for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros
+  }
+  int numruns = 2;
+  for (int run=0; run<numruns; run++) {
+  
+    seconds = get_seconds();
+    mpi_fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
+    seconds = get_seconds() - seconds;
+   //fprintf (stdout, "\n %g seconds =====\n", seconds);
+
+
+    // Compute load balance  
+    max_load = partsize[0];
+    min_load = partsize[0];
+    for (s = 1; s < nparts; s++) {
+      if (partsize[s] > max_load) {max_load = partsize[s];}
+      if (partsize[s] < min_load) {min_load = partsize[s];}
+    }
+
+    //fprintf (stdout, "----> Run |%d|: Load balance: %d / %d = %1.2f\t",run,max_load,min_load,(float)max_load/min_load);
+    cutedges = 0;
+    emptyparts = 0; //empty assignments
+    redparts = 0; //redundant assignments
+    
+    if (run < numruns-1) {
+      cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL);
+    }
+    else {
+      cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile);
+    }
+    fprintf (stdout, "Percent edges cut = %d / %d = %1.3f\n", cutedges,nnz,(float)cutedges/nnz);
+    fprintf(LambdaFile, "%1.3f, ",(float)cutedges/nnz);
+
+    if (run == numruns-1) {
+    //fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
+    //fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
+    //fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
+    //fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
+    }
+  }
+  fclose(PartFile);
+      fprintf(LambdaFile, "\n");
+
+  fclose(LambdaFile);
+}
+  
+static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out) {
+  int vert, nnz_row, v_part;
+  int cutedges = 0;
+  int *row;
+  for (int i = 0; i < n; i++) {
+    vert = i;
+    row = &rowptr[vert];
+    nnz_row = *(row+1) - *(row); //nnz in row
+    v_part = -1;
+    
+    // find v's partition
+    for (int s = 0; s < nparts; s++) {
+      if (parts[s][vert] == 1) {
+        if(v_part != -1) { redparts++; }
+        v_part = s;
+      }
+    }
+    if (v_part == -1) {
+      v_part = 0;
+      emptyparts++;
+    }
+    
+    if (out != NULL) {
+      fprintf (out, "%d %d\n",i+1,v_part+1);
+    }
+    
+    // count edges to other partitions
+    for (int k = *row; k < ((*row)+nnz_row); k++) {
+      if (parts[v_part][colidx[k]] != 1) { cutedges++; }
+    }
+  }
+  return cutedges;
+}
+
+static float calc_dc(float alpha, float gamma, int len) {
+  return (alpha*pow(len+0.5,gamma)) - (alpha*pow(len,gamma));
 }
