@@ -1,8 +1,10 @@
 static void mpi_usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args);
 
 // Calculations
-int run_mpi_fennel (const struct csr_matrix_t* A, int nparts, float gamma);
-int mpi_fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx, 
+int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local, 
+    int nnz, int nnz_local, int v_offset, float gamma);
+
+int mpi_fennel_kernel(int n, int n_local, int nparts, int *partsize, int *rowptr, int *colidx, 
     bool **parts, float alpha, float gamma, int *emptyverts); 
     
 static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE* out);

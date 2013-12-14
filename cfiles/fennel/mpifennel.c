@@ -64,8 +64,8 @@ int main (int argc, char *argv[]) {
   enum symmetric_storage_location_t symmetric_storage_location;
   enum value_type_t value_type;
   
-  // For now we are simulating a parallel file system, so root process reads
-  // in the data and then scatters the graph
+  // For now we are only simulating a parallel file system.
+  // The root process reads in the data and then scatters the graph
   if (rank == 0) {
     extern int optind;
     enum sparse_matrix_file_format_t informat = 0;
@@ -194,7 +194,8 @@ int main (int argc, char *argv[]) {
   }
   
   // Only process 0 has n, so broadcast ...
-  MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD); 
+  MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD);
+  MPI_Bcast(&nnz,1,MPI_INT,0,MPI_COMM_WORLD); 
   MPI_Barrier(MPI_COMM_WORLD);
 
   // Allocate local rowptr so that we can scatter global rowptr
@@ -264,7 +265,6 @@ int main (int argc, char *argv[]) {
   int* colidx_local = (int*)malloc(sizeof(int)*nnz_local);
 
   // Now scatter colidx to all processes from root
-  
   if (rank == 0) {
     fprintf(stdout,"=== Sending nnzs to processes ===\n");
     for (int i=0; i<p; i++) {
@@ -272,7 +272,6 @@ int main (int argc, char *argv[]) {
       MPI_Send(colidx + startidxs[i], nnz_per_proc[i], MPI_INT, i, 0, MPI_COMM_WORLD);
     }
   }
-
   MPI_Recv(colidx_local, nnz_local, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  
 
   // ir_local points to colidx idxs, so we need to normalize
@@ -307,7 +306,7 @@ int main (int argc, char *argv[]) {
   int local_vertex_offset = rank*bound; // add to all local vertex id's to get global id
   // ********** Run MPI FENNEL ***************************************
   if (rank==0) { fprintf (stdout, "===== Running mpi fennel =====\n"); }
-  //mpi_run_fennel(repr, parts, 1.5, rank); //todo: nparts, gamma as inputs
+  mpi_run_fennel(ir_local, colidx_local, n, bound, nnz, nnz_local, local_vertex_offset, 1.5); //todo: nparts, gamma as inputs
   // *************************************************************
   //destroy_sparse_matrix (A);
   
@@ -316,14 +315,14 @@ int main (int argc, char *argv[]) {
   return 0;
 }
 
-int mpi_fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
+int mpi_fennel_kernel(int n, int n_local, int nparts, int *partsize, int *rowptr, int *colidx,
     bool **parts, float alpha, float gamma, int *emptyverts) {
       
   int *partscore = (int*)malloc(nparts * sizeof(int));
   int *row;
   int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
   float curr_score, best_score;
-  int *vorder = genRandPerm(n);
+  int *vorder = genRandPerm(n_local);
   int oldpart;
 
   emptyverts = 0;
@@ -334,11 +333,11 @@ int mpi_fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx
     row = &rowptr[vert];
     nnz_row = *(row+1) - *row;
     oldpart = -1;
-   if(nnz_row != 0) {
+    if(nnz_row != 0) {
       // generate partition scores for each partition
       for (k = *row; k < ((*row)+nnz_row); k++) {
         node = colidx[k];
-        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; /*break;*/ }}
+        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; }}
       }
         
       // choose optimal partition (initializing first)
@@ -380,28 +379,24 @@ int mpi_fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx
     }
   }
   
+  free(partscore);
   free(vorder);
 }
 
-int mpi_run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
-  int m, n, nnz;
-  void* values;
-  int* colidx;
-  int* rowptr;
-  enum symmetry_type_t symmetry_type;
-  enum symmetric_storage_location_t symmetric_storage_location;
-  enum value_type_t value_type;
-  double seconds = 0.0;
+int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local, 
+    int nnz, int nnz_local, int v_offset, float gamma) {
 
-  unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
-                 &symmetric_storage_location, &value_type);
+  int nparts, rank;
+  float seconds = 0.0f;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nparts);
 
   float alpha = sqrt(2) * (nnz/pow(n,gamma));
   //float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
-  fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
+  if (rank==0) { fprintf (stdout, "p0:----> gamma = %f, alpha = %f\n",gamma,alpha); }
           
   // Allocate partition vectors
-  fprintf (stdout, "----> Gen %d partition vectors\n",nparts);
+  if (rank==0) { fprintf (stdout, "p0:----> Gen %d partition vectors\n",nparts); }
   bool** parts = (bool**)malloc(nparts * sizeof(bool*));
   for(int i = 0; i < nparts; i++) {
     parts[i] = (bool*)malloc(n * sizeof(bool));
@@ -411,7 +406,7 @@ int mpi_run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   assert(parts);
 
   // Iterate over vorder
-  fprintf (stdout, "----> Begin outer loop... \n");
+  if (rank==0) { fprintf (stdout, "p0:----> Begin outer loop... \n"); }
   int vert, k, s, node = 0;
   int *row;
   int nnz_row = 0;
@@ -422,9 +417,10 @@ int mpi_run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   for (s = 0; s < nparts; s++) { partsize[s] = 0; }
 
   seconds = get_seconds();
-  mpi_fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
+  mpi_fennel_kernel(n, n_local, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
   seconds = get_seconds() - seconds;
- 
+  MPI_Barrier(MPI_COMM_WORLD);
+
   // Compute load balance
   int max_load = partsize[0];
   int min_load = partsize[0];
@@ -433,11 +429,12 @@ int mpi_run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     if (partsize[s] < min_load) {min_load = partsize[s];}
   }
 
-  fprintf (stdout, "\n===== Fennel Complete in %g seconds =====\n", seconds);
+  //fprintf (stdout, "\n===== Fennel Complete in %g seconds =====\n", seconds);
   fprintf (stdout, "----> Partition sizes: ");
   for (s = 0; s < nparts; s++) { fprintf (stdout, "| %d |", partsize[s]); }
+  MPI_Barrier(MPI_COMM_WORLD);
   fprintf (stdout, "\n----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
-
+/*
   // Compute cut quality
   int cutedges = 0;
   int emptyparts = 0; //empty assignments
@@ -452,13 +449,13 @@ int mpi_run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
   fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
   
-  FILE *PartFile;
-  PartFile = fopen("parts.mat", "w");
-  assert(PartFile != NULL);
+  //FILE *PartFile;
+  //PartFile = fopen("parts.mat", "w");
+  //assert(PartFile != NULL);
   
-  FILE *LambdaFile;
-  LambdaFile = fopen("lambda.txt", "a");
-  assert(LambdaFile != NULL);
+  //FILE *LambdaFile;
+  //LambdaFile = fopen("lambda.txt", "a");
+  //assert(LambdaFile != NULL);
 
   
   /////////////////////////////////////////////////////////////////////////////
@@ -473,7 +470,7 @@ int mpi_run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   for (int run=0; run<numruns; run++) {
   
     seconds = get_seconds();
-    mpi_fennel_kernel(n, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
+    mpi_fennel_kernel(n, n_local, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
     seconds = get_seconds() - seconds;
    //fprintf (stdout, "\n %g seconds =====\n", seconds);
 
@@ -511,6 +508,7 @@ int mpi_run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       fprintf(LambdaFile, "\n");
 
   fclose(LambdaFile);
+  */
 }
   
 static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out) {
