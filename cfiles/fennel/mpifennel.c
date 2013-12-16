@@ -37,6 +37,8 @@ cmdlineopts_t {
   char* output_file_format;
 } opts;  
 
+
+// Usage message for improper input
 static void
 mpi_usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args) {
   fprintf (out, "Usage:\n");
@@ -57,6 +59,7 @@ int main (int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
   
+  // Matrix parameters pulled from the file
   int m,n,nnz;
   void *values;
   int *colidx, *rowptr;
@@ -88,7 +91,6 @@ int main (int argc, char *argv[]) {
     arglist = register_arginfo (arglist, 'v', NULLARG, NULL, "If specified, ac"
                            "tivate verbose mode");
                          
-
     arglist = register_arginfo (arglist, 'e', NULLARG, NULL, "If specified, ex"
                            "pand the input matrix from symmetric storage "
                            "into unsymmetric storage");
@@ -131,6 +133,7 @@ int main (int argc, char *argv[]) {
                            after loading is complete */
     }
   
+    // File Input
     seconds = get_seconds();
     A = load_sparse_matrix (informat, opts.input_filename);
     seconds = get_seconds() - seconds;
@@ -217,14 +220,16 @@ int main (int argc, char *argv[]) {
     // Send cidx[ir[rank*bound] .. ir[(rank+1)*bound - 1]] to p_rank  (Using MPI_Send ... )
     
     // Create ir2, a resized rowptr
-    ir2 = (int*)malloc(sizeof(int) * p*bound);
+    ir2 = (int*)malloc(sizeof(int) * p*bound + 1);
     
     // Copy rowptr to ir2
     // Todo: switch to memcpy
     int i;
-    for (i = 0; i<n; i++) { ir2[i] = rowptr[i]; }
-    for (i = n; i<bound*p; i++) { ir2[i] = rowptr[n]; } //extend ir2 to have empty nodes
-    
+    fprintf(stdout,"\n");
+    for (i = 0; i<n; i++) { ir2[i] = rowptr[i]; fprintf(stdout," %d ",ir2[i]);}
+    fprintf(stdout,"\n");
+    for (i = n; i<=bound*p; i++) { ir2[i] = nnz; fprintf(stdout," %d ",ir2[i]);/*rowptr[n];*/ } //extend ir2 to have empty nodes
+    fprintf(stdout,"\n");
     // Scatter row ptr
     //MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
   }
@@ -234,8 +239,15 @@ int main (int argc, char *argv[]) {
   if (rank == 0) { fprintf(stdout,"=== Sending vertices to processes ===\n"); }
 
   MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
-  assert(n);
-  assert(p);
+  assert(ir_local);
+
+  if (rank == 0) {
+    for (int i=0; i<bound; i++) {
+      if (ir_local[i] != ir2[i]) {
+        fprintf(stdout,"=== MISMATCH ===\n");
+      }
+    }
+  }
 
   if (rank == 0) {
     // OK.. now to scatter the colidx we need to first compute the subindices that
@@ -249,37 +261,48 @@ int main (int argc, char *argv[]) {
     for (int i = 0; i<p; i++) { 
       int startvert = i*bound; 
       int endvert = (i+1)*bound - 1;
-      startidxs[i] = (i > 0) ? ir2[startvert] : 0;
-      endidxs[i] = ir2[endvert];
+      startidxs[i] = ir2[startvert];
+      endidxs[i] = ir2[endvert+1]-1;
       nnz_per_proc[i] = endidxs[i] - startidxs[i];
-      //fprintf(stdout,"Bound for p%d from %d to %d \n",i,startvert,endvert);
-      //fprintf(stdout,"startidxs[%d] = %d\n",i,startidxs[i]);
+      fprintf(stdout,"Bound for p%d from %d to %d ",i,startvert,endvert);
+      fprintf(stdout,"   startidxs[%d] = %d, endidxs[%d] = %d, local nnz=%d\n",i,startidxs[i],i,endidxs[i],nnz_per_proc[i]);
     }
   }
   
   MPI_Scatter(nnz_per_proc, 1, MPI_INT, &nnz_local, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
 
+
   // Every processor should have nnz_local at this point, so allocate local colidx
   // so that we can scatter colidx
   int* colidx_local = (int*)malloc(sizeof(int)*nnz_local);
-
+  int tag = 1;
+  
+  static MPI_Status Stat;
   // Now scatter colidx to all processes from root
   if (rank == 0) {
     fprintf(stdout,"=== Sending nnzs to processes ===\n");
-    for (int i=0; i<p; i++) {
-      //fprintf(stdout,"Sending from %d to %d, offset %d, length %d\n",rank,i,startidxs[i],nnz_per_proc[i]);
-      MPI_Send(colidx + startidxs[i], nnz_per_proc[i], MPI_INT, i, 0, MPI_COMM_WORLD);
+    
+    for (int i=0; i<nnz_local; i++) {
+      colidx_local[i] = colidx[i];
+    }
+    
+    for (int i=1; i<p; i++) {
+      //fprintf(stdout,"Sending from %d to %d, offset %d, length %d\n",rank,i,startidxs[i],nnz_per_proc[i],nnz_local);
+      //fflush (stdout);
+      MPI_Send(colidx + startidxs[i], nnz_per_proc[i], MPI_INT, i, tag, MPI_COMM_WORLD);
     }
   }
-  MPI_Recv(colidx_local, nnz_local, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);  
+  if (rank > 0) {
+    MPI_Recv(colidx_local, nnz_local, MPI_INT, 0, tag, MPI_COMM_WORLD, &Stat);  
+  }
 
   // ir_local points to colidx idxs, so we need to normalize
   // so that it points to colidx_local
   int ir_offset = ir_local[0];
-  for (int i=0; i<bound; i++) { ir_local[i] -= ir_offset; }
+  for (int i=0; i<bound; i++) { ir_local[i] -= ir_offset; fprintf(stdout,"%d ", ir_local[i]); }
   // Reduce nnz_local to assert that it is the same
-  
+
   //////////////// SANITY CHECKS ///////////////////////////////////////
   //MPI_Barrier(MPI_COMM_WORLD);
   //fprintf(stdout,"First nz on proc %d: %d. global node id=%d\n",rank,ir_offset,rank*bound);
@@ -292,7 +315,7 @@ int main (int argc, char *argv[]) {
   for (int i=0; i<bound-1; i++) { sum += ir_local[i+1] - ir_local[i]; }
   MPI_Reduce(&sum, &tot_counted_nnz_for_assert, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
-  //fprintf(stdout,"IR counted nnz on proc %d: %d, difference of %d\n",rank,sum,nnz_local-sum);
+  fprintf(stdout,"IR counted nnz on proc %d: %d, difference of %d\n",rank,sum,nnz_local-sum);
   if (nnz_local-sum != 0) { 
     fprintf(stdout,"===== ERROR: not all nnzs were communicated ===\n");
     MPI_Abort(MPI_COMM_WORLD,-1);
@@ -309,7 +332,7 @@ int main (int argc, char *argv[]) {
   mpi_run_fennel(ir_local, colidx_local, n, bound, nnz, nnz_local, local_vertex_offset, 1.5); //todo: nparts, gamma as inputs
   // *************************************************************
   //destroy_sparse_matrix (A);
-  
+  //*/
   /* END */
   MPI_Finalize();
   return 0;
@@ -317,17 +340,18 @@ int main (int argc, char *argv[]) {
 
 int mpi_fennel_kernel(int n, int n_local, int offset, int nparts, int *partsize, 
     int *rowptr, int *colidx, int **parts, float alpha, float gamma, int *emptyverts) {
-      
+    //fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
+
   int *partscore = (int*)malloc(nparts * sizeof(int));
   int *row;
   int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
   float curr_score, best_score;
-  int *vorder = genRandPerm(n_local);
+  int *vorder = genRandPerm(n_local-1);
   int oldpart;
 
   emptyverts = 0;
 
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n_local-1; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
     vert = vorder[i];
     row = &rowptr[vert];
@@ -415,7 +439,7 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
   //initialize part sizes
   int *partsize = (int*)malloc(nparts * sizeof(int));
   for (s = 0; s < nparts; s++) { partsize[s] = 0; }
-/*
+
   seconds = get_seconds();
   mpi_fennel_kernel(n, n_local, v_offset, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
   seconds = get_seconds() - seconds;
@@ -446,11 +470,14 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
   //}
   MPI_Barrier(MPI_COMM_WORLD);
 
-  if (rank==-1) {
-  cutedges = mpi_compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL);
+  int total_cutedges;
+  cutedges = mpi_compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n_local, v_offset, NULL);
+  MPI_Reduce(&cutedges, &total_cutedges, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-  fprintf (stdout, "----> Percent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
-  fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
+
+if (rank==0) {
+  fprintf (stdout, "----> Percent edges cut = %d / %d = %1.3f\n",total_cutedges,nnz,(float)total_cutedges/nnz);
+  fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)total_cutedges/nnz)/((float)(nparts-1)/nparts));
   fprintf (stdout, "===== Sanity Check =====\n");
   fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
   fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
@@ -519,11 +546,11 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
   */
 }
   
-static int mpi_compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, int **parts, int nparts, int n, FILE *out) {
+static int mpi_compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, int **parts, int nparts, int n_local, int offset, FILE *out) {
   int vert, nnz_row, v_part;
   int cutedges = 0;
   int *row;
-  for (int i = 0; i < n; i++) {
+  for (int i = 0; i < n_local-1; i++) {
     vert = i;
     row = &rowptr[vert];
     nnz_row = *(row+1) - *(row); //nnz in row
@@ -531,7 +558,7 @@ static int mpi_compute_cut(int *emptyparts, int *redparts, int *rowptr, int *col
     
     // find v's partition
     for (int s = 0; s < nparts; s++) {
-      if (parts[s][vert] == 1) {
+      if (parts[s][vert+offset] == 1) {
         if(v_part != -1) { redparts++; }
         v_part = s;
       }
