@@ -1,13 +1,3 @@
-#include <bebop/smc/coo_matrix.h>
-#include <bebop/smc/csc_matrix.h>
-#include <bebop/smc/csr_matrix.h>
-#include <bebop/smc/read_mm.h>
-#include <bebop/smc/sparse_matrix.h>
-#include <bebop/smc/interface.h>
-#include <bebop/smc/sparse_matrix_ops.h>
-
-#include <bebop/util/merge_sort.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +5,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <stdbool.h>
+
+// Bebop utils
+#include <bebop/util/merge_sort.h>
 #include <bebop/util/config.h>
 #include <bebop/util/get_options.h>
 #include <bebop/util/init.h>
@@ -23,12 +16,23 @@
 #include <bebop/util/timer.h>
 #include <bebop/util/util.h>
 
+// Bebop smc utils
+#include <bebop/smc/coo_matrix.h>
+#include <bebop/smc/csc_matrix.h>
+#include <bebop/smc/csr_matrix.h>
+#include <bebop/smc/read_mm.h>
+#include <bebop/smc/sparse_matrix.h>
+#include <bebop/smc/interface.h>
+#include <bebop/smc/sparse_matrix_ops.h>
+
 #include <metis.h>
 
 #include "fennel_kernel.h"
 #include "randperm.h"
 #include "util.h"
 
+// Given the CSR vectors of a sparse matrix, and a partition vector, creates
+// a streaming-partitioning assignment of nodes to partitions
 int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
     bool **parts, float alpha, float gamma, int *emptyverts) {
       
@@ -96,6 +100,7 @@ int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
   free(vorder);
 }
 
+// Modified FENNEL algorithm that samples 'prob' percent of the edges
 int sample_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
     bool **parts, float alpha, float gamma, int *emptyverts, float prob) {
       
@@ -171,6 +176,8 @@ int sample_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
   free(vorder);
 }
 
+// Prepare matrix A for partitioning, and call FENNEL
+// then evaluate results
 int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   int m, n, nnz;
   void* values;
@@ -398,6 +405,7 @@ static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj
     }
 }
   
+// Compute number of edges cut by a given partitioning
 static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out) {
   int vert, nnz_row, v_part;
   int cutedges = 0;
