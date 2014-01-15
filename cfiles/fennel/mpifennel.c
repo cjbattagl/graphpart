@@ -67,7 +67,7 @@ int main (int argc, char *argv[]) {
   enum symmetric_storage_location_t symmetric_storage_location;
   enum value_type_t value_type;
   
-  // For now we are only simulating a parallel file system.
+  // Here we are only simulating a parallel file system.
   // The root process reads in the data and then scatters the graph
   if (rank == 0) {
     extern int optind;
@@ -192,8 +192,7 @@ int main (int argc, char *argv[]) {
     fclose(LambdaFile);
 
     unpack_csr_matrix (A->repr, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
-                 &symmetric_storage_location, &value_type);
-                 
+                 &symmetric_storage_location, &value_type);          
   }
   
   // Only process 0 has n, so broadcast ...
@@ -225,11 +224,11 @@ int main (int argc, char *argv[]) {
     // Copy rowptr to ir2
     // Todo: switch to memcpy
     int i;
-    fprintf(stdout,"\n");
-    for (i = 0; i<n; i++) { ir2[i] = rowptr[i]; fprintf(stdout," %d ",ir2[i]);}
-    fprintf(stdout,"\n");
-    for (i = n; i<=bound*p; i++) { ir2[i] = nnz; fprintf(stdout," %d ",ir2[i]);/*rowptr[n];*/ } //extend ir2 to have empty nodes
-    fprintf(stdout,"\n");
+    //fprintf(stdout,"\n");
+    for (i = 0; i<n; i++) { ir2[i] = rowptr[i]; }//fprintf(stdout," %d ",ir2[i]);}
+    //fprintf(stdout,"\n");
+    for (i = n; i<=bound*p; i++) { ir2[i] = nnz; } //fprintf(stdout," %d ",ir2[i]);/*rowptr[n];*/ } //extend ir2 to have empty nodes
+    //fprintf(stdout,"\n");
     // Scatter row ptr
     //MPI_Scatter(ir2, bound, MPI_INT, ir_local, bound, MPI_INT, 0, MPI_COMM_WORLD);
   }
@@ -300,7 +299,7 @@ int main (int argc, char *argv[]) {
   // ir_local points to colidx idxs, so we need to normalize
   // so that it points to colidx_local
   int ir_offset = ir_local[0];
-  for (int i=0; i<bound; i++) { ir_local[i] -= ir_offset; fprintf(stdout,"%d ", ir_local[i]); }
+  for (int i=0; i<bound; i++) { ir_local[i] -= ir_offset; } //fprintf(stdout,"%d ", ir_local[i]); }
   // Reduce nnz_local to assert that it is the same
 
   //////////////// SANITY CHECKS ///////////////////////////////////////
@@ -322,7 +321,7 @@ int main (int argc, char *argv[]) {
     bebop_exit (EXIT_FAILURE);
   }
   for (int i=0; i<nnz_local; i++) { 
-    if (colidx_local[i] < 0 || colidx_local[i] > n) { fprintf(stdout,"%d ",colidx_local[i]); }
+    //if (colidx_local[i] < 0 || colidx_local[i] > n) { fprintf(stdout,"%d ",colidx_local[i]); }
   }
   //////////////////////////////////////////////////////////////////////
 
