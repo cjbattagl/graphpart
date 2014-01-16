@@ -415,7 +415,7 @@ int mpi_run_fennel(int* rowptr, int* colidx, int n, int n_local,
   //initialize part sizes
   int *partsize = (int*)malloc(nparts * sizeof(int));
   for (s = 0; s < nparts; s++) { partsize[s] = 0; }
-/*
+
   seconds = get_seconds();
   mpi_fennel_kernel(n, n_local, v_offset, nparts, partsize, rowptr, colidx, parts, alpha, gamma, &emptyverts);
   seconds = get_seconds() - seconds;
