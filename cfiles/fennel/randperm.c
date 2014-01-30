@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include "randperm.h"
 
-// Generate a random permutation of 1:size using the "Knuth shuffle"
+// Generate a random permutation of 0:size-1 using the "Knuth shuffle"
 int* genRandPerm(int size) {
   int *orderList = (int *) malloc (sizeof (int) * size);
   assert(orderList);
