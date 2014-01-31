@@ -8,9 +8,23 @@ try:
     import matplotlib.pyplot as plt
 except:
     raise
+    
+def my_bfs_edges(G,source):
+    visited = set([source])
+    stack = [(source,iter(G[source]))]
+    while stack:
+        parent,children = stack[0]
+        try:
+            child = next(children)
+            if child not in visited:
+                yield parent,child
+                visited.add(child)
+                stack.append((child,iter(G[child])))
+        except StopIteration:
+            stack.pop(0)
 
 output_file("read.html")
-name = 'test.mtx'
+name = 'ca-HepTh.mtx'
 info = sio.mminfo(name)
 n = info[0]
 nnz = info[2]
@@ -29,23 +43,24 @@ print("done")
 G = nx.to_networkx_graph(A)
 step = 0
 numsamples = n
-p = 10
+p = 4
 procbin = float(n)/p
 sampbin = math.floor(float(n)/numsamples)
 front = np.zeros(p)
 history = np.zeros((p, numsamples))
 
-for node in nx.minimum_spanning_edges(G):
+for node in my_bfs_edges(G, 500):
   step += 1
   targnode = floor(node[1] / procbin)
-  front[targnode] += 1
+  if (targnode != floor(node[0] / procbin)) :
+    front[targnode] += 1
   if (step % sampbin == 0) :
     for proc in range(p):
       history[proc, step/sampbin] = front[proc]
 
 print(front)
 
-x = np.linspace(0, 100, numsamples) 
+x = np.linspace(0, numsamples, numsamples) 
 hold()
 
 for proc in range(p):
@@ -54,4 +69,7 @@ for proc in range(p):
  
 xaxis()[0].axis_label = "Chunk"
 yaxis()[0].axis_label = "Load"  
-show()
+#show()
+
+print("pct. communicated edges: %{}".format(round(100*np.sum(front)/step),5))
+print("exp. communicated edges: %{}".format(round(100*((float(p)-1)/p),5)))
