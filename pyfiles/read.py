@@ -1,63 +1,75 @@
 import scipy.io as sio
 import numpy as np
-import math
+import networkx as nx
 from bokeh.plotting import *
+from math import floor
 
 try:
     import matplotlib.pyplot as plt
 except:
     raise
+    
+def my_bfs_edges(G,source):
+    visited = set([source])
+    stack = [(source,iter(G[source]))]
+    while stack:
+        parent,children = stack[0]
+        try:
+            child = next(children)
+            if child not in visited:
+                yield parent,child
+                visited.add(child)
+                stack.append((child,iter(G[child])))
+        except StopIteration:
+            stack.pop(0)
 
-import networkx as nx
-
-# This is a test to explore the memory access patterns of a parallel graph traversal
-
-def getProc(vert, bindiv):
-  return math.floor(vert/bindiv)
-
-output_file("proc.html", title="bfs proc example")
-
-name = 'test.mtx'
+output_file("read.html")
+name = 'ca-HepTh.mtx'
 info = sio.mminfo(name)
 n = info[0]
 nnz = info[2]
 
-p = 10
-numsamples = 100
-
-print("matrix:    {}".format(name))
-print("size:      {} x {}".format(n,n))
-print("nonzeros:  {} (density: %{})".format(nnz, 100*round(float(nnz) / (n * n),6)))
-print("nnz type:  {} {}".format(info[5],info[4]))
+print("matrix: {}".format(name))
+print("size: {} x {}".format(n,n))
+print("nonzeros: {} (density: {})".format(nnz, round(float(nnz) / (n * n),6)))
+print("nnz type: {} {}".format(info[5],info[4]))
 assert(n==info[1])
-
+print("reading matrix ..."),
 A = sio.mmread(name)
-print(" - > converting to csr ... "),
+print("done\nconverting matrix to csr ..."),
 A = A.tocsr()
-print("done\n - > converting to networkx graph ..."),
-G = nx.to_networkx_graph(A)
 print("done")
 
-front = np.zeros(p)
-loads = np.zeros((p,numsamples))
-bindiv = float(n)/p
-samplediv = math.floor(float(n)/numsamples)
+G = nx.to_networkx_graph(A)
 step = 0
-x = np.linspace(0,n,numsamples)
+numsamples = n
+p = 4
+procbin = float(n)/p
+sampbin = math.floor(float(n)/numsamples)
+front = np.zeros(p)
+history = np.zeros((p, numsamples))
 
-for val in nx.bfs_edges(G,20):
-  front[getProc(val[1],bindiv)] += 1
+for node in my_bfs_edges(G, 500):
   step += 1
-  if (step % samplediv == 0):
-    for proc in range (p):
-      loads[proc][step/samplediv] = front[proc]
-      front[proc] = 0
+  targnode = floor(node[1] / procbin)
+  if (targnode != floor(node[0] / procbin)) :
+    front[targnode] += 1
+  if (step % sampbin == 0) :
+    for proc in range(p):
+      history[proc, step/sampbin] = front[proc]
 
+print(front)
+
+x = np.linspace(0, numsamples, numsamples)
 hold()
-for proc in range (p) :         
-  line(x, loads[proc], color="#0000FF", x_axis_type = "datetime", 
-    tools="pan,zoom,resize", width=1200,height=300, 
-    title = 'Proc Activity') 
-xaxis()[0].axis_label = "Step"
-yaxis()[0].axis_label = "Num Nodes Active"
-show()
+
+for proc in range(p):
+  line(x, history[proc,:], color="#0000FF",
+    title = 'Load')
+ 
+xaxis()[0].axis_label = "Chunk"
+yaxis()[0].axis_label = "Load"
+#show()
+
+print("pct. communicated edges: %{}".format(round(100*np.sum(front)/step),5))
+print("exp. communicated edges: %{}".format(round(100*((float(p)-1)/p),5)))
