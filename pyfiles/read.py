@@ -24,7 +24,7 @@ def my_bfs_edges(G,source):
             stack.pop(0)
 
 output_file("read.html")
-name = 'ca-HepTh.mtx'
+name = 'ca-AstroPh.mtx'
 info = sio.mminfo(name)
 n = info[0]
 nnz = info[2]
@@ -44,12 +44,16 @@ G = nx.to_networkx_graph(A)
 step = 0
 numsamples = n
 p = 4
+s = 500
 procbin = float(n)/p
-sampbin = math.floor(float(n)/numsamples)
+sampbin = floor(float(n)/numsamples)
 front = np.zeros(p)
 history = np.zeros((p, numsamples))
 
-for node in my_bfs_edges(G, 500):
+def share_same_proc(node1, node2):
+  return (floor(node1 / procbin) == (floor(node2 / procbin)
+
+for node in my_bfs_edges(G, s):
   step += 1
   targnode = floor(node[1] / procbin)
   if (targnode != floor(node[0] / procbin)) :
@@ -57,6 +61,15 @@ for node in my_bfs_edges(G, 500):
   if (step % sampbin == 0) :
     for proc in range(p):
       history[proc, step/sampbin] = front[proc]
+      
+T = nx.bfs_tree(G,s)
+succ = T.successors(s)
+nextlevel = []
+while (len(succ) > 0):
+  for node in succ:
+    
+    nextlevel = nextlevel + T.successors(node)
+    
 
 print(front)
 
