@@ -13,12 +13,12 @@ try:
 except:
     raise
 
+############ Read in matrix, find basic stats ###########
 output_file("read.html")
 mat_name = 'ca-HepTh.mtx'
 mat_info = sio.mminfo(mat_name)
 mat_n = mat_info[0]
 mat_nnz = mat_info[2]
-
 print("matrix: {}".format(mat_name))
 print("size: {} x {}".format(mat_n, mat_n))
 print("nonzeros: {} (density: {})".format(mat_nnz, round(float(mat_nnz) / (mat_n * mat_n),6)))
@@ -29,33 +29,31 @@ A = sio.mmread(mat_name)
 print("done\nconverting matrix to csr ..."),
 A = A.tocsr()
 print("done")
-
 G = nx.to_networkx_graph(A)
 numsamples = mat_n  #number of samples to take
-numprocs = 4        #number of processors to simulate
+gnumprocs = 4        #number of processors to simulate
 s = 400             #starting vertex
-procbin = float(mat_n)/numprocs
-sampbin = floor(float(mat_n)/numsamples)
-front = np.zeros(numprocs)
-history = np.zeros((numprocs, numsamples))
-
-step = 0
+gprocbin = float(mat_n)/gnumprocs
+gsampbin = floor(float(mat_n)/numsamples)
+front = np.zeros(gnumprocs)
+history = np.zeros((gnumprocs, numsamples))
 
 def proc_of_node(node):
-  return int(floor(node / procbin))
+  return int(floor(node / gprocbin))
 
 def share_same_proc(node1, node2):
   return (proc_of_node(node1) == proc_of_node(node2))
   
 def do_basic_1d():
+  step = 0
   for node in bfs_edges(G, s):
     step += 1
-    targnode = floor(node[1] / procbin)
+    targnode = floor(node[1] / gprocbin)
     if (~share_same_proc(node[0], node[1])) :
       front[targnode] += 1
-    if (step % sampbin == 0) :
-      for proc in range(numprocs):
-        history[proc, step/sampbin] = front[proc]       
+    if (step % gsampbin == 0) :
+      for proc in range(gnumprocs):
+        history[proc, step/gsampbin] = front[proc]       
 
 # return nodes at each level
 def BFS_levels(G, s):
@@ -70,14 +68,15 @@ def BFS_levels(G, s):
       nextlevel.clear()
       yield succ
 
+# print number of nodes at each level
 def compute_frontier(G, s):
   for level in BFS_levels(G, s):
     print(len(level))
     
-maxlevels = 20 
-vec_children = np.zeros(maxlevels)
-vec_peers = np.zeros(maxlevels)
-vec_parents = np.zeros(maxlevels)
+gmaxlevels = 14
+vec_children = np.zeros(gmaxlevels)
+vec_peers = np.zeros(gmaxlevels)
+vec_parents = np.zeros(gmaxlevels)
     
 # return no. of communicated edges at each level
 def BFS_levels_comm(G, s):
@@ -89,9 +88,9 @@ def BFS_levels_comm(G, s):
     prevlevel.add(s)
     level = 0
     
-    children = [set() for proc in range(numprocs)]
-    peers = [set() for proc in range(numprocs)]
-    failed_parents = [set() for proc in range(numprocs)]
+    children = [set() for proc in range(gnumprocs)]
+    peers = [set() for proc in range(gnumprocs)]
+    failed_parents = [set() for proc in range(gnumprocs)]
 
     while (len(succ) > 0):
       level += 1
@@ -113,13 +112,14 @@ def BFS_levels_comm(G, s):
       prevlevel = succ
       succ = list(nextlevel)
       nextlevel.clear()
-      for i in range(numprocs):
-        vec_children[level] += len(children[i])
-        vec_peers[level] += len(peers[i])
-        vec_parents[level] += len(failed_parents[i])
-        children[i].clear()
-        peers[i].clear()
-        failed_parents[i].clear()
+      if (level < gmaxlevels):
+        for i in range(gnumprocs):
+          vec_children[level] += len(children[i])
+          vec_peers[level] += len(peers[i])
+          vec_parents[level] += len(failed_parents[i])
+          children[i].clear()
+          peers[i].clear()
+          failed_parents[i].clear()
       yield comm
       
 def compute_comm(G, s):
@@ -130,21 +130,8 @@ def compute_comm(G, s):
 compute_comm(G,s)
 #compute_frontier(G, s)
 
-#print(front)
-
-#x = np.linspace(0, numsamples, numsamples)
-#hold()
-
-#for proc in range(numprocs):
-#  line(x, history[proc,:], color="#0000FF",
-#    title = 'Load')
- 
-#xaxis()[0].axis_label = "Chunk"
-#yaxis()[0].axis_label = "Load"
-#show()
-
 print("pct. communicated edges: %{}".format(round(100*np.sum(front)/step),5))
-print("exp. communicated edges: %{}".format(round(100*((float(numprocs)-1)/numprocs),5)))
+print("exp. communicated edges: %{}".format(round(100*((float(gnumprocs)-1)/gnumprocs),5)))
 
 import colorsys
 def get_N_HexCol(N=5):
@@ -156,17 +143,13 @@ def get_N_HexCol(N=5):
     return HEX_tuples
 
 def procplot():
-  N = numprocs
+  N = gnumprocs
   categories = ['children', 'peers', 'parents']
-
   data = {}
-  data['x'] = np.arange(maxlevels)
+  data['x'] = np.arange(gmaxlevels)
   data['parents'] = vec_parents.copy()
   data['children'] = vec_children.copy()
-  data['peers'] = vec_peers.copy()
-  
-  print(data)
- 
+  data['peers'] = vec_peers.copy() 
   df = pd.DataFrame(data)
   df = df.set_index(['x'])
   colors = get_N_HexCol(N)
