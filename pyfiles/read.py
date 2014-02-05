@@ -15,7 +15,7 @@ except:
 
 ############ Read in matrix, find basic stats ###########
 output_file("read.html")
-mat_name = 'ca-HepTh.mtx'
+mat_name = 'ep.mtx'
 mat_info = sio.mminfo(mat_name)
 mat_n = mat_info[0]
 mat_nnz = mat_info[2]
@@ -75,6 +75,7 @@ def compute_frontier(G, s):
     
 gmaxlevels = 14
 vec_children = np.zeros(gmaxlevels)
+vec_failedchildren = np.zeros(gmaxlevels)
 vec_peers = np.zeros(gmaxlevels)
 vec_parents = np.zeros(gmaxlevels)
     
@@ -88,7 +89,8 @@ def BFS_levels_comm(G, s):
     prevlevel.add(s)
     level = 0
     
-    children = [set() for proc in range(gnumprocs)]
+    children = [set() for proc in range(gnumprocs)] # ALL children
+    failedchildren = [0 for proc in range(gnumprocs)]
     peers = [set() for proc in range(gnumprocs)]
     failed_parents = [set() for proc in range(gnumprocs)]
 
@@ -99,8 +101,10 @@ def BFS_levels_comm(G, s):
         node_succ = set(T.successors(node))
         nodeproc = proc_of_node(node)
         nodeneighbs = set(G.neighbors(node))
-        # claimed child, failed child
-        children[nodeproc] = children[nodeproc].union(nodeneighbs.intersection(node_succ))       
+        # all children
+        children[nodeproc] = children[nodeproc].union(nodeneighbs.intersection(node_succ))      
+        # number of failed children
+        failedchildren[nodeproc] += len(children[nodeproc].intersection(nodeneighbs.intersection(node_succ))) 
         # peer
         peers[nodeproc] = peers[nodeproc].union(nodeneighbs.intersection(succ))
         # failed parent
@@ -113,13 +117,15 @@ def BFS_levels_comm(G, s):
       succ = list(nextlevel)
       nextlevel.clear()
       if (level < gmaxlevels):
+        vec_children[level] += len(succ)
         for i in range(gnumprocs):
-          vec_children[level] += len(children[i])
+          vec_failedchildren[level] += failedchildren[i]
           vec_peers[level] += len(peers[i])
           vec_parents[level] += len(failed_parents[i])
           children[i].clear()
           peers[i].clear()
           failed_parents[i].clear()
+          failedchildren[i] = 0
       yield comm
       
 def compute_comm(G, s):
@@ -144,11 +150,12 @@ def get_N_HexCol(N=5):
 
 def procplot():
   N = gnumprocs
-  categories = ['children', 'peers', 'parents']
+  categories = ['children', 'failedchildren', 'peers', 'parents']
   data = {}
   data['x'] = np.arange(gmaxlevels)
   data['parents'] = vec_parents.copy()
   data['children'] = vec_children.copy()
+  data['failedchildren'] = vec_failedchildren.copy()
   data['peers'] = vec_peers.copy() 
   df = pd.DataFrame(data)
   df = df.set_index(['x'])
