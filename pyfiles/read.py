@@ -42,31 +42,51 @@ step = 0
 def share_same_proc(node1, node2):
   return (floor(node1 / procbin) == floor(node2 / procbin))
   
-def do_shit():
+def do_basic_1d():
   for node in bfs_edges(G, s):
     step += 1
     targnode = floor(node[1] / procbin)
-    if (targnode != floor(node[0] / procbin)) :
+    if (~share_same_proc(node[0], node[1])) :
       front[targnode] += 1
     if (step % sampbin == 0) :
       for proc in range(numprocs):
-        history[proc, step/sampbin] = front[proc]
-        
-def do_1d(G, s):
-  iter = 0
-  numnodes = 0
-  T = nx.bfs_tree(G,s)
-  nextlevel = set()
-  succ = T.successors(s)
-  while (len(succ) > 0):
-    for node in succ:
-      nextlevel = nextlevel.union(T.successors(node))
-      numnodes += 1
-    succ = list(nextlevel)
-    nextlevel.clear()
-  print(numnodes)
+        history[proc, step/sampbin] = front[proc]       
 
-do_1d(G,s)
+# return nodes at each level
+def BFS_levels(G, s):
+  if G:
+    iter = 0
+    numnodes = 0
+    T = nx.bfs_tree(G,s)
+    nextlevel = set()
+    succ = T.successors(s)
+    while (len(succ) > 0):
+      for node in succ:
+        nextlevel = nextlevel.union(T.successors(node))
+        numnodes += 1
+      succ = list(nextlevel)
+      nextlevel.clear()
+      yield succ
+
+def compute_frontier(G, s):
+  for level in BFS_levels(G, s):
+    print(len(level))
+    
+# return no. of communicated edges at each level
+def BFS_levels_comm(G, s):
+  if G:
+    iter = 0
+    numnodes = 0
+    T = nx.bfs_tree(G,s)
+    nextlevel = set()
+    succ = T.successors(s)
+    while (len(succ) > 0):
+      for node in succ:
+        nextlevel = nextlevel.union(T.successors(node))
+        numnodes += 1
+      succ = list(nextlevel)
+      nextlevel.clear()
+      yield succ
 
 #print(front)
 
