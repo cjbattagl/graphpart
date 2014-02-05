@@ -1,3 +1,6 @@
+#goal: communication model for 1D and 2D BFS,
+#and finally a hybrid 1D/2D
+
 import scipy.io as sio
 import numpy as np
 import networkx as nx
