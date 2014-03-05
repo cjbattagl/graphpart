@@ -4,6 +4,7 @@
 
 function [A] = readsnap(fname)
   A = load(fname);
+  A = A.Problem.A;
   A = A + 1;
   A(:,3) = 1;
   A = spconvert(A);
