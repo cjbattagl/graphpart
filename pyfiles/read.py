@@ -15,6 +15,7 @@ import pandas as pd
 import networkx as nx
 from bokeh.plotting import *
 from math import floor
+from stacked_graph import *
 
 try:
     import matplotlib.pyplot as plt
@@ -23,7 +24,7 @@ except:
 
 ############ Read in matrix, find basic stats ###########
 output_file("read.html")
-mat_name = 'test.mtx'
+mat_name = 'ca-AstroPh.mtx'
 mat_info = sio.mminfo(mat_name)
 mat_n = mat_info[0]
 mat_nnz = mat_info[2]
@@ -58,7 +59,7 @@ def degree_stats(G):
       print(max)
   print max
   
-degree_stats(G)
+#degree_stats(G)
 
 def share_same_proc(node1, node2):
   return (proc_of_node(node1) == proc_of_node(node2))
@@ -161,48 +162,33 @@ def compute_comm(G, s):
     print(comm)
 
     
-compute_comm(G,s)
+#compute_comm(G,s)
 #compute_frontier(G, s)
 
-#print("pct. communicated edges: %{}".format(round(100*np.sum(front)/step),5))
-#print("exp. communicated edges: %{}".format(round(100*((float(gnumprocs)-1)/gnumprocs),5)))
+#vec_children = np.zeros(gmaxlevels)
+#vec_failedchildren = np.zeros(gmaxlevels)
+#vec_peers = np.zeros(gmaxlevels)
+#vec_parents = np.zeros(gmaxlevels)
+#vec_hideg = np.zeros(gmaxlevels)
 
-import colorsys
-def get_N_HexCol(N=5):
-    HSV_tuples = [(x*1.0/N, 0.5, 0.5) for x in range(N)]
-    RGB_tuples = map(lambda x: colorsys.hsv_to_rgb(*x), HSV_tuples)
-    RGB_tuples = map(lambda x: tuple(map(lambda y: int(y * 255),x)),RGB_tuples)
-    HEX_tuples = map(lambda x: tuple(map(lambda y: chr(y).encode('hex'),x)), RGB_tuples)
-    HEX_tuples = map(lambda x: "".join(x), HEX_tuples)
-    return HEX_tuples
+if 1 == 1: #__name__ == '__main__':
+    pl.clf()
+    N_dsets = 4
+    T = gmaxlevels
+    amp = 1
+    fade = .15
+    dsets = [vec_children, vec_failedchildren, vec_peers, vec_parents]
+    print(dsets)
+    #for i in xrange(N_dsets):
+    #    this_dset = np.zeros(T)
+    #    t_onset = np.random.randint(.9*T)-T/3
+    #    if t_onset >= 0:   
+    #        remaining_t = np.arange(T-t_onset)     
+    #    else:
+    #        remaining_t = np.arange(T)-t_onset
+    #   this_dset[max(t_onset,0):]=np.exp(-.15*np.random.gamma(10,.1)*remaining_t)\
+    #                       * remaining_t * np.random.gamma(6,.2)# * np.cos(-fade*remaining_t*np.random.gamma(10,.1))**2
+    #   dsets.append(this_dset)
+    stacked_graph(dsets, baseline_fn = min_weighted_wiggles, color_seq='random')
 
-def procplot():
-  N = gnumprocs
-  categories = ['children', 'peers', 'parents', 'hideg']
-  data = {}
-  data['x'] = np.arange(gmaxlevels)
-  data['parents'] = vec_parents.copy()
-  data['children'] = vec_children.copy()
-  #data['failedchildren'] = vec_failedchildren.copy()
-  data['peers'] = vec_peers.copy() 
-  data['hideg'] = vec_hideg.copy() 
-
-  df = pd.DataFrame(data)
-  df = df.set_index(['x'])
-  colors = get_N_HexCol(N)
-  def stacked(df, categories):
-      areas = OrderedDict()
-      last = np.zeros(len(df[categories[0]]))
-      for cat in categories:
-        next = last + df[cat]
-        areas[cat] = np.hstack((last[::-1], next))
-        last = next
-      return areas
-  output_file("edges.html", title="bfs edges")
-  areas = stacked(df, categories)
-  #colors = brewer["Spectral"][len(areas)]
-  x2 = np.hstack((data['x'][::-1], data['x']))
-  patches([x2 for a in areas], list(areas.values()), color=colors, alpha=0.8, line_color=None)
-  show()
-
-procplot()
+pl.show()
