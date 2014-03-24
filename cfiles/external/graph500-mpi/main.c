@@ -16,8 +16,8 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
-#include "../generator/make_graph.h"
-#include "../generator/utils.h"
+#include "./generator/make_graph.h"
+#include "./generator/utils.h"
 #include "common.h"
 #include <math.h>
 #include <mpi.h>
