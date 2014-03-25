@@ -48,6 +48,19 @@ gsampbin = floor(float(mat_n)/numsamples)
 front = np.zeros(gnumprocs)
 history = np.zeros((gnumprocs, numsamples))
 
+def permute_rand(A):
+  p = np.random.permutation(mat.n)
+  permute(A, p)A > 4
+  
+def permute_by_degree(A):
+  a = sum(A)
+  sort_idx = np.argsort(a)
+  permute(A, sort_idx)
+
+def permute(A, p):
+  A[:,:] = A[p,:]
+  A[:,:] = A[:,p] 
+
 def proc_of_node(node):
   return int(floor(node / gprocbin))
 
@@ -98,7 +111,7 @@ vec_children = np.zeros(gmaxlevels)
 vec_failedchildren = np.zeros(gmaxlevels)
 vec_peers = np.zeros(gmaxlevels)
 vec_parents = np.zeros(gmaxlevels)
-vec_hideg = np.zeros(gmaxlevels)
+#vec_hideg = np.zeros(gmaxlevels)
     
 # return no. of communicated edges at each level
 def BFS_levels_comm(G, s):
@@ -161,7 +174,6 @@ def compute_comm(G, s):
   for comm in BFS_levels_comm(G, s):
     print(comm)
 
-    
 #compute_comm(G,s)
 #compute_frontier(G, s)
 
@@ -171,7 +183,7 @@ def compute_comm(G, s):
 #vec_parents = np.zeros(gmaxlevels)
 #vec_hideg = np.zeros(gmaxlevels)
 
-if 1 == 1: #__name__ == '__main__':
+if 0 == 1: #__name__ == '__main__':
     pl.clf()
     N_dsets = 4
     T = gmaxlevels
@@ -191,4 +203,4 @@ if 1 == 1: #__name__ == '__main__':
     #   dsets.append(this_dset)
     stacked_graph(dsets, baseline_fn = min_weighted_wiggles, color_seq='random')
 
-pl.show()
+#pl.show()

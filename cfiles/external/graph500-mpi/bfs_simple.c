@@ -105,6 +105,8 @@ void run_bfs(int64_t root, int64_t* pred) {
   /* Mark the root and put it into the queue. */
   if (VERTEX_OWNER(root) == rank) {
     SET_VISITED(root);
+    //!// no need to check degree because we are simply enqueueing a received vertex -- sender should have broadcasted hi-degs
+    //!// but we need to make sure we can use the same queue when receiving both p2p and broadcasted data
     pred[VERTEX_LOCAL(root)] = root;
     oldq[oldq_count++] = root;
   }
