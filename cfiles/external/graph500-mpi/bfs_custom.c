@@ -114,13 +114,13 @@ void partition_graph_data_structure() {
   int nparts = size;
   int nnz = g.nlocaledges * size; //!//just compute nnz using a sum reduction instead of this
 
-  int *colidx = &g.column;
-  int *rowptr = &g.rowstarts;
+  int64_t *colidx = g.column;
+  int64_t *rowptr = g.rowstarts;
   int **parts = (int**)malloc(nparts * sizeof(int*));
   int *partsize = (int*)malloc(nparts * sizeof(int));
   int *partscore = (int*)malloc(nparts * sizeof(int));
   int *row;
-  int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
+  int vert, k, s, nnz_row, best_part, randidx, node = 0;
   float curr_score, best_score;
   int *vorder = genRandPerm(n_local-1);
   int oldpart;
@@ -185,10 +185,6 @@ void partition_graph_data_structure() {
   
   free(partscore);
   free(vorder);
-}
-
-
-
 }
 
 void free_graph_data_structure(void) {
