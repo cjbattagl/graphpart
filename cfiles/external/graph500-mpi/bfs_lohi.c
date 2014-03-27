@@ -90,8 +90,13 @@ void partition_graph_data_structure() {
    *   + g.rowstarts, g.column: zero-based compressed sparse row data
    *     structure for the local part of the graph */
 
-// compute scattered partition function
+// compute scattered partition function on my vertex range
+// every p steps, globally sum-reduce the number of edges to each partition
+// otherwise compute partition function as normal ( on low-fegree vertices )
 
+// distribute the low-degree vertices as in redistribute.h
+// distribute high-degree vertices using the owner function on the /destination/ vertex of each edge
+// we will need a special CSR structure that has offset columns. 
 
 }
 
