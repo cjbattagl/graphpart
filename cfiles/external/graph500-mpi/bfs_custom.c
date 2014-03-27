@@ -17,6 +17,7 @@
 #include <string.h>
 #include <limits.h>
 #include <assert.h>
+#include <math.h>
 
 static oned_csr_graph g;
 static int64_t* g_oldq;
@@ -128,8 +129,8 @@ void partition_graph_data_structure() {
   int emptyverts = 0;
 
   //MPI_Allreduce(void* send_data, void* recv_data, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD)
-
-  for (int i = 0; i < n_local-1; i++) {
+  int i;
+  for (i = 0; i < n_local-1; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
     vert = vorder[i];
     row = &rowptr[vert];
