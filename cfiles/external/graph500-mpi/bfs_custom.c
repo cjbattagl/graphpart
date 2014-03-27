@@ -31,7 +31,7 @@ static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
 
 // Randperm prototypes. Move to another file
-int* genRandPerm(int size);
+int* genRandPerm(int *orderList, int size);
 void shuffle_int(int *list, int len);
 int irand(int n);
 static float calc_dc(float alpha, float gamma, int len);
@@ -120,7 +120,8 @@ void partition_graph_data_structure() {
   size_t vert;
   int k, s, nnz_row, best_part, randidx, node = 0;
   float curr_score, best_score;
-  int *vorder = genRandPerm(n_local-1);
+  int *vorder = (int*)malloc(n_local * sizeof(int)); 
+  genRandPerm(vorder, n_local-1);
   int oldpart;
   float gamma = 1.5;
   float alpha = sqrt(2) * (nnz/pow(n,gamma));
@@ -129,7 +130,7 @@ void partition_graph_data_structure() {
 
   //MPI_Allreduce(void* send_data, void* recv_data, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD)
   int i;
-  //for (i = 0; i<n_local; ++i) { vorder[i] += offset; }  // randomly iterate over vertices from offset to (offset+nlocalverts)
+  for (i = 0; i<n_local; ++i) { vorder[i] = offset; }  // randomly iterate over vertices from offset to (offset+nlocalverts)
   for (i = 0; i<n; ++i) { parts[i] = -1; }
   for (i = 0; i < n_local-1; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
@@ -178,7 +179,7 @@ void partition_graph_data_structure() {
   }
   
   //free(partscore);
-  //free(vorder);
+  free(vorder);
   //free(parts);
   //free(partsize);
 }
@@ -407,8 +408,7 @@ size_t get_nlocalverts_for_pred(void) {
 
 
 // Random permutation generator. Move to another file.
-int* genRandPerm(int size) {
-  int *orderList = (int *) malloc (sizeof (int) * size);
+int* genRandPerm(int* orderList, int size) {
   assert(orderList);
   srand(123);
   //srand(time(NULL));
