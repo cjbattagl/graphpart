@@ -105,18 +105,15 @@ void partition_graph_data_structure() {
 // distribute high-degree vertices using the owner function on the /destination/ vertex of each edge
 // we will need a special CSR structure that has offset columns. 
 
-//int mpi_fennel_kernel(int n, int n_local, int offset, int nparts, int *partsize, 
-//    int *rowptr, int *colidx, int **parts, float alpha, float gamma, int *emptyverts) {
-    //fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
   int n = g.nglobalverts;
   int n_local = g.nlocalverts;
-  int offset = VERTEX_TO_GLOBAL(rank, 0); //!//Does this work?
+  int offset = g.nlocalverts * rank; //!//Does this work?
+  fprintf(stdout, "Partitioning from offset %d\n", offset);//"                          %d\n", SCALE);
   int nparts = size;
   int nnz = g.nlocaledges * size; //!//just compute nnz using a sum reduction instead of this
-
   int64_t *colidx = g.column;
   size_t *rowptr = g.rowstarts;
-  int **parts = (int**)malloc(nparts * sizeof(int*));
+  int *parts = (int*)malloc(n * sizeof(int));
   int *partsize = (int*)malloc(nparts * sizeof(int));
   int *partscore = (int*)malloc(nparts * sizeof(int));
   size_t *row;
@@ -125,13 +122,15 @@ void partition_graph_data_structure() {
   float curr_score, best_score;
   int *vorder = genRandPerm(n_local-1);
   int oldpart;
-
   float gamma = 1.5;
   float alpha = sqrt(2) * (nnz/pow(n,gamma));
   int emptyverts = 0;
+  fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
 
   //MPI_Allreduce(void* send_data, void* recv_data, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD)
   int i;
+  for (i = 0; i<n_local; ++i) { vorder[i] += offset; }  // randomly iterate over vertices from offset to (offset+nlocalverts)
+  for (i = 0; i<n; ++i) { parts[i] = -1; }
   for (i = 0; i < n_local-1; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
     vert = vorder[i];
@@ -142,9 +141,8 @@ void partition_graph_data_structure() {
       // generate partition scores for each partition
       for (k = *row; k < ((*row)+nnz_row); k++) {
         node = colidx[k];
-        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; }}
+        for (s = 0; s < nparts; s++) { if (parts[node] == s) { partscore[s]++; }}
       }
-        
       // choose optimal partition (initializing first)
       best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
       best_part = 0;
@@ -152,40 +150,37 @@ void partition_graph_data_structure() {
         curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
         if (curr_score > best_score) { best_score = curr_score; best_part = s; }
       }
-      for (s = 0; s < nparts; s++) { 
-        if (parts[s][offset + vert] == 1) {
-          oldpart = s;
-        }
-        parts[s][offset + vert] = 0; 
+      if(parts[offset + vert] >= 0) {
+        oldpart = parts[offset + vert];
+        parts[offset + vert] = -1; 
       }
-      parts[best_part][offset + vert] = 1;
-      //int sum=0;
-      //for (s = 0; s < nparts; s++) { sum += parts[s][offset + vert]; }
-      //assert(sum==1);
+      parts[offset + vert] = best_part;
       partsize[best_part]++;
       if (oldpart >= 0) {
         partsize[oldpart]--;
       }
-      
     } else { // empty vertex for some reason... assign it to random permutation
       emptyverts++;
       randidx = irand(nparts);
-      for (s = 1; s < nparts; s++) {
-        if (parts[s][offset + vert] == 1) {
-          oldpart = s;
-        }
-        parts[s][offset + vert] = 0; 
+      if(parts[offset + vert] >= 0) {
+        oldpart = parts[offset + vert];
+        parts[offset + vert] = -1; 
       }
-      parts[randidx][offset + vert] = 1;
+      parts[offset + vert] = randidx;
       partsize[randidx]++;
       if (oldpart >= 0) {
         partsize[oldpart]--;
       }
     }
+    if (i % 128 == 0) {
+      MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n, MPI_INT, MPI_COMM_WORLD);
+    }
   }
   
-  free(partscore);
-  free(vorder);
+  //free(partscore);
+  //free(vorder);
+  //free(parts);
+  //free(partsize);
 }
 
 void free_graph_data_structure(void) {

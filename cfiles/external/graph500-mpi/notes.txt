@@ -1,0 +1,2 @@
+helpful stuff:
+mpirun -np 2 xterm -e gdb ./graph500_mpi_custom
