@@ -29,6 +29,11 @@ static MPI_Request* g_outgoing_reqs;
 static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
 
+// Randperm prototypes. Move to another file
+int* genRandPerm(int size);
+void shuffle_int(int *list, int len);
+int irand(int n);
+
   /* Predefined entities you can use in your BFS (from common.h and oned_csr.h):
    *   + rank: global variable containing MPI rank
    *   + size: global variable containing MPI size
@@ -97,6 +102,90 @@ void partition_graph_data_structure() {
 // distribute the low-degree vertices as in redistribute.h
 // distribute high-degree vertices using the owner function on the /destination/ vertex of each edge
 // we will need a special CSR structure that has offset columns. 
+
+//int mpi_fennel_kernel(int n, int n_local, int offset, int nparts, int *partsize, 
+//    int *rowptr, int *colidx, int **parts, float alpha, float gamma, int *emptyverts) {
+    //fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
+  int n = g.nglobalverts;
+  int n_local = g.nlocalverts;
+  int offset = VERTEX_TO_GLOBAL(rank, 0); //!//Does this work?
+  int nparts = size;
+  //!//TODO int *partsize = 
+  int *colidx = g.column;
+  int *rowptr = g.rowstarts;
+  //!//TODO int **parts = 
+
+
+  int *partscore = (int*)malloc(nparts * sizeof(int));
+  int *row;
+  int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
+  float curr_score, best_score;
+  int *vorder = genRandPerm(n_local-1);
+  int oldpart;
+
+
+  float gamma = 1.5;
+  float alpha = sqrt(2) * (nnz/pow(n,gamma));
+
+  emptyverts = 0;
+
+  for (int i = 0; i < n_local-1; i++) {
+    for (s = 0; s < nparts; s++) { partscore[s]=0; }
+    vert = vorder[i];
+    row = &rowptr[vert];
+    nnz_row = *(row+1) - *row;
+    oldpart = -1;
+    if(nnz_row != 0) {
+      // generate partition scores for each partition
+      for (k = *row; k < ((*row)+nnz_row); k++) {
+        node = colidx[k];
+        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; }}
+      }
+        
+      // choose optimal partition (initializing first)
+      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
+      best_part = 0;
+      for (s = 1; s < nparts; s++) {
+        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
+        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
+      }
+      for (s = 0; s < nparts; s++) { 
+        if (parts[s][offset + vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][offset + vert] = 0; 
+      }
+      parts[best_part][offset + vert] = 1;
+      //int sum=0;
+      //for (s = 0; s < nparts; s++) { sum += parts[s][offset + vert]; }
+      //assert(sum==1);
+      partsize[best_part]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+      
+    } else { // empty vertex for some reason... assign it to random permutation
+      emptyverts++;
+      randidx = irand(nparts);
+      for (s = 1; s < nparts; s++) {
+        if (parts[s][offset + vert] == 1) {
+          oldpart = s;
+        }
+        parts[s][offset + vert] = 0; 
+      }
+      parts[randidx][offset + vert] = 1;
+      partsize[randidx]++;
+      if (oldpart >= 0) {
+        partsize[oldpart]--;
+      }
+    }
+  }
+  
+  free(partscore);
+  free(vorder);
+}
+
+
 
 }
 
@@ -319,4 +408,37 @@ int64_t vertex_to_global_for_pred(int v_rank, size_t v_local) {
 
 size_t get_nlocalverts_for_pred(void) {
   return g.nlocalverts;
+}
+
+
+
+// Random permutation generator. Move to another file.
+int* genRandPerm(int size) {
+  int *orderList = (int *) malloc (sizeof (int) * size);
+  assert(orderList);
+  srand(time(NULL));
+  // Generate 'identity' permutation
+  for (int i = 0; i < size; i++) { orderList[i] = i; }
+  shuffle_int(orderList, size);
+  return orderList;
+}
+
+void shuffle_int(int *list, int len) {
+  int j;
+  int tmp;
+  while(len) {
+      j = irand(len);
+      if (j != len - 1) {
+        tmp = list[j];
+        list[j] = list[len - 1];
+        list[len - 1] = tmp;
+      }
+    len--;
+  }
+}
+
+int irand(int n) {
+  int r, rand_max = RAND_MAX - (RAND_MAX % n);
+  while ((r = rand()) >= rand_max);
+  return r / (rand_max / n);
 }
