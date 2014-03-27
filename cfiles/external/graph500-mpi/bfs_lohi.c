@@ -33,6 +33,7 @@ static int64_t* g_recvbuf;
 int* genRandPerm(int size);
 void shuffle_int(int *list, int len);
 int irand(int n);
+static float calc_dc(float alpha, float gamma, int len);
 
   /* Predefined entities you can use in your BFS (from common.h and oned_csr.h):
    *   + rank: global variable containing MPI rank
@@ -110,12 +111,11 @@ void partition_graph_data_structure() {
   int n_local = g.nlocalverts;
   int offset = VERTEX_TO_GLOBAL(rank, 0); //!//Does this work?
   int nparts = size;
-  //!//TODO int *partsize = 
+
   int *colidx = g.column;
   int *rowptr = g.rowstarts;
-  //!//TODO int **parts = 
-
-
+  int **parts = (int**)malloc(nparts * sizeof(int*));
+  int *partsize = (int*)malloc(nparts * sizeof(int));
   int *partscore = (int*)malloc(nparts * sizeof(int));
   int *row;
   int vert, k, s, nnz_row, best_part, randidx, nededges = 0, node = 0;
@@ -123,11 +123,11 @@ void partition_graph_data_structure() {
   int *vorder = genRandPerm(n_local-1);
   int oldpart;
 
-
   float gamma = 1.5;
   float alpha = sqrt(2) * (nnz/pow(n,gamma));
+  int emptyverts = 0;
 
-  emptyverts = 0;
+  //MPI_Allreduce(void* send_data, void* recv_data, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD)
 
   for (int i = 0; i < n_local-1; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
@@ -441,4 +441,8 @@ int irand(int n) {
   int r, rand_max = RAND_MAX - (RAND_MAX % n);
   while ((r = rand()) >= rand_max);
   return r / (rand_max / n);
+}
+
+static float calc_dc(float alpha, float gamma, int len) {
+  return (alpha*pow(len+0.5,gamma)) - (alpha*pow(len,gamma));
 }
