@@ -83,7 +83,17 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
 }
 
-void partition_graph_data_structure() { }
+void partition_graph_data_structure() { 
+  /*   + g.nlocalverts: number of vertices stored on the local rank
+   *   + g.nglobalverts: total number of vertices in the graph
+   *   + g.nlocaledges: number of graph edges stored locally
+   *   + g.rowstarts, g.column: zero-based compressed sparse row data
+   *     structure for the local part of the graph */
+
+// compute scattered partition function
+
+
+}
 
 void free_graph_data_structure(void) {
   free(g_oldq);
