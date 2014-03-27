@@ -83,6 +83,8 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
 }
 
+void partition_graph_data_structure() { }
+
 void free_graph_data_structure(void) {
   free(g_oldq);
   free(g_newq);

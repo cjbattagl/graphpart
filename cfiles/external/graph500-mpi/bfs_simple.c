@@ -44,6 +44,8 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
 }
 
+void partition_graph_data_structure() { }
+
 void free_graph_data_structure(void) {
   free(g_oldq);
   free(g_newq);
@@ -107,6 +109,8 @@ void run_bfs(int64_t root, int64_t* pred) {
     SET_VISITED(root);
     //!// no need to check degree because we are simply enqueueing a received vertex -- sender should have broadcasted hi-degs
     //!// but we need to make sure we can use the same queue when receiving both p2p and broadcasted data
+
+
     pred[VERTEX_LOCAL(root)] = root;
     oldq[oldq_count++] = root;
   }

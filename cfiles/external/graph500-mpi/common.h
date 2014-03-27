@@ -112,7 +112,7 @@ typedef struct tuple_graph {
               MPI_File_read_at_all_begin((tg)->edgefile, start_edge_index, edge_data_from_file, edge_count_i, packed_edge_mpi_type); \
               buffer_released_this_iter = 1; \
             } \
-          } while (0)
+          } while (0)     
 #define ITERATE_TUPLE_GRAPH_END \
           if (!buffer_released_this_iter) ITERATE_TUPLE_GRAPH_RELEASE_BUFFER; \
         } \
@@ -148,6 +148,7 @@ int validate_bfs_result(const tuple_graph* const tg, const int64_t nglobalverts,
  * storage: */
 void make_graph_data_structure(const tuple_graph* const tg);
 void free_graph_data_structure(void);
+void partition_graph_data_structure(void); //!//
 int bfs_writes_depth_map(void); /* True if high 16 bits of pred entries are zero-based level numbers, or UINT16_MAX for unreachable. */
 void run_bfs(int64_t root, int64_t* pred);
 void get_vertex_distribution_for_pred(size_t count, const int64_t* vertices, int* owners, size_t* locals);

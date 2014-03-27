@@ -28,6 +28,8 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);
 }
 
+void partition_graph_data_structure() { }
+
 void free_graph_data_structure(void) {
   free_oned_csr_graph(&g);
 }

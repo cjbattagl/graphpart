@@ -281,11 +281,24 @@ int main(int argc, char** argv) {
 
   /* Make user's graph data structure. */
   double data_struct_start = MPI_Wtime();
+
+  // this does all the redistribution from tuples to CSR
   make_graph_data_structure(&tg);
+
   double data_struct_stop = MPI_Wtime();
   double data_struct_time = data_struct_stop - data_struct_start;
   if (rank == 0) { /* Not an official part of the results */
     fprintf(stderr, "construction_time:              %f s\n", data_struct_time);
+  }
+
+  // now do any additional partitioning redistribution
+  //////////////////////////////////////////////////// define in bfs_lohi.c for now
+  double partition_start = MPI_Wtime();
+  //partition_graph_data_structure(&tg);
+  double partition_stop = MPI_Wtime();
+  double partition_time = partition_stop - partition_start;
+  if (rank == 0) { /* Not an official part of the results */
+    fprintf(stderr, "partition_time:              %f s\n", partition_time);
   }
 
   /* Number of edges visited in each BFS; a double so get_statistics can be

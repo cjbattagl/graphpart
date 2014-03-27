@@ -54,6 +54,8 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   deallocate_memory();
 }
 
+void partition_graph_data_structure() { }
+
 void free_graph_data_structure(void) {
   free_oned_csc_graph(&g);
   /* deallocate_memory(); */
