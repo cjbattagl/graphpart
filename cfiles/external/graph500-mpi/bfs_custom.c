@@ -112,9 +112,10 @@ void partition_graph_data_structure() {
   int n_local = g.nlocalverts;
   int offset = VERTEX_TO_GLOBAL(rank, 0); //!//Does this work?
   int nparts = size;
+  int nnz = g.nlocaledges * size; //!//just compute nnz using a sum reduction instead of this
 
-  int *colidx = g.column;
-  int *rowptr = g.rowstarts;
+  int *colidx = &g.column;
+  int *rowptr = &g.rowstarts;
   int **parts = (int**)malloc(nparts * sizeof(int*));
   int *partsize = (int*)malloc(nparts * sizeof(int));
   int *partscore = (int*)malloc(nparts * sizeof(int));
@@ -417,9 +418,11 @@ size_t get_nlocalverts_for_pred(void) {
 int* genRandPerm(int size) {
   int *orderList = (int *) malloc (sizeof (int) * size);
   assert(orderList);
-  srand(time(NULL));
+  srand(1);
+  //srand(time(NULL));
   // Generate 'identity' permutation
-  for (int i = 0; i < size; i++) { orderList[i] = i; }
+  int i;
+  for (i = 0; i < size; i++) { orderList[i] = i; }
   shuffle_int(orderList, size);
   return orderList;
 }
