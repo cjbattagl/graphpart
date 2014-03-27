@@ -129,7 +129,7 @@ void partition_graph_data_structure() {
 
   //MPI_Allreduce(void* send_data, void* recv_data, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD)
   int i;
-  for (i = 0; i<n_local; ++i) { vorder[i] += offset; }  // randomly iterate over vertices from offset to (offset+nlocalverts)
+  //for (i = 0; i<n_local; ++i) { vorder[i] += offset; }  // randomly iterate over vertices from offset to (offset+nlocalverts)
   for (i = 0; i<n; ++i) { parts[i] = -1; }
   for (i = 0; i < n_local-1; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
@@ -410,7 +410,7 @@ size_t get_nlocalverts_for_pred(void) {
 int* genRandPerm(int size) {
   int *orderList = (int *) malloc (sizeof (int) * size);
   assert(orderList);
-  srand(1);
+  srand(123);
   //srand(time(NULL));
   // Generate 'identity' permutation
   int i;
