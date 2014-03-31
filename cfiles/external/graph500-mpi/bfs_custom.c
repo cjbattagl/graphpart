@@ -19,6 +19,8 @@
 #include <assert.h>
 #include <math.h>
 
+#define isPowerOfTwo(x) ((x != 0) && !(x & (x - 1)))
+
 static oned_csr_graph g;
 static int64_t* g_oldq;
 static int64_t* g_newq;
@@ -114,25 +116,27 @@ void partition_graph_data_structure() {
   int64_t *colidx = g.column;
   size_t *rowptr = g.rowstarts;
   int *parts = (int*)malloc(n * sizeof(int));
+  int *local_partsize = (int*)malloc(nparts * sizeof(int));
   int *partsize = (int*)malloc(nparts * sizeof(int));
   int *partscore = (int*)malloc(nparts * sizeof(int));
   size_t *row;
   size_t vert;
-  int k, s, nnz_row, best_part, randidx, node = 0;
+  int s;
+  size_t k,  nnz_row, best_part, randidx, node = 0;
   float curr_score, best_score;
   int *vorder = (int*)malloc(n_local * sizeof(int)); 
-  genRandPerm(vorder, n_local-1);
+  genRandPerm(vorder, n_local);
   int oldpart;
-  float gamma = 1.5;
+  float gamma = 1;
   float alpha = sqrt(2) * (nnz/pow(n,gamma));
   int emptyverts = 0;
   fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
 
-  //MPI_Allreduce(void* send_data, void* recv_data, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD)
   int i;
-  for (i = 0; i<n_local; ++i) { vorder[i] = offset; }  // randomly iterate over vertices from offset to (offset+nlocalverts)
+  //for (i = 0; i<n_local; ++i) { vorder[i] = offset; }  // randomly iterate over vertices from offset to (offset+nlocalverts)
   for (i = 0; i<n; ++i) { parts[i] = -1; }
-  for (i = 0; i < n_local-1; i++) {
+  for (i = 0; i<nparts; ++i) { local_partsize[i] = 0; partsize[i] = 0; }
+  for (i = 0; i < n_local; i++) {
     for (s = 0; s < nparts; s++) { partscore[s]=0; }
     vert = vorder[i];
     row = &rowptr[vert];
@@ -156,9 +160,9 @@ void partition_graph_data_structure() {
         parts[offset + vert] = -1; 
       }
       parts[offset + vert] = best_part;
-      partsize[best_part]++;
+      local_partsize[best_part]++;
       if (oldpart >= 0) {
-        partsize[oldpart]--;
+        local_partsize[oldpart]--;
       }
     } else { // empty vertex for some reason... assign it to random permutation
       emptyverts++;
@@ -168,20 +172,32 @@ void partition_graph_data_structure() {
         parts[offset + vert] = -1; 
       }
       parts[offset + vert] = randidx;
-      partsize[randidx]++;
+      local_partsize[randidx]++;
       if (oldpart >= 0) {
-        partsize[oldpart]--;
+        local_partsize[oldpart]--;
       }
     }
-    if (i % 128 == 0) {
-      MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n, MPI_INT, MPI_COMM_WORLD);
+    if (isPowerOfTwo(i)) {
+      MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     }
   }
+
+  MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+  MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  int *sparts = (int*)malloc(nparts * sizeof(int));
+  for (i=0; i<nparts; ++i) { sparts[i] = 0; }
+
+  for (i=0; i<n; ++i) { assert(parts[i] >= 0); sparts[parts[i]]++;}
+  for (i=0; i<nparts; ++i) { 
+    fprintf(stdout,"sparts for partition %d = %d\n",i,sparts[i]);
+  }
   
-  //free(partscore);
+  free(partscore);
   free(vorder);
-  //free(parts);
-  //free(partsize);
+  free(parts);
+  free(partsize);
 }
 
 void free_graph_data_structure(void) {
@@ -247,8 +263,6 @@ void run_bfs(int64_t root, int64_t* pred) {
     SET_VISITED(root);
     //!// no need to check degree because we are simply enqueueing a received vertex -- sender should have broadcasted hi-degs
     //!// but we need to make sure we can use the same queue when receiving both p2p and broadcasted data
-
-    
     pred[VERTEX_LOCAL(root)] = root;
     oldq[oldq_count++] = root;
   }
@@ -410,7 +424,7 @@ size_t get_nlocalverts_for_pred(void) {
 // Random permutation generator. Move to another file.
 int* genRandPerm(int* orderList, int size) {
   assert(orderList);
-  srand(123);
+  srand(1);
   //srand(time(NULL));
   // Generate 'identity' permutation
   int i;
