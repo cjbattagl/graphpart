@@ -1,2 +1,4 @@
 helpful stuff:
+mpirun -np 2 xterm -e gdb -x run.txt --args ./graph500_mpi_custom 16 16
+mpirun -np 2 xterm -e gdb --args ./graph500_mpi_custom 16 16
 mpirun -np 2 xterm -e gdb ./graph500_mpi_custom
