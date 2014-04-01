@@ -39,6 +39,7 @@ void shuffle_int(int *list, int len);
 int irand(int n);
 float calc_dc(float alpha, float gamma, int len);
 int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff);
+int remove_duplicates(int64_t* array, int len);
 
 // Colidx's have redundant entries, so we need sort functions :(
 
@@ -97,6 +98,18 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
 }
 
+// We should just sort colidx and remove duplicates, but this works for now
+int remove_duplicates(int64_t* array, int len) {
+  int i,j;
+  int new_len = 1;
+  for (i=1; i<len; ++i) {
+    for(j=0; j<new_len; ++j) { if(array[i]==array[j]) { break; }}
+    if (j==new_len) { array[new_len++] = array[i]; }
+  }
+  if (new_len<len) { array[new_len] = -1; }
+  return new_len;
+}
+
 void partition_graph_data_structure() { 
   /*   + g.nlocalverts: number of vertices stored on the local rank
    *   + g.nglobalverts: total number of vertices in the graph
@@ -146,11 +159,12 @@ void partition_graph_data_structure() {
   fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
   int i, j, s;
   int localedge = (int)g.nlocaledges;
+  int doDup = 0;
   MPI_Allreduce(&localedge, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   if (rank==0) { fprintf(stdout,"Total edges: %d\n",tot_nnz); }
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
-  //for (j = 0; j < 10; ++j) {
-  //  emptyverts = 0;
+  for (j = 0; j < 10; ++j) {
+    emptyverts = 0;
   for (i = 0; i < n_local; ++i) {
     for (l=0; l<nparts; l++) {
       partscore[l] = 0;
@@ -161,11 +175,17 @@ void partition_graph_data_structure() {
     row = &rowptr[vert];
     nnz_row = *(row+1) - *row;
     oldpart = -1;
+
+    int64_t* new_colidx = (int64_t*)malloc(nnz_row*sizeof(int64_t));
+    memcpy(new_colidx, colidx + *row, nnz_row*sizeof(int64_t));
+    nnz_row = remove_duplicates(new_colidx, nnz_row) - 1;
+
     if (nnz_row >= cutoff) { parts[offset + vert] = nparts; }
     else if(nnz_row > 0) {
       // generate partscore, number of edges to each existing partition
-      for (k = *row; k < ((*row)+nnz_row); ++k) {
-        node = colidx[k]; 
+      //for (k = *row; (k < ((*row)+nnz_row) && new_colidx[k] >= 0); ++k) {
+      for (k = 0; k < nnz_row && new_colidx[k] >= 0; ++k) {
+        node = new_colidx[k]; 
         int node_part = parts[(int)node];
         if (node_part >= 0 && node_part < nparts) { 
           partscore[parts[node]]++; 
@@ -201,10 +221,12 @@ void partition_graph_data_structure() {
       MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     }
+
+    free(new_colidx);
   }
   MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  //}
+  }
 
   if (rank == 0) {
     if (n <= 128) { for (i = 0; i<n; ++i) { fprintf(stdout," %d ",parts[i]); } }
@@ -250,6 +272,11 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
     vert = i;
     row = &rowptr[vert];
     nnz_row = (int)(*(row+1) - *(row)); //nnz in row
+
+    int64_t* new_colidx = (int64_t*)malloc(nnz_row*sizeof(int64_t));
+    memcpy(new_colidx, colidx + *row, nnz_row*sizeof(int64_t));
+    nnz_row = remove_duplicates(new_colidx, nnz_row) - 1;
+
     if (nnz_row < cutoff) { 
       mytotlodegedges += nnz_row;
       v_part = parts[vert+offset];
@@ -258,8 +285,9 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
         emptyparts++;
       }
       // count edges to other partitions
-      for (k = *row; k < ((*row)+nnz_row); ++k) {
-        if (parts[colidx[k]] != v_part && parts[colidx[k]] < nparts && colidx[k] < ) { cutedges++; }
+      //for (k = *row; k < ((*row)+nnz_row); ++k) {
+      for (k = 0; k < nnz_row && new_colidx[k] >= 0; ++k) {
+        if (parts[new_colidx[k]] != v_part && parts[new_colidx[k]] < nparts) { cutedges++; }
       }
     }
   }
