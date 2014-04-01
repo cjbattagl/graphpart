@@ -333,7 +333,7 @@ int main(int argc, char** argv) {
 
     double validate_start = MPI_Wtime();
     int64_t edge_visit_count;
-    int validation_passed_one = 1;//validate_bfs_result(&tg, max_used_vertex + 1, nlocalverts, root, pred, &edge_visit_count);
+    int validation_passed_one = 1; //validate_bfs_result(&tg, max_used_vertex + 1, nlocalverts, root, pred, &edge_visit_count);
     double validate_stop = MPI_Wtime();
     validate_times[bfs_root_idx] = validate_stop - validate_start;
     if (rank == 0) fprintf(stderr, "Validate time for BFS %d is %f\n", bfs_root_idx, validate_times[bfs_root_idx]);

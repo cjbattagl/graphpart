@@ -18,6 +18,7 @@
 #include <limits.h>
 #include <assert.h>
 #include <math.h>
+#include <time.h>
 
 #define isPowerOfTwo(x) ((x != 0) && !(x & (x - 1)))
 
@@ -36,7 +37,9 @@ static int64_t* g_recvbuf;
 int* genRandPerm(int *orderList, int size);
 void shuffle_int(int *list, int len);
 int irand(int n);
-static float calc_dc(float alpha, float gamma, int len);
+float calc_dc(float alpha, float gamma, int len);
+int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff);
+
 
   /* Predefined entities you can use in your BFS (from common.h and oned_csr.h):
    *   + rank: global variable containing MPI rank
@@ -110,94 +113,146 @@ void partition_graph_data_structure() {
   int n = g.nglobalverts;
   int n_local = g.nlocalverts;
   int offset = g.nlocalverts * rank; //!//Does this work?
-  fprintf(stdout, "Partitioning from offset %d\n", offset);//"                          %d\n", SCALE);
   int nparts = size;
-  int nnz = g.nlocaledges * size; //!//just compute nnz using a sum reduction instead of this
-  int64_t *colidx = g.column;
-  size_t *rowptr = g.rowstarts;
+  int tot_nnz = 0;
   int *parts = (int*)malloc(n * sizeof(int));
   int *local_partsize = (int*)malloc(nparts * sizeof(int));
   int *partsize = (int*)malloc(nparts * sizeof(int));
   int *partscore = (int*)malloc(nparts * sizeof(int));
+  int *partcost = (int*)malloc(nparts * sizeof(int));
+  int *vorder = (int*)malloc(n_local * sizeof(int)); 
+  int oldpart;
+  int emptyverts = 0;
+  int randidx;
+  int cutoff = 10000;
+
   size_t *row;
   size_t vert;
-  int s;
-  size_t k,  nnz_row, best_part, randidx, node = 0;
+  size_t k,  nnz_row, best_part;
+  int64_t *colidx = g.column;
+  int64_t node = 0;
+  size_t *rowptr = g.rowstarts;
+
   float curr_score, best_score;
-  int *vorder = (int*)malloc(n_local * sizeof(int)); 
   genRandPerm(vorder, n_local);
-  int oldpart;
-  float gamma = 1;
-  float alpha = sqrt(2) * (nnz/pow(n,gamma));
-  int emptyverts = 0;
+  float gamma = 1.5;
+
+  memset(parts, -1, n * sizeof(int));
+  memset(local_partsize, 0, nparts * sizeof(int));
+  memset(partsize, 0, nparts * sizeof(int));
+
   fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
 
-  int i;
-  //for (i = 0; i<n_local; ++i) { vorder[i] = offset; }  // randomly iterate over vertices from offset to (offset+nlocalverts)
-  for (i = 0; i<n; ++i) { parts[i] = -1; }
-  for (i = 0; i<nparts; ++i) { local_partsize[i] = 0; partsize[i] = 0; }
-  for (i = 0; i < n_local; i++) {
-    for (s = 0; s < nparts; s++) { partscore[s]=0; }
-    vert = vorder[i];
+  int i, j, s;
+
+  int localedge = (int)g.nlocaledges;
+  MPI_Allreduce(&localedge, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  if (rank==0) { fprintf(stdout,"Total edges: %d\n",tot_nnz); }
+  float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
+
+  for (j = 0; j < 10; ++j) {
+    emptyverts = 0;
+  for (i = 0; i < n_local; ++i) {
+    memset(partscore, 0, nparts * sizeof(int));
+    memset(partcost, 0, nparts * sizeof(int));
+    vert = (size_t)vorder[i];
     row = &rowptr[vert];
     nnz_row = *(row+1) - *row;
     oldpart = -1;
-    if(nnz_row != 0) {
-      // generate partition scores for each partition
-      for (k = *row; k < ((*row)+nnz_row); k++) {
-        node = colidx[k];
-        for (s = 0; s < nparts; s++) { if (parts[node] == s) { partscore[s]++; }}
+    if(nnz_row > 0) {
+      // generate partscore, number of edges to each existing partition
+      for (k = *row; k < ((*row)+nnz_row); ++k) {
+        node = colidx[k]; 
+        int node_part = parts[(int)node];
+        if (node_part >= 0) { 
+          partscore[parts[node]]++; 
+        }
       }
-      // choose optimal partition (initializing first)
-      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
-      best_part = 0;
-      for (s = 1; s < nparts; s++) {
-        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
-        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
+      for (s = 0; s < nparts; ++s) { 
+        float dc = calc_dc(alpha,gamma,partsize[s]);
+        int normscore = partscore[s] - (int)nnz_row;
+        partcost[s] = normscore - dc; 
       }
-      if(parts[offset + vert] >= 0) {
-        oldpart = parts[offset + vert];
-        parts[offset + vert] = -1; 
+      best_part = nparts-1;
+      best_score = partcost[nparts-1];
+      for (s = nparts-2; s >= 0; --s) { 
+        curr_score = partcost[s]; 
+        if (curr_score > best_score) {
+          best_score = curr_score;  best_part = s;
+        }
       }
+      oldpart = parts[offset + vert];
       parts[offset + vert] = best_part;
       local_partsize[best_part]++;
-      if (oldpart >= 0) {
-        local_partsize[oldpart]--;
-      }
+      if (oldpart >= 0) { local_partsize[oldpart]--; }
     } else { // empty vertex for some reason... assign it to random permutation
       emptyverts++;
       randidx = irand(nparts);
-      if(parts[offset + vert] >= 0) {
-        oldpart = parts[offset + vert];
-        parts[offset + vert] = -1; 
-      }
+      oldpart = parts[offset + vert];
       parts[offset + vert] = randidx;
       local_partsize[randidx]++;
-      if (oldpart >= 0) {
-        local_partsize[oldpart]--;
-      }
+      if (oldpart >= 0) { local_partsize[oldpart]--; }
     }
     if (isPowerOfTwo(i)) {
+      //MPI_Barrier(MPI_COMM_WORLD);
       MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     }
   }
-
   MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-
-  int *sparts = (int*)malloc(nparts * sizeof(int));
-  for (i=0; i<nparts; ++i) { sparts[i] = 0; }
-
-  for (i=0; i<n; ++i) { assert(parts[i] >= 0); sparts[parts[i]]++;}
-  for (i=0; i<nparts; ++i) { 
-    fprintf(stdout,"sparts for partition %d = %d\n",i,sparts[i]);
   }
-  
+
+  if (rank == 0) {
+    int *sparts = (int*)malloc(nparts * sizeof(int));
+    for (i=0; i<nparts; ++i) { sparts[i] = 0; }
+    int unassigned = 0;
+    for (i=0; i<n; ++i) { if(parts[i] < 0) { unassigned++; } sparts[parts[i]]++;}
+    for (i=0; i<nparts; ++i) { 
+      fprintf(stdout,"sparts for partition %d = %d == %d. Unassigned:%d Empty:%d\n",i,sparts[i],partsize[i],unassigned,emptyverts);
+    }
+  }
+  int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
+  if (rank == 0) {   fprintf(stdout,"total cutedges = %d, percentage of total:%f \n", cutedges, (float)cutedges/tot_nnz); }
   free(partscore);
   free(vorder);
   free(parts);
   free(partsize);
+}
+
+int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff) {
+  size_t vert;
+  int nnz_row;
+  int v_part;
+  int cutedges = 0;
+  int mytotedges = 0;
+  int mytotlodegedges = 0;
+  size_t *row;
+  int i;
+  size_t k;
+  int emptyparts = 0;
+  mytotedges = rowptr[n_local];
+  for (i = 0; i < n_local; i++) {
+    vert = i;
+    row = &rowptr[vert];
+    nnz_row = (int)(*(row+1) - *(row)); //nnz in row
+    if (nnz_row < cutoff || 1) { 
+      mytotlodegedges += nnz_row;
+      v_part = parts[vert+offset];
+      if (v_part == -1) {
+        v_part = 0;
+        emptyparts++;
+      }
+      // count edges to other partitions
+      for (k = *row; k < ((*row)+nnz_row); k++) {
+        if (parts[colidx[k]] != v_part) { cutedges++; }
+      }
+    }
+  }
+  int tot_cutedges;
+  MPI_Allreduce(&cutedges, &tot_cutedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges);
+  return tot_cutedges;
 }
 
 void free_graph_data_structure(void) {
@@ -424,8 +479,7 @@ size_t get_nlocalverts_for_pred(void) {
 // Random permutation generator. Move to another file.
 int* genRandPerm(int* orderList, int size) {
   assert(orderList);
-  srand(1);
-  //srand(time(NULL));
+  srand(time(NULL));
   // Generate 'identity' permutation
   int i;
   for (i = 0; i < size; i++) { orderList[i] = i; }
@@ -453,6 +507,6 @@ int irand(int n) {
   return r / (rand_max / n);
 }
 
-static float calc_dc(float alpha, float gamma, int len) {
+float calc_dc(float alpha, float gamma, int len) {
   return (alpha*pow(len+0.5,gamma)) - (alpha*pow(len,gamma));
 }
