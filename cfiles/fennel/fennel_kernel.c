@@ -238,7 +238,7 @@ int sample_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
 
 // Prepare matrix A for partitioning, and call FENNEL
 // then evaluate results
-int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
+int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff) {
   int m, n, nnz;
   void* values;
   int* colidx;
@@ -247,7 +247,7 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
   enum symmetric_storage_location_t symmetric_storage_location;
   enum value_type_t value_type;
   double seconds = 0.0;
-  int cutoff = 75;
+  //int cutoff = 30;
 
   unpack_csr_matrix (A, &m, &n, &nnz, &values, &colidx, &rowptr, &symmetry_type,
                  &symmetric_storage_location, &value_type);
@@ -356,6 +356,13 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
       cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile, cutoff);
     }
     fprintf (stdout, "Percent edges cut = %d / %d = %1.3f\n", cutedges,nnz,(float)cutedges/nnz);
+    max_load = partsize[0];
+    min_load = partsize[0];
+    for (s = 1; s < nparts; s++) {
+      if (partsize[s] > max_load) {max_load = partsize[s];}
+      if (partsize[s] < min_load) {min_load = partsize[s];}
+    }
+    fprintf (stdout, "\n----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
     fprintf(LambdaFile, "%1.3f, ",(float)cutedges/nnz);
 
     if (run == numruns-1) {

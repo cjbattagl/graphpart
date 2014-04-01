@@ -40,6 +40,8 @@ int irand(int n);
 float calc_dc(float alpha, float gamma, int len);
 int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff);
 
+// Colidx's have redundant entries, so we need sort functions :(
+
 
   /* Predefined entities you can use in your BFS (from common.h and oned_csr.h):
    *   + rank: global variable containing MPI rank
@@ -101,7 +103,6 @@ void partition_graph_data_structure() {
    *   + g.nlocaledges: number of graph edges stored locally
    *   + g.rowstarts, g.column: zero-based compressed sparse row data
    *     structure for the local part of the graph */
-
 // compute scattered partition function on my vertex range
 // every p steps, globally sum-reduce the number of edges to each partition
 // otherwise compute partition function as normal ( on low-fegree vertices )
@@ -109,11 +110,11 @@ void partition_graph_data_structure() {
 // distribute the low-degree vertices as in redistribute.h
 // distribute high-degree vertices using the owner function on the /destination/ vertex of each edge
 // we will need a special CSR structure that has offset columns. 
-
   int n = g.nglobalverts;
   int n_local = g.nlocalverts;
   int offset = g.nlocalverts * rank; //!//Does this work?
   int nparts = size;
+  //int nparts = 4;
   int tot_nnz = 0;
   int *parts = (int*)malloc(n * sizeof(int));
   int *local_partsize = (int*)malloc(nparts * sizeof(int));
@@ -124,47 +125,49 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-  int cutoff = 10000;
-
+  int cutoff = 100000;
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
   int64_t *colidx = g.column;
   int64_t node = 0;
   size_t *rowptr = g.rowstarts;
-
   float curr_score, best_score;
   genRandPerm(vorder, n_local);
   float gamma = 1.5;
 
   memset(parts, -1, n * sizeof(int));
-  memset(local_partsize, 0, nparts * sizeof(int));
-  memset(partsize, 0, nparts * sizeof(int));
+  int l;
+  for (l=0; l<nparts; ++l) {
+    partsize[l] = 0;
+    local_partsize[l] = 0;
+  }
 
   fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
-
   int i, j, s;
-
   int localedge = (int)g.nlocaledges;
   MPI_Allreduce(&localedge, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   if (rank==0) { fprintf(stdout,"Total edges: %d\n",tot_nnz); }
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
-
-  for (j = 0; j < 10; ++j) {
-    emptyverts = 0;
+  //for (j = 0; j < 10; ++j) {
+  //  emptyverts = 0;
   for (i = 0; i < n_local; ++i) {
-    memset(partscore, 0, nparts * sizeof(int));
-    memset(partcost, 0, nparts * sizeof(int));
+    for (l=0; l<nparts; l++) {
+      partscore[l] = 0;
+      partcost[l] = 0;
+    }
+
     vert = (size_t)vorder[i];
     row = &rowptr[vert];
     nnz_row = *(row+1) - *row;
     oldpart = -1;
-    if(nnz_row > 0) {
+    if (nnz_row >= cutoff) { parts[offset + vert] = nparts; }
+    else if(nnz_row > 0) {
       // generate partscore, number of edges to each existing partition
       for (k = *row; k < ((*row)+nnz_row); ++k) {
         node = colidx[k]; 
         int node_part = parts[(int)node];
-        if (node_part >= 0) { 
+        if (node_part >= 0 && node_part < nparts) { 
           partscore[parts[node]]++; 
         }
       }
@@ -184,14 +187,14 @@ void partition_graph_data_structure() {
       oldpart = parts[offset + vert];
       parts[offset + vert] = best_part;
       local_partsize[best_part]++;
-      if (oldpart >= 0) { local_partsize[oldpart]--; }
+      if (oldpart >= 0 && oldpart < nparts) { local_partsize[oldpart]--; }
     } else { // empty vertex for some reason... assign it to random permutation
       emptyverts++;
       randidx = irand(nparts);
       oldpart = parts[offset + vert];
       parts[offset + vert] = randidx;
       local_partsize[randidx]++;
-      if (oldpart >= 0) { local_partsize[oldpart]--; }
+      if (oldpart >= 0 && oldpart < nparts) { local_partsize[oldpart]--; }
     }
     if (isPowerOfTwo(i)) {
       //MPI_Barrier(MPI_COMM_WORLD);
@@ -201,23 +204,34 @@ void partition_graph_data_structure() {
   }
   MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  }
+  //}
 
   if (rank == 0) {
+    if (n <= 128) { for (i = 0; i<n; ++i) { fprintf(stdout," %d ",parts[i]); } }
+
     int *sparts = (int*)malloc(nparts * sizeof(int));
     for (i=0; i<nparts; ++i) { sparts[i] = 0; }
     int unassigned = 0;
-    for (i=0; i<n; ++i) { if(parts[i] < 0) { unassigned++; } sparts[parts[i]]++;}
+    for (i=0; i<n; ++i) { 
+      int mypart = parts[i]; 
+      if(mypart < 0) { unassigned++; } 
+      if(mypart < nparts) {sparts[mypart]++;}
+    }
     for (i=0; i<nparts; ++i) { 
       fprintf(stdout,"sparts for partition %d = %d == %d. Unassigned:%d Empty:%d\n",i,sparts[i],partsize[i],unassigned,emptyverts);
     }
   }
   int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
+  MPI_Barrier(MPI_COMM_WORLD);
+
   if (rank == 0) {   fprintf(stdout,"total cutedges = %d, percentage of total:%f \n", cutedges, (float)cutedges/tot_nnz); }
+
   free(partscore);
   free(vorder);
   free(parts);
   free(partsize);
+  free(local_partsize);
+  free(partcost);
 }
 
 int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff) {
@@ -236,7 +250,7 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
     vert = i;
     row = &rowptr[vert];
     nnz_row = (int)(*(row+1) - *(row)); //nnz in row
-    if (nnz_row < cutoff || 1) { 
+    if (nnz_row < cutoff) { 
       mytotlodegedges += nnz_row;
       v_part = parts[vert+offset];
       if (v_part == -1) {
@@ -244,14 +258,17 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
         emptyparts++;
       }
       // count edges to other partitions
-      for (k = *row; k < ((*row)+nnz_row); k++) {
-        if (parts[colidx[k]] != v_part) { cutedges++; }
+      for (k = *row; k < ((*row)+nnz_row); ++k) {
+        if (parts[colidx[k]] != v_part && parts[colidx[k]] < nparts && colidx[k] < ) { cutedges++; }
       }
     }
   }
   int tot_cutedges;
+  int tot_lodegedges;
   MPI_Allreduce(&cutedges, &tot_cutedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges);
+  MPI_Allreduce(&mytotlodegedges, &tot_lodegedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d mylodegedges=%d totlodegedges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges,mytotlodegedges,tot_lodegedges);
   return tot_cutedges;
 }
 

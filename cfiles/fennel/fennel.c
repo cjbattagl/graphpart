@@ -86,7 +86,7 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
   fprintf (out, "<out-filename>: name of file to which to output results\n");
   fprintf (out, "[options]: -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, " -v -- verbose mode\n");
-  fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM' 4\n");
+  fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM' 4 10000\n");
 }
 
 int main (int argc, char *argv[]) {
@@ -120,9 +120,9 @@ int main (int argc, char *argv[]) {
 
   get_options (argc, argv, arglist, NULL);
 
-  if (argc - optind != 3) {
+  if (argc - optind != 4) {
       fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
-         "e specified, but there should be %d ***\n", argc - optind, 3);
+         "e specified, but there should be %d ***\n", argc - optind, 4);
       dump_usage (stderr, argv[0], arglist, NULL);
       bebop_exit (EXIT_FAILURE); /* stops logging */
   }
@@ -130,6 +130,7 @@ int main (int argc, char *argv[]) {
   opts.input_filename = argv[optind];
   opts.input_file_format = argv[optind+1];
   int parts = atoi(argv[optind+2]);
+  int cutoff = atoi(argv[optind+3]);
   //opts.output_filename = argv[optind+2];
   
   if (strcmp (opts.input_file_format, "HB") == 0 ||
@@ -209,7 +210,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, parts, 1.5); //todo: nparts, gamma as inputs
+  run_fennel(repr, parts, 1.5, cutoff); //todo: nparts, gamma as inputs
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);

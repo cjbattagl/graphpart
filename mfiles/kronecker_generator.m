@@ -21,7 +21,7 @@ function ij = kronecker_generator (SCALE, edgefactor, A, B, C)
   M = edgefactor * N;                                                   
                                                       
   %% Set initiator probabilities.                                       
-%    [A, B, C] = deal (0.57, 0.19, 0.19);        
+ [A, B, C] = deal (0.57, 0.19, 0.19);        
    
                                                                         
   %% Create index arrays.                                               
