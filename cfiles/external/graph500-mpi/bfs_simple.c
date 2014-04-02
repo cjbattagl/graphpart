@@ -28,6 +28,8 @@ static size_t* g_outgoing_counts /* 2x actual count */;
 static MPI_Request* g_outgoing_reqs;
 static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
+int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int offset);
+
 
 void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);
@@ -44,7 +46,19 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
 }
 
-void partition_graph_data_structure() { }
+void partition_graph_data_structure() { 
+      char name[14] = "mygraph1.mat";
+    char name2[14] = "mygraph2.mat";
+
+    char* targ;
+    if (rank==1) { targ = name2;} else { targ = name; }
+        FILE *GraphFile;
+        GraphFile = fopen(targ, "w");
+        assert(GraphFile != NULL);
+        print_graph(GraphFile, g.rowstarts, g.column, g.nlocalverts, rank*g.nlocalverts);
+    //  }
+      MPI_Barrier(MPI_COMM_WORLD);
+}
 
 void free_graph_data_structure(void) {
   free(g_oldq);
@@ -265,4 +279,17 @@ int64_t vertex_to_global_for_pred(int v_rank, size_t v_local) {
 
 size_t get_nlocalverts_for_pred(void) {
   return g.nlocalverts;
+}
+
+int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int offset) {
+  int i, k;
+  int64_t dst;
+
+  for (i=0; i<n_local; ++i) {
+    for (k = rowptr[i]; k < rowptr[i+1]; ++k) {
+      dst = colidx[k]; 
+      fprintf (out, "%d %d %d\n",offset+i+1,(int)dst+1,1);
+    }
+  }
+  return 1;
 }

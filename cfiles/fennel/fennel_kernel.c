@@ -326,7 +326,7 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
   for(int i = 0; i < nparts; i++) {
       for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros
   }
-  int numruns = 20;
+  int numruns = 1;
   for (int run=0; run<numruns; run++) {
   
     seconds = get_seconds();
@@ -355,14 +355,14 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
     else {
       cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile, cutoff);
     }
-    fprintf (stdout, "Percent edges cut = %d / %d = %1.3f\n", cutedges,nnz,(float)cutedges/nnz);
+    fprintf (stdout, "Percent edges cut = %d / %d = %1.3f", cutedges,nnz,(float)cutedges/nnz);
     max_load = partsize[0];
     min_load = partsize[0];
     for (s = 1; s < nparts; s++) {
       if (partsize[s] > max_load) {max_load = partsize[s];}
       if (partsize[s] < min_load) {min_load = partsize[s];}
     }
-    fprintf (stdout, "\n----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
+    fprintf (stdout, "       ----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
     fprintf(LambdaFile, "%1.3f, ",(float)cutedges/nnz);
 
     if (run == numruns-1) {

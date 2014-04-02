@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
   /* Make the raw graph edges. */
   /* Get roots for BFS runs, plus maximum vertex with non-zero degree (used by
    * validator). */
-  int num_bfs_roots = 4; //64;
+  int num_bfs_roots = 1; //64;
   int64_t* bfs_roots = (int64_t*)xmalloc(num_bfs_roots * sizeof(int64_t));
   int64_t max_used_vertex = 0;
 
@@ -358,7 +358,7 @@ int main(int argc, char** argv) {
   }
 
   /* Print results. */
-  if (rank == 0) {
+  if (rank == -1) {//(rank == 0) {
     if (!validation_passed) {
       fprintf(stdout, "No results printed for invalid run.\n");
     } else {

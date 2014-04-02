@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>
+#include <stdio.h>
 
 #define isPowerOfTwo(x) ((x != 0) && !(x & (x - 1)))
 
@@ -39,9 +40,12 @@ void shuffle_int(int *list, int len);
 int irand(int n);
 float calc_dc(float alpha, float gamma, int len);
 int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff);
-int remove_duplicates(int64_t* array, int len);
+void quickSort(int64_t a[], int l, int r);
+int64_t partition(int64_t a[], int l, int r);
+int remove_duplicates(int64_t a[], int n);
 
-// Colidx's have redundant entries, so we need sort functions :(
+int print_parts(FILE* out, int* parts, int n);
+int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int offset);
 
 
   /* Predefined entities you can use in your BFS (from common.h and oned_csr.h):
@@ -98,18 +102,6 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
 }
 
-// We should just sort colidx and remove duplicates, but this works for now
-int remove_duplicates(int64_t* array, int len) {
-  int i,j;
-  int new_len = 1;
-  for (i=1; i<len; ++i) {
-    for(j=0; j<new_len; ++j) { if(array[i]==array[j]) { break; }}
-    if (j==new_len) { array[new_len++] = array[i]; }
-  }
-  if (new_len<len) { array[new_len] = -1; }
-  return new_len;
-}
-
 void partition_graph_data_structure() { 
   /*   + g.nlocalverts: number of vertices stored on the local rank
    *   + g.nglobalverts: total number of vertices in the graph
@@ -148,44 +140,69 @@ void partition_graph_data_structure() {
   float curr_score, best_score;
   genRandPerm(vorder, n_local);
   float gamma = 1.5;
+  int i, j, s, l;
+
+      char name[14] = "mygraph1.mat";
+    char name2[14] = "mygraph2.mat";
+
+    char* targ;
+    if (rank==1) { targ = name2;} else { targ = name; }
+        FILE *GraphFile;
+        GraphFile = fopen(targ, "w");
+        assert(GraphFile != NULL);
+        print_graph(GraphFile, rowptr, colidx, n_local, offset);
+    //  }
+      MPI_Barrier(MPI_COMM_WORLD);
 
   memset(parts, -1, n * sizeof(int));
-  int l;
   for (l=0; l<nparts; ++l) {
     partsize[l] = 0;
     local_partsize[l] = 0;
   }
 
-  fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
-  int i, j, s;
+  //Sort colidxs
+  for (i = 0; i < n_local; ++i) {
+    row = &rowptr[i];
+    nnz_row = *(row+1) - *row;
+    quickSort(colidx + rowptr[i], 0, (int)nnz_row);
+  }
+
+  //Remove duplicate colidx's and consolidate
+  int lagger = 0; //points to new location of colidx
+  size_t *new_row_ptr = (size_t*)malloc(g.nlocalverts * sizeof(size_t));
+  for (i = 0; i < n_local; ++i) {
+    new_row_ptr[i] = (size_t)lagger;
+    nnz_row = rowptr[i+1] - rowptr[i];
+    int new_len = remove_duplicates(colidx + rowptr[i], nnz_row);
+    lagger += new_len;
+    memcpy(colidx+lagger, colidx+rowptr[i], new_len*sizeof(int64_t));
+  }
+  new_row_ptr[n_local] = lagger;
+  for (i=0; i <= n_local; ++i) { rowptr[i] = new_row_ptr[i]; }
+  g.nlocaledges = rowptr[n_local];
+
   int localedge = (int)g.nlocaledges;
-  int doDup = 0;
   MPI_Allreduce(&localedge, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   if (rank==0) { fprintf(stdout,"Total edges: %d\n",tot_nnz); }
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
-  for (j = 0; j < 10; ++j) {
-    emptyverts = 0;
+  //fprintf(stdout,"Offset = %d, n_local = %d, max = %d\n",offset,n_local,offset+n_local);
+  if (1) {fprintf(stdout,"n = %d, n_local = %d, local nnz=%zu, total nnz=%d\n",n,n_local,g.nlocaledges,tot_nnz);}
+ 
   for (i = 0; i < n_local; ++i) {
     for (l=0; l<nparts; l++) {
       partscore[l] = 0;
       partcost[l] = 0;
     }
-
     vert = (size_t)vorder[i];
     row = &rowptr[vert];
     nnz_row = *(row+1) - *row;
     oldpart = -1;
-
-    int64_t* new_colidx = (int64_t*)malloc(nnz_row*sizeof(int64_t));
-    memcpy(new_colidx, colidx + *row, nnz_row*sizeof(int64_t));
-    nnz_row = remove_duplicates(new_colidx, nnz_row) - 1;
-
     if (nnz_row >= cutoff) { parts[offset + vert] = nparts; }
     else if(nnz_row > 0) {
       // generate partscore, number of edges to each existing partition
       //for (k = *row; (k < ((*row)+nnz_row) && new_colidx[k] >= 0); ++k) {
-      for (k = 0; k < nnz_row && new_colidx[k] >= 0; ++k) {
-        node = new_colidx[k]; 
+      for (k = *row; k < ((*row)+nnz_row); ++k) {
+        node = colidx[k]; 
         int node_part = parts[(int)node];
         if (node_part >= 0 && node_part < nparts) { 
           partscore[parts[node]]++; 
@@ -221,12 +238,9 @@ void partition_graph_data_structure() {
       MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     }
-
-    free(new_colidx);
   }
   MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  }
 
   if (rank == 0) {
     if (n <= 128) { for (i = 0; i<n; ++i) { fprintf(stdout," %d ",parts[i]); } }
@@ -247,6 +261,38 @@ void partition_graph_data_structure() {
   MPI_Barrier(MPI_COMM_WORLD);
 
   if (rank == 0) {   fprintf(stdout,"total cutedges = %d, percentage of total:%f \n", cutedges, (float)cutedges/tot_nnz); }
+
+  if (rank == 0) {
+    FILE *PartFile;
+    PartFile = fopen("parts.mat", "w");
+    assert(PartFile != NULL);
+    print_parts(PartFile, parts, n);
+  }
+
+  if (1) {
+    //char dst[10] = "g_";
+    //itoa(i, dst+2, rank);
+    //strcat(dst, ".mat");
+    //GraphFile = fopen(dst, "w");
+
+    //for (i=0; i<size; i++) {
+    //MPI_Barrier(MPI_COMM_WORLD);
+
+    //if (rank == i) {
+    /*
+    char name[14] = "mygraph1.mat";
+    char name2[14] = "mygraph2.mat";
+
+    char* targ;
+    if (rank==1) { targ = name;} else { targ = name2; }
+        FILE *GraphFile;
+        GraphFile = fopen(targ, "w");
+        assert(GraphFile != NULL);
+        print_graph(GraphFile, rowptr, colidx, n_local, offset);
+    //  }
+      MPI_Barrier(MPI_COMM_WORLD);*/
+    //}
+  }
 
   free(partscore);
   free(vorder);
@@ -273,10 +319,6 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
     row = &rowptr[vert];
     nnz_row = (int)(*(row+1) - *(row)); //nnz in row
 
-    int64_t* new_colidx = (int64_t*)malloc(nnz_row*sizeof(int64_t));
-    memcpy(new_colidx, colidx + *row, nnz_row*sizeof(int64_t));
-    nnz_row = remove_duplicates(new_colidx, nnz_row) - 1;
-
     if (nnz_row < cutoff) { 
       mytotlodegedges += nnz_row;
       v_part = parts[vert+offset];
@@ -285,9 +327,9 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
         emptyparts++;
       }
       // count edges to other partitions
-      //for (k = *row; k < ((*row)+nnz_row); ++k) {
-      for (k = 0; k < nnz_row && new_colidx[k] >= 0; ++k) {
-        if (parts[new_colidx[k]] != v_part && parts[new_colidx[k]] < nparts) { cutedges++; }
+      for (k = *row; k < ((*row)+nnz_row); ++k) {
+      //for (k = 0; k < nnz_row && colidx[k] >= 0; ++k) {
+        if (parts[colidx[k]] != v_part && parts[colidx[k]] < nparts) { cutedges++; }
       }
     }
   }
@@ -519,8 +561,6 @@ size_t get_nlocalverts_for_pred(void) {
   return g.nlocalverts;
 }
 
-
-
 // Random permutation generator. Move to another file.
 int* genRandPerm(int* orderList, int size) {
   assert(orderList);
@@ -554,4 +594,61 @@ int irand(int n) {
 
 float calc_dc(float alpha, float gamma, int len) {
   return (alpha*pow(len+0.5,gamma)) - (alpha*pow(len,gamma));
+}
+
+void quickSort(int64_t a[], int l, int r)
+{
+  int64_t j;
+  if(l < r) {
+    j = partition(a, l, r);
+    quickSort(a, l, j-1);
+    quickSort(a, j+1, r);
+  }
+}
+
+int64_t partition(int64_t a[], int l, int r) {
+  int64_t pivot, i, j, t;
+  pivot = a[l];
+  i = l; j = r + 1;
+  while(1) {
+    do ++i; while(a[i] <= pivot && i <= r );
+    do --j; while(a[j] > pivot );
+    if( i >= j ) break;
+    t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  t = a[l]; a[l] = a[j]; a[j] = t;
+  return j;
+}
+
+int remove_duplicates(int64_t a[], int n) {
+  int i=0; int j;
+  if (n <= 1) return n;
+  for (j = 1; j < n; j++) {            
+    if (a[j] != a[i]) {                
+      a[++i] = a[j];
+    }
+  }
+  return i+1;
+}
+
+int print_parts(FILE* out, int* parts, int n) {
+  int i;
+  for (i=0; i<n; ++i) {
+    int v_part = parts[i];
+    fprintf (out, "%d %d\n",i+1,v_part+1);
+  }
+  return 1;
+}
+
+int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int offset) {
+  int i, k;
+  int64_t dst;
+
+  for (i=0; i<n_local; ++i) {
+    for (k = rowptr[i]; k < rowptr[i+1]; ++k) {
+      dst = colidx[k]; 
+      fprintf (out, "%d %d %d\n",offset+i+1,(int)dst+1,1);
+    }
+  }
+  return 1;
 }
