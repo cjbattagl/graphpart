@@ -192,6 +192,7 @@ int main(int argc, char** argv) {
         for (i = 0; i < edge_count; ++i) {
           int64_t src = get_v0_from_edge(&actual_buf[i]);
           int64_t tgt = get_v1_from_edge(&actual_buf[i]);
+          //fprintf(stdout, " (%" PRId64" %" PRId64") ", src, tgt);
           if (src == tgt) continue;
           if (src / bitmap_size_in_bytes / CHAR_BIT == my_col) {
 #ifdef _OPENMP

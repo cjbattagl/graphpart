@@ -88,6 +88,12 @@ int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int off
 
 void make_graph_data_structure(const tuple_graph* const tg) {
   // Communicate and distributes in a 1D CSR format
+    /*int i;
+     for (i = 0; i < (int)tg->edgememory_size; ++i) {
+          int64_t src = get_v0_from_edge(&tg->edgememory[i]);
+          int64_t tgt = get_v1_from_edge(&tg->edgememory[i]);
+          fprintf(stdout, " %d(%" PRId64" %" PRId64") ",rank, src, tgt);
+        }*/
   convert_graph_to_oned_csr(tg, &g);
   const size_t nlocalverts = g.nlocalverts;
   g_oldq = (int64_t*)xmalloc(nlocalverts * sizeof(int64_t));
