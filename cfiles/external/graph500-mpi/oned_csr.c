@@ -60,14 +60,17 @@ static void make_csr(const packed_edge* restrict const inbuf, temp_csr_graph* re
     size_t* restrict inserts = temp;
     memcpy(inserts, rowstarts, nrows * sizeof(size_t));
     ptrdiff_t i;
-#pragma omp parallel for
+//#pragma omp parallel for
     for (i = 0; i < (ptrdiff_t)inbuf_size; ++i) {
       int64_t v0 = get_v0_from_edge(&inbuf[i]);
       int64_t v1 = get_v1_from_edge(&inbuf[i]);
+      fprintf (stdout, "%d %d,  ",v0+1,v1+1);
       assert ((size_t)(VERTEX_LOCAL(v0)) < nrows);
       size_t pos = __sync_fetch_and_add(&inserts[VERTEX_LOCAL(v0)], 1);
       assert (pos < inbuf_size);
       column[pos] = v1;
+      fprintf (stdout, "%d %d \n",pos,v1+1);
+
     }
   }
   free(temp);

@@ -51,7 +51,6 @@ void RF_FUNCNAME(const tuple_graph* const tg, RF_EXTRA_PARAMS) { \
       uint64_t prev_max_vertex = max_vertex; \
       /* The |= trick (to allow an OMP reduction) works because we round max_vertex \
        * up to one less than a power of 2. */ \
-      _Pragma("omp parallel for reduction(|:max_vertex)") \
       for (i = 0; i < bufsize; ++i) { \
         int64_t v0 = get_v0_from_edge(&buf[i]); \
         int64_t v1 = get_v1_from_edge(&buf[i]); \
@@ -74,7 +73,6 @@ void RF_FUNCNAME(const tuple_graph* const tg, RF_EXTRA_PARAMS) { \
       int lg_nglobalverts = 0; \
       for (; (max_vertex >> lg_nglobalverts) != 0; ++lg_nglobalverts) {} \
       memset(edge_counts_per_owner, 0, size * sizeof(int)); \
-      _Pragma("omp parallel for") \
       for (i = 0; i < bufsize; ++i) { \
         int64_t v0 = get_v0_from_edge(&buf[i]); \
         int64_t v1 = get_v1_from_edge(&buf[i]); \
@@ -90,7 +88,6 @@ void RF_FUNCNAME(const tuple_graph* const tg, RF_EXTRA_PARAMS) { \
       } \
       memcpy(edge_inserts_per_owner, edge_displs_per_owner, size * sizeof(int)); \
       RF_EDGE_BUFFER_TYPE* edges_to_send = (RF_EDGE_BUFFER_TYPE*)xMPI_Alloc_mem((size_t)edge_displs_per_owner[size] * sizeof(RF_EDGE_BUFFER_TYPE)); \
-      _Pragma("omp parallel for") \
       for (i = 0; i < bufsize; ++i) { \
         int64_t v0 = get_v0_from_edge(&buf[i]); \
         int64_t v1 = get_v1_from_edge(&buf[i]); \
