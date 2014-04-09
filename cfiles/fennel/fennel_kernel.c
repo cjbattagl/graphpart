@@ -498,7 +498,7 @@ static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx,
       }
     }
     if (v_part == -1) {
-      v_part = 0;
+      v_part = nparts;
       emptyparts++;
     }
     

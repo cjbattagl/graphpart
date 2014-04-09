@@ -64,12 +64,14 @@ static void make_csr(const packed_edge* restrict const inbuf, temp_csr_graph* re
     for (i = 0; i < (ptrdiff_t)inbuf_size; ++i) {
       int64_t v0 = get_v0_from_edge(&inbuf[i]);
       int64_t v1 = get_v1_from_edge(&inbuf[i]);
-      fprintf (stdout, "%d %d,  ",v0+1,v1+1);
+      //fprintf (stdout, "%d %d,  ",v0+1,v1+1);
       assert ((size_t)(VERTEX_LOCAL(v0)) < nrows);
       size_t pos = __sync_fetch_and_add(&inserts[VERTEX_LOCAL(v0)], 1);
       assert (pos < inbuf_size);
       column[pos] = v1;
-      fprintf (stdout, "%d %d \n",pos,v1+1);
+      int off = 0;
+      if (rank == 1) { off += 2; }
+      //fprintf (stdout, "%d %d %d, ( %d %d ) ( %d %d )\n",pos,VERTEX_LOCAL(v0)+1, v1+1, VERTEX_OWNER(v0), VERTEX_OWNER(v1), VERTEX_TO_GLOBAL(v0,rank), VERTEX_TO_GLOBAL(v1,rank));
 
     }
   }
