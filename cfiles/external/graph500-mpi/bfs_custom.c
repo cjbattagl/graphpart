@@ -107,7 +107,6 @@ void partition_graph_data_structure() {
   int n_local = g.nlocalverts;
   int offset = g.nlocalverts * rank; //!//Does this work?
   int nparts = size;
-  //int nparts = 4;
   int tot_nnz = 0;
   int *parts = (int*)malloc(n * sizeof(int));
   int *partsize_update = (int*)malloc(nparts * sizeof(int));
@@ -129,20 +128,25 @@ void partition_graph_data_structure() {
   float curr_score, best_score;
   genRandPerm(vorder, n_local);
   float gamma = 1.5;
-  int i, j, s, l;
-  char filename[256];
-  sprintf(filename, "file%02d.mat", rank);
-  FILE *GraphFile;
-  GraphFile = fopen(filename, "w");
-  assert(GraphFile != NULL);
-  print_graph(GraphFile, rowptr, colidx, n_local, offset);
-  MPI_Barrier(MPI_COMM_WORLD);
+  int i, s, l;
+ 
+  if(1) { // Print graph
+    char filename[256];
+    sprintf(filename, "file%02d.mat", rank);
+    FILE *GraphFile;
+    GraphFile = fopen(filename, "w");
+    assert(GraphFile != NULL);
+    print_graph(GraphFile, rowptr, colidx, n_local, offset);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
   memset(parts, -1, n * sizeof(int));
   for (l=0; l<nparts; ++l) {
     partsize[l] = 0;
     old_partsize[l] = 0;
     partsize_update[l] = 0;
   }
+
   int localedge = (int)g.nlocaledges;
   MPI_Allreduce(&localedge, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   if (rank == 0) { fprintf(stdout,"Total edges: %d\n", tot_nnz); }
@@ -237,7 +241,7 @@ void partition_graph_data_structure() {
   int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
   MPI_Barrier(MPI_COMM_WORLD);
   if (rank == 0) {   fprintf(stdout,"total cutedges = %d, percentage of total:%f \n", cutedges, (float)cutedges/tot_nnz); }
-  if (rank == 0) {
+  if (rank == 0) {  // Print Parts
     FILE *PartFile;
     PartFile = fopen("parts.mat", "w");
     assert(PartFile != NULL);
@@ -505,13 +509,8 @@ void get_vertex_distribution_for_pred(size_t count, const int64_t* vertex_p, int
   }
 }
 
-int64_t vertex_to_global_for_pred(int v_rank, size_t v_local) {
-  return VERTEX_TO_GLOBAL(v_rank, v_local);
-}
-
-size_t get_nlocalverts_for_pred(void) {
-  return g.nlocalverts;
-}
+int64_t vertex_to_global_for_pred(int v_rank, size_t v_local) { return VERTEX_TO_GLOBAL(v_rank, v_local); }
+size_t get_nlocalverts_for_pred(void) { return g.nlocalverts; }
 
 // Random permutation generator. Move to another file.
 int* genRandPerm(int* orderList, int size) {
@@ -590,7 +589,6 @@ int print_parts(FILE* out, int* parts, int n) {
     int node_owner = VERTEX_OWNER(node);
     int node_local_idx = VERTEX_LOCAL(node);
     int parts_idx = node_owner*g.nlocalverts + node_local_idx;
-
     int v_part = parts[parts_idx];
     fprintf (out, "%d %d\n",node+1,v_part+1);
   }
@@ -600,11 +598,10 @@ int print_parts(FILE* out, int* parts, int n) {
 int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int offset) {
   int i, k;
   int64_t dst;
-
   for (i=0; i<n_local; ++i) {
     for (k = rowptr[i]; k < rowptr[i+1]; ++k) {
       dst = colidx[k]; 
-      fprintf (out, "%d %d %d\n",VERTEX_TO_GLOBAL(rank,i)+1,(int)dst+1,1);
+      fprintf (out, "%d %d %d\n",(int)VERTEX_TO_GLOBAL(rank,i)+1,(int)dst+1,1);
     }
   }
   return 1;

@@ -1,5 +1,5 @@
 #CFLAGS = -Wall -fopenmp -g -Drestrict=__restrict__ -O3 -DNDEBUG -ffast-math -DGRAPH_GENERATOR_MPI # -g -pg
-CFLAGS = -fopenmp -g -Drestrict=__restrict__ -DNDEBUG -ffast-math -DGRAPH_GENERATOR_MPI
+CFLAGS = -Wall -fopenmp -g -Drestrict=__restrict__ -DNDEBUG -ffast-math -DGRAPH_GENERATOR_MPI
 # CFLAGS = -g -Wall -Drestrict= -DGRAPH_GENERATOR_MPI
 LDFLAGS = -fopenmp -g # -g -pg
 MPICC = mpicc
