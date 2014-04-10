@@ -222,8 +222,8 @@ void partition_graph_data_structure() {
         partsize[l] = old_partsize[l];
       }
     }
+    int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
   }
-  int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
   MPI_Barrier(MPI_COMM_WORLD);
   if (rank == 0) {  // Print Parts
     FILE *PartFile;
