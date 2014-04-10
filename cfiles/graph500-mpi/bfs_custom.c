@@ -149,9 +149,8 @@ void partition_graph_data_structure() {
 
   int localedge = (int)g.nlocaledges;
   MPI_Allreduce(&localedge, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  if (rank == 0) { fprintf(stdout,"Total edges: %d\n", tot_nnz); }
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
-  if (1) {fprintf(stdout,"n = %d, n_local = %d, local nnz=%zu, total nnz=%d\n",n,n_local,g.nlocaledges,tot_nnz);}
+  if (rank==1) {fprintf(stdout,"n = %d, n_local = %d, local nnz=%zu, total nnz=%d\n",n,n_local,g.nlocaledges,tot_nnz);}
   int repeat_run;
   int run;
   for (repeat_run = 0; repeat_run < 16; repeat_run++) {
@@ -224,23 +223,8 @@ void partition_graph_data_structure() {
       }
     }
   }
-  if (rank == 0) {
-    if (n <= 128) { for (i = 0; i<n; ++i) { fprintf(stdout," %d ",parts[i]); } }
-    int *sparts = (int*)malloc(nparts * sizeof(int));
-    for (i=0; i<nparts; ++i) { sparts[i] = 0; }
-    int unassigned = 0;
-    for (i=0; i<n; ++i) { 
-      int mypart = parts[i]; 
-      if(mypart < 0) { unassigned++; } 
-      if(mypart < nparts) {sparts[mypart]++;}
-    }
-    for (i=0; i<nparts; ++i) { 
-      fprintf(stdout,"sparts for partition %d = %d == %d. Unassigned:%d Empty:%d\n",i,sparts[i],partsize[i],unassigned,emptyverts);
-    }
-  }
   int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
   MPI_Barrier(MPI_COMM_WORLD);
-  if (rank == 0) {   fprintf(stdout,"total cutedges = %d, percentage of total:%f \n", cutedges, (float)cutedges/tot_nnz); }
   if (rank == 0) {  // Print Parts
     FILE *PartFile;
     PartFile = fopen("parts.mat", "w");
@@ -293,7 +277,7 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
   int tot_lodegedges;
   MPI_Allreduce(&cutedges, &tot_cutedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&mytotlodegedges, &tot_lodegedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d mylodegedges=%d totlodegedges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges,mytotlodegedges,tot_lodegedges);
+  //fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d mylodegedges=%d totlodegedges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges,mytotlodegedges,tot_lodegedges);
   if (rank == 0) {   fprintf(stdout,"total cutedges = %d, percentage of total:%f \n", tot_cutedges, (float)tot_cutedges/tot_lodegedges); }
   return tot_cutedges;
 }
