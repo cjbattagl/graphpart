@@ -326,7 +326,7 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
   for(int i = 0; i < nparts; i++) {
       for( int j=0; j<n; j++ ) { parts[i][j] = 0; } //fill with zeros
   }
-  int numruns = 1;
+  int numruns = 6;
   for (int run=0; run<numruns; run++) {
   
     seconds = get_seconds();
@@ -478,7 +478,9 @@ static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj
 // Compute number of edges cut by a given partitioning
 static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out, int cutoff) {
   int vert, nnz_row, v_part;
+  int nnz = 0;
   int cutedges = 0;
+  int tot_lo_deg_edges = 0;
   int numnodes = 0;
   int totnodes = 0;
   int *row;
@@ -508,9 +510,13 @@ static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx,
     
     // count edges to other partitions
     for (int k = *row; k < ((*row)+nnz_row); k++) {
+      nnz++;
+      if (nnz_row < cutoff && rowptr[colidx[k]+1] - rowptr[colidx[k]] < cutoff) { tot_lo_deg_edges++; }
       if (nnz_row < cutoff && rowptr[colidx[k]+1] - rowptr[colidx[k]] < cutoff && parts[v_part][colidx[k]] != 1) { cutedges++; }
     }
   }
+  fprintf (stdout, "Lo deg cut pct: %f\n",(float)cutedges/tot_lo_deg_edges);
+  fprintf (stdout, "Pct nnz below cutoff: %f\n",(float)tot_lo_deg_edges/nnz);
   fprintf (stdout, "Pct nodes below cutoff: %f\n",(float)numnodes/totnodes);
   return cutedges;
 }
