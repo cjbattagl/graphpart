@@ -134,7 +134,7 @@ void partition_graph_data_structure() {
   float gamma = 1.5;
   int i, s, l;
 
-  g_permutation = (int*)malloc(n * sizeof(int));
+  g_perm = (int*)malloc(n * sizeof(int));
  
   if(1) { // Print graph
     char filename[256];
@@ -262,16 +262,26 @@ void partition_graph_data_structure() {
     }
   }
 
-  size_t* row_sendbuffer = (size_t*)xmalloc(n_local * sizeof(size_t));
-  int64_t* col_sendbuffer = (int64_t*)xmalloc(g.nlocaledges * sizeof(int64_t));
-
+  size_t* row_sendbuffer = (size_t*)xmalloc(n_local * sizeof(size_t*));
+  int64_t* col_sendbuffer = (int64_t*)xmalloc(g.nlocaledges * sizeof(int64_t*));
   size_t* row_offset = (size_t*)xmalloc(size * sizeof(size_t*));
+
+  size_t** perm_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
   size_t** row_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
   size_t** col_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
+
   for (l = 0; l<nparts; ++l) { 
-    row_writers[l] = &row_sendbuffer[node_displs_per_owner[l]]; //!fill in displs first
+    row_writers[l] = &row_sendbuffer[node_displs_per_owner[l]]; //!fill in displs first, make sure strided right
     col_writers[l] = &col_sendbuffer[edge_displs_per_owner[l]]; 
+    perm_writers[l] = &g_perm[node_displs_per_owner[l]];
     row_offset[l] = 0;
+  }
+
+  // global permutation order
+  // todo: figure out 
+  for (i=0; i<n; ++i) {
+    int part = parts[i];
+    if (part>=0 && part<nparts) { *(perm_writers[part]++) = i; }
   }
 
   for (i=0; i<n_local; i++) {
@@ -284,15 +294,33 @@ void partition_graph_data_structure() {
     row_offset[part] += degree;
 
     //Advance column buffer
+    //Translate 
     for (j=0; j<degree; ++j) {
-      *(col_writers[part]++) = column[rowstarts[i]] + j; //can we map these to the new vertices already? yes if we pre-write the permutation vector 
+      int targ = (int)column[rowstarts[i]] + j;
+      targ = g_perm[targ];
+      *(col_writers[part]++) = targ; 
     }
 
     //We need to do a ton of assertion here, this could be ugly
   }
 
   // Now we have the send buffers ready. Do an Alltoall to get the 'per_owner' values.
+
+  /*MPI_Alltoall(edge_counts_per_owner, 1, MPI_INT, edge_counts_per_sender, 1, MPI_INT, MPI_COMM_WORLD);
+  edge_displs_per_owner[0] = 0;
+  edge_displs_per_sender[0] = 0;
+  for (i = 0; i < size; ++i) {
+    edge_displs_per_owner[i + 1] = edge_displs_per_owner[i] + edge_counts_per_owner[i];
+    edge_displs_per_sender[i + 1] = edge_displs_per_sender[i] + edge_counts_per_sender[i];
+  }*/
+
   // Then do an all_to_all_v
+
+  /*MPI_Alltoallv(edges_to_send, edge_counts_per_owner, edge_displs_per_owner, RF_EDGE_BUFFER_MPI_TYPE, \
+                edges_to_recv, edge_counts_per_sender, edge_displs_per_sender, RF_EDGE_BUFFER_MPI_TYPE, \
+                MPI_COMM_WORLD); 
+  MPI_Free_mem(edges_to_send);*/
+
   // Then do a section-based scan of the new row buffers to update the nonzero values
   // Then we can do the colidx update if we haven't already.
 
