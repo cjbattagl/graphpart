@@ -24,6 +24,10 @@
 #define isPowerOfTwo(x) ((x != 0) && !(x & (x - 1)))
 
 static oned_csr_graph g;
+static oned_csr_graph gp;
+
+static int* g_perm;
+
 static int64_t* g_oldq;
 static int64_t* g_newq;
 static unsigned long* g_visited;
@@ -118,7 +122,7 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-  int cutoff = 100;
+  int cutoff = 50;
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
@@ -129,6 +133,8 @@ void partition_graph_data_structure() {
   genRandPerm(vorder, n_local);
   float gamma = 1.5;
   int i, s, l;
+
+  g_permutation = (int*)malloc(n * sizeof(int));
  
   if(1) { // Print graph
     char filename[256];
@@ -155,7 +161,8 @@ void partition_graph_data_structure() {
   int run;
   for (repeat_run = 0; repeat_run < 16; repeat_run++) {
     for (run=0; run<nparts; run++) {
-      if (rank == run) { //for now just partition one after the other...
+      if (rank == run) { //just partition one process after the other...
+      //if (1) {
         for (i = 0; i < n_local; ++i) {
           for (l = 0; l<nparts; l++) {
             partscore[l] = 0;
@@ -204,10 +211,16 @@ void partition_graph_data_structure() {
             partsize[randidx]++;
             if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; }
           }
-          /*if (i % 16 == 0) {
-            MPI_Barrier(MPI_COMM_WORLD);
+          /*if (i % 32 == 0) { //(isPowerOfTwo(i)) {
             MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
-            MPI_Allreduce(local_partsize, partsize, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            for (l=0; l<nparts; ++l) { 
+              partsize_update[l] = partsize[l] - old_partsize[l];
+            }            
+            MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            for (l=0; l<nparts; ++l) { 
+              old_partsize[l] += partsize_update[l]; 
+              partsize[l] = old_partsize[l];
+            }
           }*/
         }
       }
@@ -231,6 +244,40 @@ void partition_graph_data_structure() {
     assert(PartFile != NULL);
     print_parts(PartFile, parts, n);
   }
+
+  int* edge_counts_per_owner = (int*)xmalloc(size * sizeof(int)); memset(edge_counts_per_owner, 0, size * sizeof(int));
+  int* edge_counts_per_sender = (int*)xmalloc(size * sizeof(int)); memset(edge_counts_per_sender, 0, size * sizeof(int));
+  int* node_counts_per_owner = (int*)xmalloc(size * sizeof(int)); memset(node_counts_per_owner, 0, size * sizeof(int));
+  int* node_counts_per_sender = (int*)xmalloc(size * sizeof(int)); memset(node_counts_per_sender, 0, size * sizeof(int));
+  int* edge_displs_per_owner = (int*)xmalloc((size + 1) * sizeof(int)); 
+  int* edge_displs_per_sender = (int*)xmalloc((size + 1) * sizeof(int)); 
+  int* node_displs_per_owner = (int*)xmalloc((size + 1) * sizeof(int)); 
+  int* node_displs_per_sender = (int*)xmalloc((size + 1) * sizeof(int)); 
+
+  for (i = 0; i < n_local; ++i) {
+    int part = parts[offset + i];
+    if (part>=0 && i<part) { //!assert that this is the case
+      node_counts_per_sender[part]++;
+      edge_counts_per_sender[part]+=rowstarts[i+1]-rowstarts[i]; //!make sure this is valid
+    }
+  }
+
+  size_t* row_sendbuffer = (size_t*)xmalloc(n_local * sizeof(size_t));
+  int64_t* col_sendbuffer = (int64_t*)xmalloc(g.nlocaledges * sizeof(int64_t));
+
+  size_t** row_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
+  size_t** col_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
+  for (l = 0; l<nparts; ++l) { 
+    row_writers[l] = &row_sendbuffer[node_displs_per_owner[l]]; //!fill in displs first
+    col_writers[l] = &col_sendbuffer[edge_displs_per_owner[l]]; 
+    *(row_writers[l]) = 0;
+
+  }
+
+  for (i=0; i<n_local; i++) {
+    *(row_writers[l]) = 
+  }
+
   free(partscore);
   free(vorder);
   free(parts);
@@ -238,6 +285,17 @@ void partition_graph_data_structure() {
   free(old_partsize);
   free(partsize_update);
   free(partcost);
+
+  free(edge_counts_per_owner);
+  free(edge_counts_per_sender);
+  free(node_counts_per_owner);
+  free(node_counts_per_sender);
+  free(edge_displs_per_owner);
+  free(edge_displs_per_sender);
+  free(node_displs_per_owner);
+  free(node_displs_per_sender);
+  free(row_sendbuffer);
+  free(col_sendbuffer);
 }
 
 int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff) {
@@ -268,8 +326,8 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
         int node_owner = VERTEX_OWNER(node);
         int node_local_idx = VERTEX_LOCAL(node);
         int parts_idx = node_owner*g.nlocalverts + node_local_idx;
-        if (parts[parts_idx] < nparts) { mytotlodegedges++; }
-        if (parts[parts_idx] != v_part && parts[parts_idx] < nparts) { cutedges++; }
+        if (parts[parts_idx] < nparts) { mytotlodegedges++; } //count low degree edges
+        if (parts[parts_idx] != v_part && parts[parts_idx] < nparts) { cutedges++; } //count low degree cut edges
       }
     }
   }
