@@ -265,18 +265,36 @@ void partition_graph_data_structure() {
   size_t* row_sendbuffer = (size_t*)xmalloc(n_local * sizeof(size_t));
   int64_t* col_sendbuffer = (int64_t*)xmalloc(g.nlocaledges * sizeof(int64_t));
 
+  size_t* row_offset = (size_t*)xmalloc(size * sizeof(size_t*));
   size_t** row_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
   size_t** col_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
   for (l = 0; l<nparts; ++l) { 
     row_writers[l] = &row_sendbuffer[node_displs_per_owner[l]]; //!fill in displs first
     col_writers[l] = &col_sendbuffer[edge_displs_per_owner[l]]; 
-    *(row_writers[l]) = 0;
-
+    row_offset[l] = 0;
   }
 
   for (i=0; i<n_local; i++) {
-    *(row_writers[l]) = 
+    int part = parts[i]; //is this the right mapping?
+    int degree = rowstarts[i+1] - rowstarts[i];
+
+    //Advance rowstart buffer
+    *(row_writers[part]) = row_offset[part];
+    row_writers[part]++;
+    row_offset[part] += degree;
+
+    //Advance column buffer
+    for (j=0; j<degree; ++j) {
+      *(col_writers[part]++) = column[rowstarts[i]] + j; //can we map these to the new vertices already? yes if we pre-write the permutation vector 
+    }
+
+    //We need to do a ton of assertion here, this could be ugly
   }
+
+  // Now we have the send buffers ready. Do an Alltoall to get the 'per_owner' values.
+  // Then do an all_to_all_v
+  // Then do a section-based scan of the new row buffers to update the nonzero values
+  // Then we can do the colidx update if we haven't already.
 
   free(partscore);
   free(vorder);
