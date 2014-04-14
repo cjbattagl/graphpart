@@ -122,7 +122,7 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-  int cutoff = 50;
+  int cutoff = 100000;
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
@@ -132,7 +132,7 @@ void partition_graph_data_structure() {
   float curr_score, best_score;
   genRandPerm(vorder, n_local);
   float gamma = 1.5;
-  int i, s, l;
+  int i, j, s, l;
 
   g_perm = (int*)malloc(n * sizeof(int));
  
@@ -249,6 +249,7 @@ void partition_graph_data_structure() {
   int* edge_counts_per_sender = (int*)xmalloc(size * sizeof(int)); memset(edge_counts_per_sender, 0, size * sizeof(int));
   int* node_counts_per_owner = (int*)xmalloc(size * sizeof(int)); memset(node_counts_per_owner, 0, size * sizeof(int));
   int* node_counts_per_sender = (int*)xmalloc(size * sizeof(int)); memset(node_counts_per_sender, 0, size * sizeof(int));
+
   int* edge_displs_per_owner = (int*)xmalloc((size + 1) * sizeof(int)); 
   int* edge_displs_per_sender = (int*)xmalloc((size + 1) * sizeof(int)); 
   int* node_displs_per_owner = (int*)xmalloc((size + 1) * sizeof(int)); 
@@ -256,9 +257,9 @@ void partition_graph_data_structure() {
 
   for (i = 0; i < n_local; ++i) {
     int part = parts[offset + i];
-    if (part>=0 && i<part) { //!assert that this is the case
+    if (part>=0 && part<nparts) { //!assert that this is the case
       node_counts_per_sender[part]++;
-      edge_counts_per_sender[part]+=rowstarts[i+1]-rowstarts[i]; //!make sure this is valid
+      edge_counts_per_sender[part]+=g.rowstarts[i+1]-g.rowstarts[i]; //!make sure this is valid
     }
   }
 
@@ -266,9 +267,25 @@ void partition_graph_data_structure() {
   int64_t* col_sendbuffer = (int64_t*)xmalloc(g.nlocaledges * sizeof(int64_t*));
   size_t* row_offset = (size_t*)xmalloc(size * sizeof(size_t*));
 
-  size_t** perm_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
+  int** perm_writers = (int**)xmalloc(nparts * sizeof(int*));
   size_t** row_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
-  size_t** col_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
+  int64_t** col_writers = (int64_t**)xmalloc(nparts * sizeof(int64_t*));
+
+  MPI_Alltoall(edge_counts_per_sender, 1, MPI_INT, edge_counts_per_owner, 1, MPI_INT, MPI_COMM_WORLD);
+  edge_displs_per_owner[0] = 0;
+  edge_displs_per_sender[0] = 0;
+  for (i = 0; i < size; ++i) {
+    edge_displs_per_owner[i + 1] = edge_displs_per_owner[i] + edge_counts_per_owner[i];
+    edge_displs_per_sender[i + 1] = edge_displs_per_sender[i] + edge_counts_per_sender[i];
+  }
+
+  MPI_Alltoall(node_counts_per_sender, 1, MPI_INT, node_counts_per_owner, 1, MPI_INT, MPI_COMM_WORLD);
+  node_displs_per_owner[0] = 0;
+  node_displs_per_sender[0] = 0;
+  for (i = 0; i < size; ++i) {
+    node_displs_per_owner[i + 1] = node_displs_per_owner[i] + node_counts_per_owner[i];
+    node_displs_per_sender[i + 1] = node_displs_per_sender[i] + node_counts_per_sender[i];
+  }
 
   for (l = 0; l<nparts; ++l) { 
     row_writers[l] = &row_sendbuffer[node_displs_per_owner[l]]; //!fill in displs first, make sure strided right
@@ -286,40 +303,50 @@ void partition_graph_data_structure() {
 
   for (i=0; i<n_local; i++) {
     int part = parts[i]; //is this the right mapping?
-    int degree = rowstarts[i+1] - rowstarts[i];
+    int degree = (int)(g.rowstarts[i+1] - g.rowstarts[i]);
+    
+    if (part>=0 && part<nparts) {
+      //Advance rowstart buffer
+      *(row_writers[part]) = row_offset[part];
+      row_writers[part]++;
+      row_offset[part] += degree;
 
-    //Advance rowstart buffer
-    *(row_writers[part]) = row_offset[part];
-    row_writers[part]++;
-    row_offset[part] += degree;
-
-    //Advance column buffer
-    //Translate 
-    for (j=0; j<degree; ++j) {
-      int targ = (int)column[rowstarts[i]] + j;
-      targ = g_perm[targ];
-      *(col_writers[part]++) = targ; 
+      //Advance column buffer
+      //Translate 
+      for (j=0; j<degree; ++j) {
+        int targ = (int)g.column[g.rowstarts[i]] + j;
+        targ = g_perm[targ];
+        *(col_writers[part]++) = targ; 
+      }
     }
-
     //We need to do a ton of assertion here, this could be ugly
   }
 
   // Now we have the send buffers ready. Do an Alltoall to get the 'per_owner' values.
+//////
 
-  /*MPI_Alltoall(edge_counts_per_owner, 1, MPI_INT, edge_counts_per_sender, 1, MPI_INT, MPI_COMM_WORLD);
-  edge_displs_per_owner[0] = 0;
-  edge_displs_per_sender[0] = 0;
-  for (i = 0; i < size; ++i) {
-    edge_displs_per_owner[i + 1] = edge_displs_per_owner[i] + edge_counts_per_owner[i];
-    edge_displs_per_sender[i + 1] = edge_displs_per_sender[i] + edge_counts_per_sender[i];
-  }*/
+  //find sizes of recvbuff and sendbuff
+  int row_recv_len = 0;
+  int col_recv_len = 0;
+  for (l = 0; l<nparts; ++l) {
+    row_recv_len += node_counts_per_owner[l];
+    col_recv_len += edge_counts_per_owner[l];
+  }
+
+  size_t* row_recvbuffer = (size_t*)xmalloc(row_recv_len * sizeof(size_t*));
+  int64_t* col_recvbuffer = (int64_t*)xmalloc(col_recv_len * sizeof(int64_t*));
 
   // Then do an all_to_all_v
 
-  /*MPI_Alltoallv(edges_to_send, edge_counts_per_owner, edge_displs_per_owner, RF_EDGE_BUFFER_MPI_TYPE, \
-                edges_to_recv, edge_counts_per_sender, edge_displs_per_sender, RF_EDGE_BUFFER_MPI_TYPE, \
+  MPI_Alltoallv(col_sendbuffer, edge_counts_per_owner, edge_displs_per_owner, MPI_UINT64_T, 
+                col_recvbuffer, edge_counts_per_sender, edge_displs_per_sender, MPI_UINT64_T,
                 MPI_COMM_WORLD); 
-  MPI_Free_mem(edges_to_send);*/
+  MPI_Free_mem(col_sendbuffer);
+
+  MPI_Alltoallv(row_sendbuffer, node_counts_per_owner, node_displs_per_owner, MPI_INT64_T, 
+                row_recvbuffer, node_counts_per_sender, node_displs_per_sender, MPI_INT64_T,
+                MPI_COMM_WORLD); 
+  MPI_Free_mem(row_sendbuffer);
 
   // Then do a section-based scan of the new row buffers to update the nonzero values
   // Then we can do the colidx update if we haven't already.
