@@ -337,6 +337,11 @@ void partition_graph_data_structure() {
   int64_t* col_recvbuffer = (int64_t*)xmalloc(col_recv_len * sizeof(int64_t*));
 
   // Then do an all_to_all_v
+  /*  int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
+                  const int *sdispls, MPI_Datatype sendtype, void *recvbuf,
+                  const int *recvcounts, const int *rdispls, MPI_Datatype recvtype,
+                  MPI_Comm comm)    */
+
 
   MPI_Alltoallv(col_sendbuffer, edge_counts_per_owner, edge_displs_per_owner, MPI_UINT64_T, 
                 col_recvbuffer, edge_counts_per_sender, edge_displs_per_sender, MPI_UINT64_T,
