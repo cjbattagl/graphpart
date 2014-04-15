@@ -402,25 +402,18 @@ void partition_graph_data_structure() {
   fprintf(stdout, "\n");*/
 
   for (i=0; i < n_local; i++) {
-  //for (i=0; i<n_local; i++) {
     int part = parts[offset + i]; //is this the right mapping?
     if (part>=0 && part<nparts) {
       size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
-      //if (degree < cutoff) {
       //fprintf(stdout, "%lu/%lu ",g.rowstarts[i], degree);
-      //Advance rowstart buffer
-      *(row_writers[part]++) = degree; //row_offset[part];
-      //row_offset[part] += degree;
-
-      //Advance column buffer
-      //Translate 
+      *(row_writers[part]++) = degree;
+      //Advance column buffer, Translate 
       for (j=0; j<degree; ++j) {
         int targ = (int)g.column[g.rowstarts[i] + j];
         targ = g_perm[targ];
         *(col_writers[part]++) = targ; 
       }
     }
-    //We need to do a ton of assertion here, this could be ugly
   }
 
   /*
@@ -482,9 +475,42 @@ void partition_graph_data_structure() {
   }
   fprintf(stdout,"\n");
 */
-
+#if 0
   // Then we need to partition the high-deg vertices 
-  size_t** hrow_ptr = (size_t**)malloc(perm_counts[size] * sizeof(size_t*));
+  int num_hi = perm_counts[size];
+  size_t* hrowstarts_send = (size_t*)malloc(size * num_hi * sizeof(size_t)); 
+  memset(hrowstarts_send, 0, size * num_hi * sizeof(size_t));
+  size_t** hrow_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
+  int64_t** hcol_writers = (int64_t**)xmalloc(nparts * sizeof(int64_t*));
+  
+  for (l = 0; l<nparts; ++l) { 
+    hrow_writers[l] = &hrowstarts_send[num_hi*l];
+    //hcol_writers[l] = &col_sendbuffer[edge_displs_per_sender[l]]; 
+  }
+
+  for (i=0; i < n_local; i++) {
+    int part = parts[offset + i]; //is this the right mapping?
+    if (part==nparts) {
+      size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
+      //*(row_writers[part]++) = degree;
+      for (j=0; j<degree; ++j) {
+        int targ = (int)g.column[g.rowstarts[i] + j];
+        targ = parts[g_perm[targ]];
+        *(hrow_writers[targ]) = 1;
+        //*(col_writers[part]++) = targ; 
+      }
+      for (j=0; j<nparts; j++) {
+        hrow_writers[j]++;
+      }
+    }
+  }
+
+  fprintf(stdout, "rank: %d...   ", rank);
+  for (i=0; i<size * num_hi; ++i) {
+    fprintf(stdout, "%lu ", hrowstarts_send[i]);
+  }
+  fprintf(stdout,"\n");
+#endif
 
   free(partscore);
   free(vorder);
