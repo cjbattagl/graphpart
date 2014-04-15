@@ -122,7 +122,7 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-  int cutoff = 100000;
+  int cutoff = 50;
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
@@ -159,7 +159,7 @@ void partition_graph_data_structure() {
   if (rank==1) {fprintf(stdout,"n = %d, n_local = %d, local nnz=%zu, total nnz=%d\n",n,n_local,g.nlocaledges,tot_nnz);}
   int repeat_run;
   int run;
-  for (repeat_run = 0; repeat_run < 16; repeat_run++) {
+  for (repeat_run = 0; repeat_run < 6; repeat_run++) {
     for (run=0; run<nparts; run++) {
       if (rank == run) { //just partition one process after the other...
       //if (1) {
@@ -250,26 +250,92 @@ void partition_graph_data_structure() {
   int* node_counts_per_owner = (int*)xmalloc(size * sizeof(int)); memset(node_counts_per_owner, 0, size * sizeof(int));
   int* node_counts_per_sender = (int*)xmalloc(size * sizeof(int)); memset(node_counts_per_sender, 0, size * sizeof(int));
 
+  int* perm_counts = (int*)xmalloc((size + 1) * sizeof(int)); memset(perm_counts, 0, (size+1) * sizeof(int));
+  int* perm_displs = (int*)xmalloc((size + 2) * sizeof(int));
+
   int* edge_displs_per_owner = (int*)xmalloc((size + 1) * sizeof(int)); 
   int* edge_displs_per_sender = (int*)xmalloc((size + 1) * sizeof(int)); 
   int* node_displs_per_owner = (int*)xmalloc((size + 1) * sizeof(int)); 
   int* node_displs_per_sender = (int*)xmalloc((size + 1) * sizeof(int)); 
 
+  //Count node counts to send to each process
   for (i = 0; i < n_local; ++i) {
     int part = parts[offset + i];
     if (part>=0 && part<nparts) { //!assert that this is the case
       node_counts_per_sender[part]++;
-      edge_counts_per_sender[part]+=g.rowstarts[i+1]-g.rowstarts[i]; //!make sure this is valid
+      edge_counts_per_sender[part] += g.rowstarts[i+1]-g.rowstarts[i]; //!make sure this is valid
     }
   }
 
-  size_t* row_sendbuffer = (size_t*)xmalloc(n_local * sizeof(size_t*));
-  int64_t* col_sendbuffer = (int64_t*)xmalloc(g.nlocaledges * sizeof(int64_t*));
-  size_t* row_offset = (size_t*)xmalloc(size * sizeof(size_t*));
+/*
+  if(rank == 0) {
+      fprintf(stdout, "Parts on rank %d: ",rank);
+  for (i = 0; i<n; i++) {
+    fprintf(stdout, "%d ",parts[i]);
+  }
+  fprintf(stdout, "\n");
+  }
 
-  int** perm_writers = (int**)xmalloc(nparts * sizeof(int*));
+  fprintf(stdout, "Parts on rank %d: ",rank);
+  for (i = 0; i<n; i++) {
+    if (i == offset) {fprintf(stdout,"(");} else {fprintf(stdout," ");}
+    if (parts[i] == rank) {fprintf(stdout, "+"); }
+    else {fprintf(stdout, "-");}
+    if (i == offset + n_local - 1) {fprintf(stdout,")");} else {fprintf(stdout," ");}
+  }
+  fprintf(stdout, "\n");
+
+  fprintf(stdout, "Nodectspsender on rank %d: ",rank);
+  for (i = 0; i<size; ++i) {
+    fprintf(stdout, "%d ",node_counts_per_sender[i]);
+  }
+  fprintf(stdout, "\n");
+  fprintf(stdout, "Edgectspsender on rank %d: ",rank);
+  for (i = 0; i<size; ++i) {
+    fprintf(stdout, "%d ",edge_counts_per_sender[i]);
+  }
+  fprintf(stdout, "\n");
+*/
+
+
+  for (i = 0; i < n; ++i) {
+    int part = parts[i];
+    if (part>=0 && part <= nparts) { perm_counts[part]++; }
+  }
+
+  perm_displs[0] = 0;
+  for (i = 0; i <= size; ++i) {
+    perm_displs[i+1] = perm_displs[i] + perm_counts[i];
+  }
+
+  if(rank==0) {
+  fprintf(stdout, "perm_counts: ",rank);
+  for (i = 0; i<=size; ++i) {
+    fprintf(stdout, "%d ",perm_counts[i]);
+  }
+  fprintf(stdout, "\n");
+  }
+
+  if(rank==0) {
+  fprintf(stdout, "perm_displs: ",rank);
+  for (i = 0; i<=size+1; ++i) {
+    fprintf(stdout, "%d ",perm_displs[i]);
+  }
+  fprintf(stdout, "\n");
+  }
+
+
+  size_t* row_offset = (size_t*)xmalloc(size * sizeof(size_t));
+
+  int** perm_writers = (int**)xmalloc((nparts+1) * sizeof(int*));
+  int* row_writers_idx = (int*)xmalloc(nparts * sizeof(int));
+
   size_t** row_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
   int64_t** col_writers = (int64_t**)xmalloc(nparts * sizeof(int64_t*));
+
+  /* int MPI_Alltoall(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+                 void *recvbuf, int recvcount, MPI_Datatype recvtype,
+                 MPI_Comm comm) */
 
   MPI_Alltoall(edge_counts_per_sender, 1, MPI_INT, edge_counts_per_owner, 1, MPI_INT, MPI_COMM_WORLD);
   edge_displs_per_owner[0] = 0;
@@ -286,35 +352,72 @@ void partition_graph_data_structure() {
     node_displs_per_owner[i + 1] = node_displs_per_owner[i] + node_counts_per_owner[i];
     node_displs_per_sender[i + 1] = node_displs_per_sender[i] + node_counts_per_sender[i];
   }
+/*
+  fprintf(stdout, "\n");
+  fprintf(stdout, "Nodectspowner on rank %d: ",rank);
+  for (i = 0; i<size; ++i) {
+    fprintf(stdout, "%d ",node_counts_per_owner[i]);
+  }
+  fprintf(stdout, "\n");
+  fprintf(stdout, "Edgectspowner on rank %d: ",rank);
+  for (i = 0; i<size; ++i) {
+    fprintf(stdout, "%d ",edge_counts_per_owner[i]);
+  }
+  fprintf(stdout, "\n");
+*/
+
+  int row_send_len = node_displs_per_sender[size];
+  int col_send_len = edge_displs_per_sender[size];
+  size_t* row_sendbuffer = (size_t*)xmalloc(row_send_len * sizeof(size_t));
+  int64_t* col_sendbuffer = (int64_t*)xmalloc(col_send_len * sizeof(int64_t));
 
   for (l = 0; l<nparts; ++l) { 
-    row_writers[l] = &row_sendbuffer[node_displs_per_owner[l]]; //!fill in displs first, make sure strided right
-    col_writers[l] = &col_sendbuffer[edge_displs_per_owner[l]]; 
-    perm_writers[l] = &g_perm[node_displs_per_owner[l]];
+    row_writers[l] = &row_sendbuffer[node_displs_per_sender[l]]; //!fill in displs first, make sure strided right
+    col_writers[l] = &col_sendbuffer[edge_displs_per_sender[l]]; 
+    perm_writers[l] = &g_perm[perm_displs[l]];
+    row_writers_idx[l] = node_displs_per_sender[l];
     row_offset[l] = 0;
   }
 
+  perm_writers[nparts] = &g_perm[perm_displs[nparts]];
+/*
+  fprintf(stdout, "\n");
+  fprintf(stdout, "row_writer on rank %d: ",rank);
+  for (i = 0; i<size; ++i) {
+    fprintf(stdout, "%d/%d ", row_writers_idx[i], row_send_len);
+  }
+  fprintf(stdout, "\n");
+*/
   // global permutation order
-  // todo: figure out 
   for (i=0; i<n; ++i) {
     int part = parts[i];
-    if (part>=0 && part<nparts) { *(perm_writers[part]++) = i; }
+    if (part>=0 && part<=nparts) { *(perm_writers[part]++) = i; }
   }
 
-  for (i=0; i<n_local; i++) {
-    int part = parts[i]; //is this the right mapping?
-    int degree = (int)(g.rowstarts[i+1] - g.rowstarts[i]);
-    
+  /*fprintf(stdout, "\n");
+  fprintf(stdout, "gperm on %d: ",rank);
+  for (i = 0; i<n; ++i) {
+    fprintf(stdout, "%d ",g_perm[i]);
+  }
+  fprintf(stdout, "\n");*/
+
+
+
+
+  for (i=0; i < row_send_len; i++) {
+  //for (i=0; i<n_local; i++) {
+    int part = parts[offset + i]; //is this the right mapping?
     if (part>=0 && part<nparts) {
+      size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
+      //fprintf(stdout, "%lu ",g.rowstarts[i]);
       //Advance rowstart buffer
-      *(row_writers[part]) = row_offset[part];
-      row_writers[part]++;
-      row_offset[part] += degree;
+      *(row_writers[part]++) = degree; //row_offset[part];
+      //row_offset[part] += degree;
 
       //Advance column buffer
       //Translate 
       for (j=0; j<degree; ++j) {
-        int targ = (int)g.column[g.rowstarts[i]] + j;
+        int targ = (int)g.column[g.rowstarts[i] + j];
         targ = g_perm[targ];
         *(col_writers[part]++) = targ; 
       }
@@ -322,19 +425,31 @@ void partition_graph_data_structure() {
     //We need to do a ton of assertion here, this could be ugly
   }
 
+  /*
+  fprintf(stdout, "\n");
+  fprintf(stdout, "Nodectspsender on rank %d: ",rank);
+  for (i = 0; i<size; ++i) {
+    fprintf(stdout, "%d ",node_counts_per_sender[i]);
+  }
+  fprintf(stdout, "\n");
+  fprintf(stdout, "rank: %d...   ", rank);
+  for (i = 0; i<row_send_len; i++) {
+    fprintf(stdout, "%d ", row_sendbuffer[i]);
+  }
+  fprintf(stdout,"\n");*/
   // Now we have the send buffers ready. Do an Alltoall to get the 'per_owner' values.
 //////
 
   //find sizes of recvbuff and sendbuff
-  int row_recv_len = 0;
-  int col_recv_len = 0;
-  for (l = 0; l<nparts; ++l) {
+  int row_recv_len = node_displs_per_owner[size];
+  int col_recv_len = edge_displs_per_owner[size];
+  /*for (l = 0; l<nparts; ++l) {
     row_recv_len += node_counts_per_owner[l];
     col_recv_len += edge_counts_per_owner[l];
-  }
+  }*/
 
-  size_t* row_recvbuffer = (size_t*)xmalloc(row_recv_len * sizeof(size_t*));
-  int64_t* col_recvbuffer = (int64_t*)xmalloc(col_recv_len * sizeof(int64_t*));
+  size_t* row_recvbuffer = (size_t*)xmalloc(row_recv_len * sizeof(size_t));
+  int64_t* col_recvbuffer = (int64_t*)xmalloc(col_recv_len * sizeof(int64_t));
 
   // Then do an all_to_all_v
   /*  int MPI_Alltoallv(const void *sendbuf, const int *sendcounts,
@@ -343,18 +458,18 @@ void partition_graph_data_structure() {
                   MPI_Comm comm)    */
 
 
-  MPI_Alltoallv(col_sendbuffer, edge_counts_per_owner, edge_displs_per_owner, MPI_UINT64_T, 
-                col_recvbuffer, edge_counts_per_sender, edge_displs_per_sender, MPI_UINT64_T,
+  MPI_Alltoallv(col_sendbuffer, edge_counts_per_sender, edge_displs_per_sender, MPI_UINT64_T, 
+                col_recvbuffer, edge_counts_per_owner, edge_displs_per_owner, MPI_UINT64_T,
                 MPI_COMM_WORLD); 
   MPI_Free_mem(col_sendbuffer);
 
-  MPI_Alltoallv(row_sendbuffer, node_counts_per_owner, node_displs_per_owner, MPI_INT64_T, 
-                row_recvbuffer, node_counts_per_sender, node_displs_per_sender, MPI_INT64_T,
+  MPI_Alltoallv(row_sendbuffer, node_counts_per_sender, node_displs_per_sender, MPI_INT64_T, 
+                row_recvbuffer, node_counts_per_owner, node_displs_per_owner, MPI_INT64_T,
                 MPI_COMM_WORLD); 
   MPI_Free_mem(row_sendbuffer);
-
+//#if 0
   // Then do a section-based scan of the new row buffers to update the nonzero values
-  // Then we can do the colidx update if we haven't already.
+
 
   free(partscore);
   free(vorder);
@@ -372,8 +487,7 @@ void partition_graph_data_structure() {
   free(edge_displs_per_sender);
   free(node_displs_per_owner);
   free(node_displs_per_sender);
-  free(row_sendbuffer);
-  free(col_sendbuffer);
+//#endif
 }
 
 int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff) {
