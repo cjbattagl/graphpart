@@ -122,7 +122,7 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-  int cutoff = 50;
+  int cutoff = 20;
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
@@ -274,8 +274,8 @@ void partition_graph_data_structure() {
     fprintf(stdout, "%d ",parts[i]);
   }
   fprintf(stdout, "\n");
-  }
-
+  }*/
+/*
   fprintf(stdout, "Parts on rank %d: ",rank);
   for (i = 0; i<n; i++) {
     if (i == offset) {fprintf(stdout,"(");} else {fprintf(stdout," ");}
@@ -307,7 +307,7 @@ void partition_graph_data_structure() {
   for (i = 0; i <= size; ++i) {
     perm_displs[i+1] = perm_displs[i] + perm_counts[i];
   }
-
+/*
   if(rank==0) {
   fprintf(stdout, "perm_counts: ",rank);
   for (i = 0; i<=size; ++i) {
@@ -324,7 +324,7 @@ void partition_graph_data_structure() {
   fprintf(stdout, "\n");
   }
 
-
+*/
   size_t* row_offset = (size_t*)xmalloc(size * sizeof(size_t));
 
   int** perm_writers = (int**)xmalloc((nparts+1) * sizeof(int*));
@@ -386,8 +386,8 @@ void partition_graph_data_structure() {
   for (i = 0; i<size; ++i) {
     fprintf(stdout, "%d/%d ", row_writers_idx[i], row_send_len);
   }
-  fprintf(stdout, "\n");
-*/
+  fprintf(stdout, "\n");*/
+
   // global permutation order
   for (i=0; i<n; ++i) {
     int part = parts[i];
@@ -401,15 +401,13 @@ void partition_graph_data_structure() {
   }
   fprintf(stdout, "\n");*/
 
-
-
-
-  for (i=0; i < row_send_len; i++) {
+  for (i=0; i < n_local; i++) {
   //for (i=0; i<n_local; i++) {
     int part = parts[offset + i]; //is this the right mapping?
     if (part>=0 && part<nparts) {
       size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
-      //fprintf(stdout, "%lu ",g.rowstarts[i]);
+      //if (degree < cutoff) {
+      //fprintf(stdout, "%lu/%lu ",g.rowstarts[i], degree);
       //Advance rowstart buffer
       *(row_writers[part]++) = degree; //row_offset[part];
       //row_offset[part] += degree;
@@ -434,14 +432,14 @@ void partition_graph_data_structure() {
   fprintf(stdout, "\n");
   fprintf(stdout, "rank: %d...   ", rank);
   for (i = 0; i<row_send_len; i++) {
-    fprintf(stdout, "%d ", row_sendbuffer[i]);
+    fprintf(stdout, "%lu ", row_sendbuffer[i]);
   }
   fprintf(stdout,"\n");*/
   // Now we have the send buffers ready. Do an Alltoall to get the 'per_owner' values.
 //////
 
   //find sizes of recvbuff and sendbuff
-  int row_recv_len = node_displs_per_owner[size];
+  int row_recv_len = node_displs_per_owner[size] + 1;
   int col_recv_len = edge_displs_per_owner[size];
   /*for (l = 0; l<nparts; ++l) {
     row_recv_len += node_counts_per_owner[l];
@@ -469,7 +467,24 @@ void partition_graph_data_structure() {
   MPI_Free_mem(row_sendbuffer);
 //#if 0
   // Then do a section-based scan of the new row buffers to update the nonzero values
+  size_t idx_so_far = 0;
+  size_t degree;
+  for (i=0; i<row_recv_len; ++i) {
+    degree = row_recvbuffer[i];
+    row_recvbuffer[i] = idx_so_far;
+    idx_so_far += degree;
+  }
+/*
+    fprintf(stdout, "\n");
+  fprintf(stdout, "rank: %d len: %d...   ", rank, row_recv_len);
+  for (i = 0; i<row_recv_len; i++) {
+    fprintf(stdout, "(%d)%lu ", i,row_recvbuffer[i]);
+  }
+  fprintf(stdout,"\n");
+*/
 
+  // Then we need to partition the high-deg vertices 
+  size_t** hrow_ptr = (size_t**)malloc(perm_counts[size] * sizeof(size_t*));
 
   free(partscore);
   free(vorder);
