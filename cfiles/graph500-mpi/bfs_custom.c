@@ -22,11 +22,18 @@
 #include <stdio.h>
 
 #define isPowerOfTwo(x) ((x != 0) && !(x & (x - 1)))
+#define TO_NEW_IDX(x) g_perm[x]
+#define NEW_PART_OF_IDX(x) parts[TO_NEW_IDX(x)]
 
 static oned_csr_graph g;
-static oned_csr_graph gp;
 
 static int* g_perm;
+static int* parts;
+static int num_total_lo_deg_nodes = 0;
+static int num_local_lo_deg_nodes = 0;
+static int num_total_hi_deg_nodes = 0;
+static int num_local_hi_deg_nodes = 0;
+static int local_lo_deg_offset = 0;
 
 static int64_t* g_oldq;
 static int64_t* g_newq;
@@ -49,6 +56,9 @@ int64_t partition(int64_t a[], int l, int r);
 int remove_duplicates(int64_t a[], int n);
 int print_parts(FILE* out, int* parts, int n);
 int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int offset);
+
+int print_part_graph(FILE* out, size_t *rowptr, int64_t *colidx, int offset, size_t *hrowptr, int64_t *hcolidx);
+
 
   /* Predefined entities you can use in your BFS (from common.h and oned_csr.h):
    *   + rank: global variable containing MPI rank
@@ -112,7 +122,7 @@ void partition_graph_data_structure() {
   int offset = g.nlocalverts * rank; //!//Does this work?
   int nparts = size;
   int tot_nnz = 0;
-  int *parts = (int*)malloc(n * sizeof(int));
+  parts = (int*)malloc(n * sizeof(int));
   int *partsize_update = (int*)malloc(nparts * sizeof(int));
   int *old_partsize = (int*)malloc(nparts * sizeof(int));
   int *partsize = (int*)malloc(nparts * sizeof(int));
@@ -122,7 +132,7 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-  int cutoff = 20;
+  int cutoff = 100;
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
@@ -136,7 +146,7 @@ void partition_graph_data_structure() {
 
   g_perm = (int*)malloc(n * sizeof(int));
  
-  if(1) { // Print graph
+  if(0) { // Print graph
     char filename[256];
     sprintf(filename, "file%02d.mat", rank);
     FILE *GraphFile;
@@ -308,6 +318,9 @@ void partition_graph_data_structure() {
   for (i = 0; i <= size; ++i) {
     perm_displs[i+1] = perm_displs[i] + perm_counts[i];
   }
+
+  local_lo_deg_offset = perm_displs[rank];
+
 /*
   if(rank==0) {
   fprintf(stdout, "perm_counts: ",rank);
@@ -393,7 +406,17 @@ void partition_graph_data_structure() {
   for (i=0; i<n; ++i) {
     int part = parts[i];
     if (part>=0 && part<=nparts) { *(perm_writers[part]++) = i; }
+    if (part == nparts) { num_total_hi_deg_nodes++; }
   }
+
+  // permute colidxs
+  for (i=0; i < n_local; i++) {
+    size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
+    for (j=0; j<degree; ++j) {
+      g.column[g.rowstarts[i] + j] = TO_NEW_IDX(g.column[g.rowstarts[i] + j]);
+    }
+  }
+
 
   /*fprintf(stdout, "\n");
   fprintf(stdout, "gperm on %d: ",rank);
@@ -411,12 +434,18 @@ void partition_graph_data_structure() {
       *(row_writers[part]++) = degree;
       //Advance column buffer, Translate 
       for (j=0; j<degree; ++j) {
-        int targ = (int)g.column[g.rowstarts[i] + j];
-        targ = g_perm[targ];
+        int64_t targ = g.column[g.rowstarts[i] + j];
+        //targ = TO_NEW_IDX(targ);
         *(col_writers[part]++) = targ; 
       }
     }
   }
+
+  num_local_hi_deg_nodes = num_local_hi;
+  //num_total_hi_deg_nodes already counted
+
+  num_local_lo_deg_nodes = g.nlocalverts - num_local_hi_deg_nodes;
+  num_total_lo_deg_nodes = g.nglobalverts - num_total_hi_deg_nodes;
 
   /*
   fprintf(stdout, "\n");
@@ -478,13 +507,13 @@ void partition_graph_data_structure() {
   fprintf(stdout,"\n");
 */
   int* hedge_counts_per_owner = (int*)xmalloc((size+1) * sizeof(int)); 
-  memset(edge_counts_per_owner, 0, (size+1) * sizeof(int));
+  memset(hedge_counts_per_owner, 0, (size+1) * sizeof(int));
   int* hedge_counts_per_sender = (int*)xmalloc((size+1) * sizeof(int)); 
-  memset(edge_counts_per_sender, 0, (size+1) * sizeof(int));
+  memset(hedge_counts_per_sender, 0, (size+1) * sizeof(int));
   int* hnode_counts_per_owner = (int*)xmalloc((size+1) * sizeof(int)); 
-  memset(node_counts_per_owner, 0, (size+1) * sizeof(int));
-  int* hnode_counts_per_sender = (int*)xmalloc((size+1) * sizeof(int)); 
-  memset(node_counts_per_sender, num_local_hi, (size+1) * sizeof(int));
+  memset(hnode_counts_per_owner, 0, (size+1) * sizeof(int));
+  int* hnode_counts_per_sender = (int*)xmalloc((size+1) * sizeof(int));
+  for (i=0; i<=size; ++i) { hnode_counts_per_sender[i] = num_local_hi; } 
 
   int* hedge_displs_per_owner = (int*)xmalloc((size + 2) * sizeof(int)); 
   int* hedge_displs_per_sender = (int*)xmalloc((size + 2) * sizeof(int)); 
@@ -498,9 +527,9 @@ void partition_graph_data_structure() {
       size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
       //*(row_writers[part]++) = degree;
       for (j=0; j<degree; ++j) {
-        int targ = (int)g.column[g.rowstarts[i] + j];
-        targ = parts[g_perm[targ]];
-        hedge_counts_per_sender[targ]++;
+        int64_t targ = g.column[g.rowstarts[i] + j];
+        int targ_part = parts[targ];
+        hedge_counts_per_sender[targ_part]++;
       }
     }
   }
@@ -508,7 +537,7 @@ void partition_graph_data_structure() {
   MPI_Alltoall(hedge_counts_per_sender, 1, MPI_INT, hedge_counts_per_owner, 1, MPI_INT, MPI_COMM_WORLD);
   hedge_displs_per_owner[0] = 0;
   hedge_displs_per_sender[0] = 0;
-  for (i = 0; i < size; ++i) {
+  for (i = 0; i <= size; ++i) {
     hedge_displs_per_owner[i + 1] = hedge_displs_per_owner[i] + hedge_counts_per_owner[i];
     hedge_displs_per_sender[i + 1] = hedge_displs_per_sender[i] + hedge_counts_per_sender[i];
   }
@@ -516,26 +545,44 @@ void partition_graph_data_structure() {
   MPI_Alltoall(hnode_counts_per_sender, 1, MPI_INT, hnode_counts_per_owner, 1, MPI_INT, MPI_COMM_WORLD);
   hnode_displs_per_owner[0] = 0;
   hnode_displs_per_sender[0] = 0;
-  for (i = 0; i < size; ++i) {
+  for (i = 0; i <= size; ++i) {
     hnode_displs_per_owner[i + 1] = hnode_displs_per_owner[i] + hnode_counts_per_owner[i];
     hnode_displs_per_sender[i + 1] = hnode_displs_per_sender[i] + hnode_counts_per_sender[i];
   }
+/*
+  fprintf(stdout, "hndctspersender on rank %d: ",rank);
+  for (i = 0; i<=size; ++i) {
+    fprintf(stdout, "%d ",hnode_counts_per_sender[i]);
+  }
+  fprintf(stdout, "\n");
 
+    fprintf(stdout, "hedgectspersender on rank %d: ",rank);
+  for (i = 0; i<=size; ++i) {
+    fprintf(stdout, "%d ",hedge_counts_per_sender[i]);
+  }
+  fprintf(stdout, "\n");
+
+      fprintf(stdout, "hedgedisplspersender on rank %d: ",rank);
+  for (i = 0; i<=size+1; ++i) {
+    fprintf(stdout, "%d ",hedge_displs_per_sender[i]);
+  }
+  fprintf(stdout, "\n");
+*/
   // Then we need to partition the high-deg vertices 
   int num_hi = num_local_hi; //this should be proc local not perm
   size_t* hrowstarts_send = (size_t*)malloc((size+1) * num_hi * sizeof(size_t)); 
-  size_t* hcol_send = (size_t*)malloc((size+1) * num_hi * sizeof(size_t)); 
+  int64_t* hcol_send = (int64_t*)malloc((size+1) * hedge_displs_per_sender[size] * sizeof(int64_t)); 
 
   memset(hrowstarts_send, 0, (size+1) * num_hi * sizeof(size_t));
   size_t** hrow_writers = (size_t**)xmalloc((nparts + 1) * sizeof(size_t*));
-  int64_t** hcol_writers = (int64_t**)xmalloc(nparts * sizeof(int64_t*));
+  int64_t** hcol_writers = (int64_t**)xmalloc((nparts + 1) * sizeof(int64_t*));
   
-  fprintf(stdout, "rank: %d numhi: %d...   ", rank, num_hi);
+  //fprintf(stdout, "rank: %d numhi: %d...   ", rank, num_hi);
 
 
   for (l = 0; l<=nparts; ++l) { 
     hrow_writers[l] = &hrowstarts_send[num_hi*l];
-    //hcol_writers[l] = &hcol_send[edge_displs_per_sender[l]]; 
+    hcol_writers[l] = &hcol_send[hedge_displs_per_sender[l]]; 
   }
 
   for (i=0; i < n_local; i++) {
@@ -544,24 +591,74 @@ void partition_graph_data_structure() {
       size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
       //*(row_writers[part]++) = degree;
       for (j=0; j<degree; ++j) {
-        int targ = (int)g.column[g.rowstarts[i] + j];
-        targ = parts[g_perm[targ]];
-        (*(hrow_writers[targ]))++;
-        //*(hcol_writers[part]++) = targ; 
+        int64_t targ = g.column[g.rowstarts[i] + j];
+        int targ_part = parts[targ];
+        (*(hrow_writers[targ_part]))++;
+        *(hcol_writers[targ_part]++) = targ; 
       }
       for (j=0; j<nparts; j++) {
         hrow_writers[j]++;
       }
     }
   }
-
+/*
   fprintf(stdout, "rank: %d...   ", rank);
   for (i=0; i<size * num_hi; ++i) {
     fprintf(stdout, "%lu ", hrowstarts_send[i]);
   }
   fprintf(stdout,"\n");
+
+  fprintf(stdout, "cols... rank: %d...   ", rank);
+  for (i=0; i<hedge_displs_per_sender[size]; ++i) {
+    fprintf(stdout, "%d ", (int)hcol_send[i]);
+  }
+  fprintf(stdout,"\n");*/
   #if 0
 #endif
+
+  int hrow_recv_len = hnode_displs_per_owner[size] + 1;
+  int hcol_recv_len = hedge_displs_per_owner[size];
+  /*for (l = 0; l<nparts; ++l) {
+    row_recv_len += node_counts_per_owner[l];
+    col_recv_len += edge_counts_per_owner[l];
+  }*/
+
+  size_t* hrow_recvbuffer = (size_t*)xmalloc(hrow_recv_len * sizeof(size_t));
+  int64_t* hcol_recvbuffer = (int64_t*)xmalloc(hcol_recv_len * sizeof(int64_t));
+
+  MPI_Alltoallv(hcol_send, hedge_counts_per_sender, hedge_displs_per_sender, MPI_UINT64_T, 
+                hcol_recvbuffer, hedge_counts_per_owner, hedge_displs_per_owner, MPI_UINT64_T,
+                MPI_COMM_WORLD); 
+  MPI_Free_mem(hcol_send);
+
+  MPI_Alltoallv(hrowstarts_send, hnode_counts_per_sender, hnode_displs_per_sender, MPI_INT64_T, 
+                hrow_recvbuffer, hnode_counts_per_owner, hnode_displs_per_owner, MPI_INT64_T,
+                MPI_COMM_WORLD); 
+  MPI_Free_mem(hrowstarts_send);
+
+  //update row values
+  idx_so_far = 0;
+  for (i=0; i<hrow_recv_len; ++i) {
+    degree = hrow_recvbuffer[i];
+    hrow_recvbuffer[i] = idx_so_far;
+    idx_so_far += degree;
+    //fprintf(stdout, "%d ", (int)hrow_recvbuffer[i]);
+  }
+
+  num_local_lo_deg_nodes = row_recv_len - 1;
+  num_local_hi_deg_nodes = hrow_recv_len - 1;
+  fprintf(stdout, "rank %d locallo: %d localhi: %d\n", rank, num_local_lo_deg_nodes, num_local_hi_deg_nodes);
+
+
+  if(1) { // Print graph
+    char filename[256];
+    sprintf(filename, "file%02d.mat", rank);
+    FILE *GraphFile;
+    GraphFile = fopen(filename, "w");
+    assert(GraphFile != NULL);
+    print_part_graph(GraphFile, row_recvbuffer, col_recvbuffer, local_lo_deg_offset, hrow_recvbuffer, hcol_recvbuffer);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
 
   free(partscore);
   free(vorder);
@@ -930,5 +1027,28 @@ int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int off
       fprintf (out, "%d %d %d\n",(int)VERTEX_TO_GLOBAL(rank,i)+1,(int)dst+1,1);
     }
   }
+  return 1;
+}
+
+int print_part_graph(FILE* out, size_t *rowptr, int64_t *colidx, int offset, size_t *hrowptr, int64_t *hcolidx) {
+  int i, k;
+  int64_t dst;
+
+  //print lo-deg
+  for (i=0; i < num_local_lo_deg_nodes; ++i) {
+    for (k = rowptr[i]; k < rowptr[i+1]; ++k) {
+      dst = colidx[k]; 
+      fprintf (out, "%d %d %d\n",offset+i+1,(int)dst+1,1);
+    }
+  }
+  
+  //print hi-deg
+  for (i=0; i < num_local_hi_deg_nodes; ++i) {
+    for (k = hrowptr[i]; k < hrowptr[i+1]; ++k) {
+      dst = hcolidx[k]; 
+      fprintf (out, "%d %d %d\n",num_total_lo_deg_nodes+i+1,(int)dst+1,1);
+    }
+  }
+
   return 1;
 }
