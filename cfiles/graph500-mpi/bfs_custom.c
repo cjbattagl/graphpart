@@ -153,6 +153,7 @@ void partition_graph_data_structure() {
     partsize_update[l] = 0;
   }
 
+  int num_local_hi = 0;
   int localedge = (int)g.nlocaledges;
   MPI_Allreduce(&localedge, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
@@ -403,7 +404,8 @@ void partition_graph_data_structure() {
 
   for (i=0; i < n_local; i++) {
     int part = parts[offset + i]; //is this the right mapping?
-    if (part>=0 && part<nparts) {
+    if (part == nparts) { num_local_hi++; }
+    else if (part>=0 && part<nparts) {
       size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
       //fprintf(stdout, "%lu/%lu ",g.rowstarts[i], degree);
       *(row_writers[part]++) = degree;
@@ -475,17 +477,65 @@ void partition_graph_data_structure() {
   }
   fprintf(stdout,"\n");
 */
-#if 0
+  int* hedge_counts_per_owner = (int*)xmalloc((size+1) * sizeof(int)); 
+  memset(edge_counts_per_owner, 0, (size+1) * sizeof(int));
+  int* hedge_counts_per_sender = (int*)xmalloc((size+1) * sizeof(int)); 
+  memset(edge_counts_per_sender, 0, (size+1) * sizeof(int));
+  int* hnode_counts_per_owner = (int*)xmalloc((size+1) * sizeof(int)); 
+  memset(node_counts_per_owner, 0, (size+1) * sizeof(int));
+  int* hnode_counts_per_sender = (int*)xmalloc((size+1) * sizeof(int)); 
+  memset(node_counts_per_sender, num_local_hi, (size+1) * sizeof(int));
+
+  int* hedge_displs_per_owner = (int*)xmalloc((size + 2) * sizeof(int)); 
+  int* hedge_displs_per_sender = (int*)xmalloc((size + 2) * sizeof(int)); 
+  int* hnode_displs_per_owner = (int*)xmalloc((size + 2) * sizeof(int)); 
+  int* hnode_displs_per_sender = (int*)xmalloc((size + 2) * sizeof(int)); 
+
+  //Compute colidx sizes
+  for (i=0; i < n_local; i++) {
+    int part = parts[offset + i]; //is this the right mapping?
+    if (part==nparts) {
+      size_t degree = g.rowstarts[i+1] - g.rowstarts[i];
+      //*(row_writers[part]++) = degree;
+      for (j=0; j<degree; ++j) {
+        int targ = (int)g.column[g.rowstarts[i] + j];
+        targ = parts[g_perm[targ]];
+        hedge_counts_per_sender[targ]++;
+      }
+    }
+  }
+
+  MPI_Alltoall(hedge_counts_per_sender, 1, MPI_INT, hedge_counts_per_owner, 1, MPI_INT, MPI_COMM_WORLD);
+  hedge_displs_per_owner[0] = 0;
+  hedge_displs_per_sender[0] = 0;
+  for (i = 0; i < size; ++i) {
+    hedge_displs_per_owner[i + 1] = hedge_displs_per_owner[i] + hedge_counts_per_owner[i];
+    hedge_displs_per_sender[i + 1] = hedge_displs_per_sender[i] + hedge_counts_per_sender[i];
+  }
+
+  MPI_Alltoall(hnode_counts_per_sender, 1, MPI_INT, hnode_counts_per_owner, 1, MPI_INT, MPI_COMM_WORLD);
+  hnode_displs_per_owner[0] = 0;
+  hnode_displs_per_sender[0] = 0;
+  for (i = 0; i < size; ++i) {
+    hnode_displs_per_owner[i + 1] = hnode_displs_per_owner[i] + hnode_counts_per_owner[i];
+    hnode_displs_per_sender[i + 1] = hnode_displs_per_sender[i] + hnode_counts_per_sender[i];
+  }
+
   // Then we need to partition the high-deg vertices 
-  int num_hi = perm_counts[size];
-  size_t* hrowstarts_send = (size_t*)malloc(size * num_hi * sizeof(size_t)); 
-  memset(hrowstarts_send, 0, size * num_hi * sizeof(size_t));
-  size_t** hrow_writers = (size_t**)xmalloc(nparts * sizeof(size_t*));
+  int num_hi = num_local_hi; //this should be proc local not perm
+  size_t* hrowstarts_send = (size_t*)malloc((size+1) * num_hi * sizeof(size_t)); 
+  size_t* hcol_send = (size_t*)malloc((size+1) * num_hi * sizeof(size_t)); 
+
+  memset(hrowstarts_send, 0, (size+1) * num_hi * sizeof(size_t));
+  size_t** hrow_writers = (size_t**)xmalloc((nparts + 1) * sizeof(size_t*));
   int64_t** hcol_writers = (int64_t**)xmalloc(nparts * sizeof(int64_t*));
   
-  for (l = 0; l<nparts; ++l) { 
+  fprintf(stdout, "rank: %d numhi: %d...   ", rank, num_hi);
+
+
+  for (l = 0; l<=nparts; ++l) { 
     hrow_writers[l] = &hrowstarts_send[num_hi*l];
-    //hcol_writers[l] = &col_sendbuffer[edge_displs_per_sender[l]]; 
+    //hcol_writers[l] = &hcol_send[edge_displs_per_sender[l]]; 
   }
 
   for (i=0; i < n_local; i++) {
@@ -496,8 +546,8 @@ void partition_graph_data_structure() {
       for (j=0; j<degree; ++j) {
         int targ = (int)g.column[g.rowstarts[i] + j];
         targ = parts[g_perm[targ]];
-        *(hrow_writers[targ]) = 1;
-        //*(col_writers[part]++) = targ; 
+        (*(hrow_writers[targ]))++;
+        //*(hcol_writers[part]++) = targ; 
       }
       for (j=0; j<nparts; j++) {
         hrow_writers[j]++;
@@ -510,6 +560,7 @@ void partition_graph_data_structure() {
     fprintf(stdout, "%lu ", hrowstarts_send[i]);
   }
   fprintf(stdout,"\n");
+  #if 0
 #endif
 
   free(partscore);
