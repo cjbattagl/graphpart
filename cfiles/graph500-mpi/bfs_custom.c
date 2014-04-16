@@ -132,7 +132,7 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-  int cutoff = 100;
+  int cutoff = 100000;
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
