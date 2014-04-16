@@ -334,7 +334,7 @@ int main(int argc, char** argv) {
 
     double validate_start = MPI_Wtime();
     int64_t edge_visit_count;
-    int validation_passed_one = 1; //validate_bfs_result(&tg, max_used_vertex + 1, nlocalverts, root, pred, &edge_visit_count);
+    int validation_passed_one = validate_bfs_result(&tg, max_used_vertex + 1, nlocalverts, root, pred, &edge_visit_count);
     double validate_stop = MPI_Wtime();
     validate_times[bfs_root_idx] = validate_stop - validate_start;
     if (rank == 0) fprintf(stderr, "Validate time for BFS %d is %f\n", bfs_root_idx, validate_times[bfs_root_idx]);
@@ -359,7 +359,7 @@ int main(int argc, char** argv) {
   }
 
   /* Print results. */
-  if (rank == -1) {//(rank == 0) {
+  if (rank == 0) {//(rank == 0) {
     if (!validation_passed) {
       fprintf(stdout, "No results printed for invalid run.\n");
     } else {
@@ -373,29 +373,29 @@ int main(int argc, char** argv) {
       double stats[s_LAST];
       get_statistics(bfs_times, num_bfs_roots, stats);
       fprintf(stdout, "min_time:                       %g\n", stats[s_minimum]);
-      fprintf(stdout, "firstquartile_time:             %g\n", stats[s_firstquartile]);
+      //fprintf(stdout, "firstquartile_time:             %g\n", stats[s_firstquartile]);
       fprintf(stdout, "median_time:                    %g\n", stats[s_median]);
-      fprintf(stdout, "thirdquartile_time:             %g\n", stats[s_thirdquartile]);
+      //fprintf(stdout, "thirdquartile_time:             %g\n", stats[s_thirdquartile]);
       fprintf(stdout, "max_time:                       %g\n", stats[s_maximum]);
       fprintf(stdout, "mean_time:                      %g\n", stats[s_mean]);
-      fprintf(stdout, "stddev_time:                    %g\n", stats[s_std]);
+      //fprintf(stdout, "stddev_time:                    %g\n", stats[s_std]);
       get_statistics(edge_counts, num_bfs_roots, stats);
-      fprintf(stdout, "min_nedge:                      %.11g\n", stats[s_minimum]);
+      /*fprintf(stdout, "min_nedge:                      %.11g\n", stats[s_minimum]);
       fprintf(stdout, "firstquartile_nedge:            %.11g\n", stats[s_firstquartile]);
       fprintf(stdout, "median_nedge:                   %.11g\n", stats[s_median]);
       fprintf(stdout, "thirdquartile_nedge:            %.11g\n", stats[s_thirdquartile]);
       fprintf(stdout, "max_nedge:                      %.11g\n", stats[s_maximum]);
       fprintf(stdout, "mean_nedge:                     %.11g\n", stats[s_mean]);
-      fprintf(stdout, "stddev_nedge:                   %.11g\n", stats[s_std]);
+      fprintf(stdout, "stddev_nedge:                   %.11g\n", stats[s_std]);*/
       double* secs_per_edge = (double*)xmalloc(num_bfs_roots * sizeof(double));
       for (i = 0; i < num_bfs_roots; ++i) secs_per_edge[i] = bfs_times[i] / edge_counts[i];
       get_statistics(secs_per_edge, num_bfs_roots, stats);
       fprintf(stdout, "min_TEPS:                       %g\n", 1. / stats[s_maximum]);
-      fprintf(stdout, "firstquartile_TEPS:             %g\n", 1. / stats[s_thirdquartile]);
+      //fprintf(stdout, "firstquartile_TEPS:             %g\n", 1. / stats[s_thirdquartile]);
       fprintf(stdout, "median_TEPS:                    %g\n", 1. / stats[s_median]);
-      fprintf(stdout, "thirdquartile_TEPS:             %g\n", 1. / stats[s_firstquartile]);
+      //fprintf(stdout, "thirdquartile_TEPS:             %g\n", 1. / stats[s_firstquartile]);
       fprintf(stdout, "max_TEPS:                       %g\n", 1. / stats[s_minimum]);
-      fprintf(stdout, "harmonic_mean_TEPS:             %g\n", 1. / stats[s_mean]);
+      //fprintf(stdout, "harmonic_mean_TEPS:             %g\n", 1. / stats[s_mean]);
       /* Formula from:
        * Title: The Standard Errors of the Geometric and Harmonic Means and
        *        Their Application to Index Numbers
@@ -404,17 +404,17 @@ int main(int argc, char** argv) {
        * Publisher(s): Institute of Mathematical Statistics
        * Stable URL: http://www.jstor.org/stable/2235723
        * (same source as in specification). */
-      fprintf(stdout, "harmonic_stddev_TEPS:           %g\n", stats[s_std] / (stats[s_mean] * stats[s_mean] * sqrt(num_bfs_roots - 1)));
+      //fprintf(stdout, "harmonic_stddev_TEPS:           %g\n", stats[s_std] / (stats[s_mean] * stats[s_mean] * sqrt(num_bfs_roots - 1)));
       free(secs_per_edge); secs_per_edge = NULL;
       free(edge_counts); edge_counts = NULL;
       get_statistics(validate_times, num_bfs_roots, stats);
       fprintf(stdout, "min_validate:                   %g\n", stats[s_minimum]);
-      fprintf(stdout, "firstquartile_validate:         %g\n", stats[s_firstquartile]);
+      //fprintf(stdout, "firstquartile_validate:         %g\n", stats[s_firstquartile]);
       fprintf(stdout, "median_validate:                %g\n", stats[s_median]);
-      fprintf(stdout, "thirdquartile_validate:         %g\n", stats[s_thirdquartile]);
+      //fprintf(stdout, "thirdquartile_validate:         %g\n", stats[s_thirdquartile]);
       fprintf(stdout, "max_validate:                   %g\n", stats[s_maximum]);
       fprintf(stdout, "mean_validate:                  %g\n", stats[s_mean]);
-      fprintf(stdout, "stddev_validate:                %g\n", stats[s_std]);
+      //fprintf(stdout, "stddev_validate:                %g\n", stats[s_std]);
 #if 0
       for (i = 0; i < num_bfs_roots; ++i) {
         fprintf(stdout, "Run %3d:                        %g s, validation %g s\n", i + 1, bfs_times[i], validate_times[i]);

@@ -122,7 +122,7 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-  int cutoff = 20;
+  int cutoff = 50;
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
@@ -159,7 +159,7 @@ void partition_graph_data_structure() {
   if (rank==1) {fprintf(stdout,"n = %d, n_local = %d, local nnz=%zu, total nnz=%d\n",n,n_local,g.nlocaledges,tot_nnz);}
   int repeat_run;
   int run;
-  for (repeat_run = 0; repeat_run < 6; repeat_run++) {
+  for (repeat_run = 0; repeat_run < 12; repeat_run++) {
     for (run=0; run<nparts; run++) {
       if (rank == run) { //just partition one process after the other...
       //if (1) {
