@@ -132,11 +132,7 @@ void partition_graph_data_structure() {
   int oldpart;
   int emptyverts = 0;
   int randidx;
-<<<<<<< HEAD
   int cutoff = 50;
-=======
-  int cutoff = 100000;
->>>>>>> 2972fb970a65946325bdd124aedac7aa17767c1d
   size_t *row;
   size_t vert;
   size_t k,  nnz_row, best_part;
@@ -150,7 +146,7 @@ void partition_graph_data_structure() {
 
   g_perm = (int*)malloc(n * sizeof(int));
  
-  if(0) { // Print graph
+  if(1) { // Print graph
     char filename[256];
     sprintf(filename, "file%02d.mat", rank);
     FILE *GraphFile;
@@ -174,7 +170,7 @@ void partition_graph_data_structure() {
   if (rank==1) {fprintf(stdout,"n = %d, n_local = %d, local nnz=%zu, total nnz=%d\n",n,n_local,g.nlocaledges,tot_nnz);}
   int repeat_run;
   int run;
-  for (repeat_run = 0; repeat_run < 12; repeat_run++) {
+  for (repeat_run = 0; repeat_run < 25; repeat_run++) {
     for (run=0; run<nparts; run++) {
       if (rank == run) { //just partition one process after the other...
       //if (1) {
@@ -654,7 +650,7 @@ void partition_graph_data_structure() {
   fprintf(stdout, "rank %d locallo: %d localhi: %d\n", rank, num_local_lo_deg_nodes, num_local_hi_deg_nodes);
 
 
-  if(1) { // Print graph
+  if(0) { // Print graph
     char filename[256];
     sprintf(filename, "file%02d.mat", rank);
     FILE *GraphFile;
