@@ -29,7 +29,7 @@ int cblas_splits = omp_get_max_threads();
 int cblas_splits = 1;
 #endif
 
-#define ITERS 16
+#define ITERS 1
 #define EDGEFACTOR 16
 using namespace std;
 
@@ -445,7 +445,7 @@ int main(int argc, char* argv[])
 				EDGES[i] = nedges;
 				MTEPS[i] = static_cast<double>(nedges) / (t2-t1) / 1000000.0;
 				SpParHelper::Print(outnew.str());
-				SpParHelper::Print(pertimes.str());
+				Scout << pertimes.str();
 
 			}
 			SpParHelper::Print("Finished\n");
