@@ -20,9 +20,9 @@
 
 double cblas_alltoalltime;
 double cblas_allgathertime;
-double cblas_mergeconttime;
-double cblas_transvectime;
-double cblas_localspmvtime;
+double cblas_mergeconttime; double cblas_old_mergeconttime;
+double cblas_transvectime; double cblas_old_transvectime;
+double cblas_localspmvtime; double cblas_old_localspmvtime;
 #ifdef _OPENMP
 int cblas_splits = omp_get_max_threads(); 
 #else

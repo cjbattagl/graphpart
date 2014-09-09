@@ -183,6 +183,7 @@ void LocalSpMV(const SpParMat<IT,bool,UDER> & A, int rowneighs, OptBuf<int32_t, 
 
 #ifdef TIMING
 	double t1=MPI_Wtime();
+	cblas_old_localspmvtime = cblas_localspmvtime;
 	cblas_localspmvtime += (t1-t0);
 #endif
 }
@@ -282,6 +283,7 @@ void MergeContributions(FullyDistSpVec<IU,VT> & y, int * & recvcnt, int * & rdis
 
 #ifdef TIMING
 	double t1=MPI_Wtime();
+	cblas_old_mergeconttime = cblas_mergeconttime;
 	cblas_mergeconttime += (t1-t0);
 #endif
 }	
@@ -314,6 +316,7 @@ FullyDistSpVec<IT,VT>  SpMV (const SpParMat<IT,bool,UDER> & A, const FullyDistSp
 	TransposeVector(World, x, trxlocnz, lenuntil, trxinds, trxnums, true);			// trxinds (and potentially trxnums) is allocated
 #ifdef TIMING
 	double t1=MPI_Wtime();
+	cblas_old_transvectime = cblas_transvectime;
 	cblas_transvectime += (t1-t0);
 #endif
 	AllGatherVector(ColWorld, trxlocnz, lenuntil, trxinds, trxnums, indacc, numacc, accnz, true);	// trxinds (and potentially trxnums) is deallocated, indacc/numacc allocated
