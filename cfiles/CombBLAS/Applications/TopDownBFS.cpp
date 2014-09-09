@@ -445,7 +445,7 @@ int main(int argc, char* argv[])
 				EDGES[i] = nedges;
 				MTEPS[i] = static_cast<double>(nedges) / (t2-t1) / 1000000.0;
 				SpParHelper::Print(outnew.str());
-				Scout << pertimes.str();
+				cout << pertimes.str();
 
 			}
 			SpParHelper::Print("Finished\n");
