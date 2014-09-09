@@ -388,6 +388,12 @@ int main(int argc, char* argv[])
 			MPI_Pcontrol(1,"BFS");
 
 			double MTEPS[ITERS]; double INVMTEPS[ITERS]; double TIMES[ITERS]; double EDGES[ITERS];
+
+			double LOC_SPMV_TIMES[1024];
+			double LOC_MERGE_TIMES[1024];
+			double LOC_TRANS_TIMES[1024];
+
+
 			for(int i=0; i<ITERS; ++i)
 			{
 				// FullyDistVec ( shared_ptr<CommGrid> grid, IT globallen, NT initval);
@@ -401,6 +407,9 @@ int main(int argc, char* argv[])
 
 				fringe.SetElement(Cands[i], Cands[i]);
 				int iterations = 0;
+
+				ostringstream pertimes;
+
 				while(fringe.getnnz() > 0)
 				{
 					fringe.setNumToInd();
@@ -408,6 +417,12 @@ int main(int argc, char* argv[])
 					fringe = EWiseMult(fringe, parents, true, (int64_t) -1);	// clean-up vertices that already has parents 
 					parents.Set(fringe);
 					iterations++;
+
+					LOC_SPMV_TIMES[iterations] = cblas_localspmvtime - cblas_old_localspmvtime;
+					LOC_MERGE_TIMES[iterations] = cblas_mergeconttime - cblas_old_mergeconttime;
+					LOC_TRANS_TIMES[iterations] = cblas_transvectime - cblas_old_transvectime;
+					pertimes << "rank " << myrank << " iter " << iteration << " locspmvt: " << LOC_SPMV_TIMES[iterations]
+						<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
 				}
 				MPI_Barrier(MPI_COMM_WORLD);
 				double t2 = MPI_Wtime();
@@ -430,6 +445,8 @@ int main(int argc, char* argv[])
 				EDGES[i] = nedges;
 				MTEPS[i] = static_cast<double>(nedges) / (t2-t1) / 1000000.0;
 				SpParHelper::Print(outnew.str());
+				SpParHelper::Print(pertimes.str());
+
 			}
 			SpParHelper::Print("Finished\n");
 			ostringstream os;
