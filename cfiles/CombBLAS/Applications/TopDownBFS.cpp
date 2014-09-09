@@ -421,7 +421,7 @@ int main(int argc, char* argv[])
 					LOC_SPMV_TIMES[iterations] = cblas_localspmvtime - cblas_old_localspmvtime;
 					LOC_MERGE_TIMES[iterations] = cblas_mergeconttime - cblas_old_mergeconttime;
 					LOC_TRANS_TIMES[iterations] = cblas_transvectime - cblas_old_transvectime;
-					pertimes << "rank " << myrank << " iter " << iteration << " locspmvt: " << LOC_SPMV_TIMES[iterations]
+					pertimes << "rank " << myrank << " iter " << iterations << " locspmvt: " << LOC_SPMV_TIMES[iterations]
 						<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
 				}
 				MPI_Barrier(MPI_COMM_WORLD);
