@@ -410,6 +410,7 @@ int main(int argc, char* argv[])
 
 				ostringstream pertimes;
 
+				pertimes << "rank=" << myrank << " ";
 				while(fringe.getnnz() > 0)
 				{
 					fringe.setNumToInd();
@@ -422,10 +423,11 @@ int main(int argc, char* argv[])
 					LOC_SPMV_TIMES[iterations] = cblas_localspmvtime - cblas_old_localspmvtime;
 					LOC_MERGE_TIMES[iterations] = cblas_mergeconttime - cblas_old_mergeconttime;
 					LOC_TRANS_TIMES[iterations] = cblas_transvectime - cblas_old_transvectime;
-					pertimes << "rank " << myrank << " iter " << iterations << " locspmvt: " << LOC_SPMV_TIMES[iterations] << endl;
+					pertimes << LOC_SPMV_TIMES[iterations];
 						//<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
 					//}
 				}
+				pertimes << endl;
 				MPI_Barrier(MPI_COMM_WORLD);
 				double t2 = MPI_Wtime();
 	
@@ -448,7 +450,9 @@ int main(int argc, char* argv[])
 				MTEPS[i] = static_cast<double>(nedges) / (t2-t1) / 1000000.0;
 				//SpParHelper::Print(outnew.str());
 				for (int proc = 0; proc < nprocs; proc++ ) {
-					cout << pertimes.str();
+					if (myrank == proc) {
+						cout << pertimes.str();
+					}
 				}
 
 			}
