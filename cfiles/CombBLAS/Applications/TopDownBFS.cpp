@@ -418,13 +418,13 @@ int main(int argc, char* argv[])
 					parents.Set(fringe);
 					iterations++;
 
-					if (myrank == 0) {
+					//if (myrank == 0) {
 					LOC_SPMV_TIMES[iterations] = cblas_localspmvtime - cblas_old_localspmvtime;
 					LOC_MERGE_TIMES[iterations] = cblas_mergeconttime - cblas_old_mergeconttime;
 					LOC_TRANS_TIMES[iterations] = cblas_transvectime - cblas_old_transvectime;
-					pertimes << "rank " << myrank << " iter " << iterations << " locspmvt: " << LOC_SPMV_TIMES[iterations]
-						<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
-					}
+					pertimes << "rank " << myrank << " iter " << iterations << " locspmvt: " << LOC_SPMV_TIMES[iterations] << endl;
+						//<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
+					//}
 				}
 				MPI_Barrier(MPI_COMM_WORLD);
 				double t2 = MPI_Wtime();
@@ -446,8 +446,10 @@ int main(int argc, char* argv[])
 				TIMES[i] = t2-t1;
 				EDGES[i] = nedges;
 				MTEPS[i] = static_cast<double>(nedges) / (t2-t1) / 1000000.0;
-				SpParHelper::Print(outnew.str());
-				cout << pertimes.str();
+				//SpParHelper::Print(outnew.str());
+				for (int proc = 0; proc < nprocs; proc++ ) {
+					cout << pertimes.str();
+				}
 
 			}
 			SpParHelper::Print("Finished\n");
@@ -508,7 +510,7 @@ int main(int argc, char* argv[])
 			deviation = inner_product( zero_mean.begin(),zero_mean.end(), zero_mean.begin(), 0.0 );
    			deviation = sqrt( deviation / (ITERS-1) ) * (hteps*hteps);	// harmonic_std_dev
 			os << "Harmonic standard deviation of MTEPS: " << deviation << endl;
-			SpParHelper::Print(os.str());
+			//SpParHelper::Print(os.str());
 		}
 	}
 	MPI_Finalize();
