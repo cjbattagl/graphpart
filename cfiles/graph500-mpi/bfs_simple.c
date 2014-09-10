@@ -47,7 +47,8 @@ void make_graph_data_structure(const tuple_graph* const tg) {
 }
 
 void partition_graph_data_structure() { 
-      char name[14] = "mygraph1.mat";
+  /*
+    char name[14] = "mygraph1.mat";
     char name2[14] = "mygraph2.mat";
 
     char* targ;
@@ -57,7 +58,7 @@ void partition_graph_data_structure() {
         assert(GraphFile != NULL);
         print_graph(GraphFile, g.rowstarts, g.column, g.nlocalverts, rank*g.nlocalverts);
     //  }
-      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);  */
 }
 
 void free_graph_data_structure(void) {
