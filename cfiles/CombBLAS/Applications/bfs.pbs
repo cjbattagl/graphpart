@@ -1,9 +1,9 @@
 #PBS -q debug
-#PBS -l mppwidth=48
+#PBS -l mppwidth=64
 #PBS -l walltime=00:03:00
 #module load tau
 #export TAU_COMM_MATRIX=1
 #export TAU_TRACE=1
 cd $PBS_O_WORKDIR
-
-aprun -n 48 ./tdbfs Force 18 FastGen
+#27
+aprun -n 64 ./tdbfs Force 22 FastGen

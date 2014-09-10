@@ -410,7 +410,7 @@ int main(int argc, char* argv[])
 
 				ostringstream pertimes;
 
-				pertimes << "rank=" << myrank << " " << "loc_nnz=" << Aeff.getnnz() << " ";
+				pertimes << "rank=" << myrank << " loc_nnz=" << Aeff.getlocalnnz() << " loc_row/col:" << Aeff.getlocalrows() << " " << Aeff.getlocalcols() << " ";
 				while(fringe.getnnz() > 0)
 				{
 					fringe.setNumToInd();
