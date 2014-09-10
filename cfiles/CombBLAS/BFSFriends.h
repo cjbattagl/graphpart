@@ -15,6 +15,8 @@
 #include "BitMapFringe.h"
 using namespace std;
 
+#define TIMING 1
+
 template <class IT, class NT, class DER>
 class SpParMat;
 
