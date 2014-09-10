@@ -420,7 +420,7 @@ int main(int argc, char* argv[])
 			}
 			MPI_Pcontrol(-1,"BFS");
 			SpParHelper::Print("Finished\n");
-#ifdef TIMING
+#ifdef TIMING_OOPS
 			double * bu_total, *bu_ag_all, *bu_sr_all, *bu_convert, *td_ag_all, *td_a2a_all, *td_tv_all, *td_mc_all, *td_spmv_all, *td_ewm_all;
 			if(myrank == 0)
 			{
