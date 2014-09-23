@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <unistd.h>
 #ifdef THREADED
 	#ifndef _OPENMP
 	#define _OPENMP
@@ -453,6 +454,7 @@ int main(int argc, char* argv[])
 				//SpParHelper::Print(outnew.str());
 				for (int proc = 0; proc < nprocs; proc++ ) {
 					if (myrank == proc) { cout << pertimes.str(); }
+					usleep(200);
 					MPI_Barrier(MPI_COMM_WORLD);
 				}
 
