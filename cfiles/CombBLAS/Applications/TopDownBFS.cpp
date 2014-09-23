@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 		if(string(argv[1]) == string("Input")) // input option
 		{
 			A.ReadDistribute(string(argv[2]), 0);	// read it from file
-			SpParHelper::Print("Read input\n");
+			//SpParHelper::Print("Read input\n");
 
 			PSpMat_Int64 * G = new PSpMat_Int64(A); 
 			G->Reduce(degrees, Row, plus<int64_t>(), static_cast<int64_t>(0));	// identity is 0 
@@ -134,13 +134,13 @@ int main(int argc, char* argv[])
 			A = A(nonisov, nonisov);
 			Aeff = PSpMat_s32p64(A);
 			A.FreeMemory();
-			SpParHelper::Print("Symmetricized and pruned\n");
+			//SpParHelper::Print("Symmetricized and pruned\n");
 
                         Aeff.OptimizeForGraph500(optbuf);               // Should be called before threading is activated
                 #ifdef THREADED
                         ostringstream tinfo;
                         tinfo << "Threading activated with " << cblas_splits << " threads" << endl;
-                        SpParHelper::Print(tinfo.str());
+                        //SpParHelper::Print(tinfo.str());
                         Aeff.ActivateThreading(cblas_splits);
                 #endif
 		}
@@ -152,12 +152,12 @@ int main(int argc, char* argv[])
 			
 			ostringstream outs;
 			outs << "Reading " << argv[2] << " with " << n << " vertices and " << m << " edges" << endl;
-			SpParHelper::Print(outs.str());
+			//SpParHelper::Print(outs.str());
 			DistEdgeList<int64_t> * DEL = new DistEdgeList<int64_t>(argv[2], n, m);
-			SpParHelper::Print("Read binary input to distributed edge list\n");
+			//SpParHelper::Print("Read binary input to distributed edge list\n");
 
 			PermEdges(*DEL);
-			SpParHelper::Print("Permuted Edges\n");
+			//SpParHelper::Print("Permuted Edges\n");
 
 			RenameVertices(*DEL);	
 			//DEL->Dump32bit("graph_permuted");
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 			// conversion from distributed edge list, keeps self-loops, sums duplicates
 			PSpMat_Int64 * G = new PSpMat_Int64(*DEL, false); 
 			delete DEL;	// free memory before symmetricizing
-			SpParHelper::Print("Created Int64 Sparse Matrix\n");
+			//SpParHelper::Print("Created Int64 Sparse Matrix\n");
 
 			G->Reduce(degrees, Row, plus<int64_t>(), static_cast<int64_t>(0));	// Identity is 0 
 
@@ -176,8 +176,8 @@ int main(int argc, char* argv[])
 
 			ostringstream loopinfo;
 			loopinfo << "Converted to Boolean and removed " << removed << " loops" << endl;
-			SpParHelper::Print(loopinfo.str());
-			A.PrintInfo();
+			//SpParHelper::Print(loopinfo.str());
+			//A.PrintInfo();
 
 			FullyDistVec<int64_t, int64_t> * ColSums = new FullyDistVec<int64_t, int64_t>(A.getcommgrid());
 			FullyDistVec<int64_t, int64_t> * RowSums = new FullyDistVec<int64_t, int64_t>(A.getcommgrid());
@@ -195,20 +195,20 @@ int main(int argc, char* argv[])
 		#ifndef NOPERMUTE
 			A(nonisov, nonisov, true);	// in-place permute to save memory
 			SpParHelper::Print("Dropped isolated vertices from input\n");	
-			A.PrintInfo();
+			//A.PrintInfo();
 		#endif
 			Aeff = PSpMat_s32p64(A);	// Convert to 32-bit local integers
 			A.FreeMemory();
 
 			Symmetricize(Aeff);	// A += A';
-			SpParHelper::Print("Symmetricized\n");	
+			//SpParHelper::Print("Symmetricized\n");	
 			//A.Dump("graph_symmetric");
 
 	                Aeff.OptimizeForGraph500(optbuf);		// Should be called before threading is activated
 		#ifdef THREADED	
 			ostringstream tinfo;
 			tinfo << "Threading activated with " << cblas_splits << " threads" << endl;
-			SpParHelper::Print(tinfo.str());
+			//SpParHelper::Print(tinfo.str());
 			Aeff.ActivateThreading(cblas_splits);	
 		#endif
 		}
@@ -219,17 +219,17 @@ int main(int argc, char* argv[])
 				scale = static_cast<unsigned>(atoi(argv[2]));
 				ostringstream outs;
 				outs << "Forcing scale to : " << scale << endl;
-				SpParHelper::Print(outs.str());
+				//SpParHelper::Print(outs.str());
 
 				if(argc > 3 && string(argv[3]) == string("FastGen"))
 				{
-					SpParHelper::Print("Using fast vertex permutations; skipping edge permutations (like v2.1)\n");	
+					//SpParHelper::Print("Using fast vertex permutations; skipping edge permutations (like v2.1)\n");	
 					scramble = true;
 				}
 			}
 			else
 			{
-				SpParHelper::Print("Unknown option\n");
+				//SpParHelper::Print("Unknown option\n");
 				MPI_Finalize();
 				return -1;	
 			}
@@ -242,28 +242,28 @@ int main(int argc, char* argv[])
 			if(!scramble)
 			{
 				DEL->GenGraph500Data(initiator, scale, EDGEFACTOR);
-				SpParHelper::Print("Generated edge lists\n");
+				//SpParHelper::Print("Generated edge lists\n");
 				t02 = MPI_Wtime();
 				ostringstream tinfo;
 				tinfo << "Generation took " << t02-t01 << " seconds" << endl;
-				SpParHelper::Print(tinfo.str());
+				//SpParHelper::Print(tinfo.str());
 		
 				PermEdges(*DEL);
-				SpParHelper::Print("Permuted Edges\n");
+				//SpParHelper::Print("Permuted Edges\n");
 				//DEL->Dump64bit("edges_permuted");
 				//SpParHelper::Print("Dumped\n");
 
 				RenameVertices(*DEL);	// intermediate: generates RandPerm vector, using MemoryEfficientPSort
-				SpParHelper::Print("Renamed Vertices\n");
+				//SpParHelper::Print("Renamed Vertices\n");
 			}
 			else	// fast generation
 			{
 				DEL->GenGraph500Data(initiator, scale, EDGEFACTOR, true, true );	// generate packed edges
-				SpParHelper::Print("Generated renamed edge lists\n");
+				//SpParHelper::Print("Generated renamed edge lists\n");
 				t02 = MPI_Wtime();
 				ostringstream tinfo;
 				tinfo << "Generation took " << t02-t01 << " seconds" << endl;
-				SpParHelper::Print(tinfo.str());
+				//SpParHelper::Print(tinfo.str());
 			}
 
 			// Start Kernel #1
@@ -273,7 +273,7 @@ int main(int argc, char* argv[])
 			// conversion from distributed edge list, keeps self-loops, sums duplicates
 			PSpMat_s32p64_Int * G = new PSpMat_s32p64_Int(*DEL, false); 
 			delete DEL;	// free memory before symmetricizing
-			SpParHelper::Print("Created Sparse Matrix (with int32 local indices and values)\n");
+			//SpParHelper::Print("Created Sparse Matrix (with int32 local indices and values)\n");
 
 			MPI_Barrier(MPI_COMM_WORLD);
 			double redts = MPI_Wtime();
@@ -283,50 +283,50 @@ int main(int argc, char* argv[])
 
 			ostringstream redtimeinfo;
 			redtimeinfo << "Calculated degrees in " << redtf-redts << " seconds" << endl;
-			SpParHelper::Print(redtimeinfo.str());
+			//SpParHelper::Print(redtimeinfo.str());
 			A =  PSpMat_Bool(*G);			// Convert to Boolean
 			delete G;
 			int64_t removed  = A.RemoveLoops();
 
 			ostringstream loopinfo;
 			loopinfo << "Converted to Boolean and removed " << removed << " loops" << endl;
-			SpParHelper::Print(loopinfo.str());
+			//SpParHelper::Print(loopinfo.str());
 			A.PrintInfo();
 
 			FullyDistVec<int64_t, int64_t> * ColSums = new FullyDistVec<int64_t, int64_t>(A.getcommgrid());
 			FullyDistVec<int64_t, int64_t> * RowSums = new FullyDistVec<int64_t, int64_t>(A.getcommgrid());
 			A.Reduce(*ColSums, Column, plus<int64_t>(), static_cast<int64_t>(0)); 	
 			A.Reduce(*RowSums, Row, plus<int64_t>(), static_cast<int64_t>(0)); 	
-			SpParHelper::Print("Reductions done\n");
+			//SpParHelper::Print("Reductions done\n");
 			ColSums->EWiseApply(*RowSums, plus<int64_t>());
 			delete RowSums;
-			SpParHelper::Print("Intersection of colsums and rowsums found\n");
+			//SpParHelper::Print("Intersection of colsums and rowsums found\n");
 
 			nonisov = ColSums->FindInds(bind2nd(greater<int64_t>(), 0));	// only the indices of non-isolated vertices
 			delete ColSums;
 
-			SpParHelper::Print("Found (and permuted) non-isolated vertices\n");	
+			//SpParHelper::Print("Found (and permuted) non-isolated vertices\n");	
 			nonisov.RandPerm();	// so that A(v,v) is load-balanced (both memory and time wise)
-			A.PrintInfo();
+			//A.PrintInfo();
 		#ifndef NOPERMUTE
 			A(nonisov, nonisov, true);	// in-place permute to save memory	
 			SpParHelper::Print("Dropped isolated vertices from input\n");	
-			A.PrintInfo();
+			//A.PrintInfo();
 		#endif
 		
 			Aeff = PSpMat_s32p64(A);	// Convert to 32-bit local integers
 			A.FreeMemory();
 			Symmetricize(Aeff);	// A += A';
-			SpParHelper::Print("Symmetricized\n");	
+			//SpParHelper::Print("Symmetricized\n");	
 
 	                Aeff.OptimizeForGraph500(optbuf);		// Should be called before threading is activated
 		#ifdef THREADED	
 			ostringstream tinfo;
 			tinfo << "Threading activated with " << cblas_splits << " threads" << endl;
-			SpParHelper::Print(tinfo.str());
+			//SpParHelper::Print(tinfo.str());
 			Aeff.ActivateThreading(cblas_splits);	
 		#endif
-			Aeff.PrintInfo();
+			//Aeff.PrintInfo();
 			
 			MPI_Barrier(MPI_COMM_WORLD);
 			double t2=MPI_Wtime();
@@ -335,11 +335,11 @@ int main(int argc, char* argv[])
 			k1timeinfo << (t2-t1) - (redtf-redts) << " seconds elapsed for Kernel #1" << endl;
 			SpParHelper::Print(k1timeinfo.str());
 		}
-		Aeff.PrintInfo();
+		//Aeff.PrintInfo();
 		float balance = Aeff.LoadImbalance();
 		ostringstream outs;
 		outs << "Load balance: " << balance << endl;
-		SpParHelper::Print(outs.str());
+		//SpParHelper::Print(outs.str());
 
 		MPI_Barrier(MPI_COMM_WORLD);
 		double t1 = MPI_Wtime();
@@ -347,7 +347,7 @@ int main(int argc, char* argv[])
 		// Now that every remaining vertex is non-isolated, randomly pick ITERS many of them as starting vertices
 		#ifndef NOPERMUTE
 		degrees = degrees(nonisov);	// fix the degrees array too
-		degrees.PrintInfo("Degrees array");
+		//degrees.PrintInfo("Degrees array");
 		#endif
 		// degrees.DebugPrint();
 		FullyDistVec<int64_t, int64_t> Cands(ITERS);
@@ -457,7 +457,7 @@ int main(int argc, char* argv[])
 				}
 
 			}
-			SpParHelper::Print("Finished\n");
+			//SpParHelper::Print("Finished\n");
 			ostringstream os;
 			MPI_Pcontrol(-1,"BFS");
 			
