@@ -47,8 +47,8 @@ using namespace std;
 //#pragma warning( disable : 4244 ) // conversion from 'int64_t' to 'double', possible loss of data
 //#endif
 
-extern double cblas_alltoalltime;
-extern double cblas_allgathertime;
+extern double cblas_alltoalltime; extern double cblas_old_alltoalltime;
+extern double cblas_allgathertime; extern double cblas_old_allgathertime;
 extern double cblas_localspmvtime; extern double cblas_old_localspmvtime;
 extern double cblas_mergeconttime; extern double cblas_old_mergeconttime;
 extern double cblas_transvectime; extern double cblas_old_transvectime;
