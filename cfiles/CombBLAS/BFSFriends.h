@@ -358,6 +358,7 @@ FullyDistSpVec<IT,VT>  SpMV (const SpParMat<IT,bool,UDER> & A, const FullyDistSp
 	}
 #ifdef TIMING
 	double t3=MPI_Wtime();
+	cblas_old_alltoalltime = cblas_alltoalltime;
 	cblas_alltoalltime += (t3-t2);
 #endif
 

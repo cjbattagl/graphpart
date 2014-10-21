@@ -553,6 +553,8 @@ void AllGatherVector(MPI_Comm & ColWorld, int trxlocnz, IU lenuntil, int32_t * &
 	}	
 #ifdef TIMING
 	double t1=MPI_Wtime();
+	
+	cblas_old_allgathertime = cblas_allgathertime;
 	cblas_allgathertime += (t1-t0);
 #endif
 	DeleteAll(colnz,dpls);
@@ -821,6 +823,7 @@ void SpMV (const SpParMat<IU,NUM,UDER> & A, const FullyDistSpVec<IU,IVT> & x, Fu
 	}
 #ifdef TIMING
 	double t3=MPI_Wtime();
+	cblas_old_alltoalltime = cblas_alltoalltime;
 	cblas_alltoalltime += (t3-t2);
 #endif
 	

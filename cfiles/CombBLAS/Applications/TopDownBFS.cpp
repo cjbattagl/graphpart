@@ -19,8 +19,8 @@
 	#include <omp.h>
 #endif
 
-double cblas_alltoalltime;
-double cblas_allgathertime;
+double cblas_alltoalltime; double cblas_old_alltoalltime;
+double cblas_allgathertime; double cblas_old_allgathertime;
 double cblas_mergeconttime; double cblas_old_mergeconttime;
 double cblas_transvectime; double cblas_old_transvectime;
 double cblas_localspmvtime; double cblas_old_localspmvtime;
@@ -394,6 +394,9 @@ int main(int argc, char* argv[])
 			double LOC_MERGE_TIMES[1024];
 			double LOC_TRANS_TIMES[1024];
 
+			double LOC_COMM_TIMES[1024];
+
+
 
 			for(int i=0; i<ITERS; ++i)
 			{
@@ -423,6 +426,9 @@ int main(int argc, char* argv[])
 					LOC_SPMV_TIMES[iterations] = cblas_localspmvtime - cblas_old_localspmvtime;
 					LOC_MERGE_TIMES[iterations] = cblas_mergeconttime - cblas_old_mergeconttime;
 					LOC_TRANS_TIMES[iterations] = cblas_transvectime - cblas_old_transvectime;
+
+					LOC_COMM_TIMES[iterations] = (cblas_allgathertime - cblas_old_allgathertime) + (cblas_allgathertime - cblas_old_allgathertime);
+
 
 					// TODO: Which are most relevant?
 					pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
