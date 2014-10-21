@@ -410,8 +410,7 @@ int main(int argc, char* argv[])
 				int iterations = 0;
 
 				ostringstream pertimes;
-
-				pertimes << myrank << " " << Aeff.getlocalnnz() << " " << Aeff.getlocalrows() << " " << Aeff.getlocalcols() << " ";
+				pertimes << myrank << "," << Aeff.getlocalnnz() << "," << Aeff.getlocalrows() << "," << Aeff.getlocalcols() << ",";
 				while(fringe.getnnz() > 0)
 				{
 					fringe.setNumToInd();
@@ -426,7 +425,7 @@ int main(int argc, char* argv[])
 					LOC_TRANS_TIMES[iterations] = cblas_transvectime - cblas_old_transvectime;
 
 					// TODO: Which are most relevant?
-					pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << " ";
+					pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
 						//<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
 					//}
 				}
@@ -452,11 +451,14 @@ int main(int argc, char* argv[])
 				EDGES[i] = nedges;
 				MTEPS[i] = static_cast<double>(nedges) / (t2-t1) / 1000000.0;
 				//SpParHelper::Print(outnew.str());
+				cout << "$\n";
+				cout << nprocs << endl;
 				for (int proc = 0; proc < nprocs; proc++ ) {
 					if (myrank == proc) { cout << pertimes.str(); }
 					usleep(200);
 					MPI_Barrier(MPI_COMM_WORLD);
 				}
+				cout << "#\n";
 
 			}
 			//SpParHelper::Print("Finished\n");

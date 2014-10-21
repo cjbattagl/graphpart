@@ -3,11 +3,13 @@ CFLAGS =  $(CDEBFLAGS) -fopenmp -g -Drestrict=__restrict__ -DNDEBUG -ffast-math 
 #CDEBFLAGS = -Q -O0
 # CFLAGS = -g -Wall -Drestrict= -DGRAPH_GENERATOR_MPI
 LDFLAGS = -fopenmp -g # -g -pg
+#MPICC = tau_cc.sh
 MPICC = cc
 #MPICC = mpicc
 
 #all: graph500_mpi_simple graph500_mpi_one_sided graph500_mpi_replicated graph500_mpi_replicated_csc graph500_mpi_custom
-all: graph500_mpi_custom graph500_mpi_simple
+#all: graph500_mpi_custom graph500_mpi_simple
+all: graph500_mpi_simple
 
 GENERATOR_SOURCES = ./generator/graph_generator.c ./generator/make_graph.c ./generator/splittable_mrg.c ./generator/utils.c
 SOURCES = main.c oned_csr.c oned_csc.c utils.c validate.c onesided.c onesided_emul.c
