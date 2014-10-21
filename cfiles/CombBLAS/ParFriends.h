@@ -10,6 +10,7 @@
 #include "Friends.h"
 #include "OptBuf.h"
 
+#define TIMING 1
 
 using namespace std;
 
