@@ -434,7 +434,7 @@ int main(int argc, char* argv[])
 
 					// TODO: Which are most relevant?
 					pertimes << LOC_SPMV_TIMES[iterations] << "," << LOC_MERGE_TIMES[iterations] << "," << LOC_TRANS_TIMES[iterations] << ",";
-					pertimes << LOC_ALLGATHER_TIMES[iterations] << "," << LOC_ALLTOALL_TIMES[iterations];
+					pertimes << LOC_ALLGATHER_TIMES[iterations] << "," << LOC_ALLTOALL_TIMES[iterations] << ",";
 
 						//<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
 					//}
