@@ -394,7 +394,8 @@ int main(int argc, char* argv[])
 			double LOC_MERGE_TIMES[1024];
 			double LOC_TRANS_TIMES[1024];
 
-			double LOC_COMM_TIMES[1024];
+			double LOC_ALLGATHER_TIMES[1024];
+			double LOC_ALLTOALL_TIMES[1024];
 
 
 
@@ -427,12 +428,13 @@ int main(int argc, char* argv[])
 					LOC_MERGE_TIMES[iterations] = cblas_mergeconttime - cblas_old_mergeconttime;
 					LOC_TRANS_TIMES[iterations] = cblas_transvectime - cblas_old_transvectime;
 
-					LOC_COMM_TIMES[iterations] = (cblas_allgathertime - cblas_old_allgathertime) + (cblas_allgathertime - cblas_old_allgathertime);
+					LOC_ALLGATHER_TIMES[iterations] = cblas_allgathertime - cblas_old_allgathertime;
+					LOC_ALLTOALL_TIMES[iterations] = cblas_alltoalltime - cblas_old_allgathertime;
 
 
 					// TODO: Which are most relevant?
-					pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
-					pertimes << LOC_COMM_TIMES[iterations] << ",";
+					pertimes << LOC_SPMV_TIMES[iterations] << "," << LOC_MERGE_TIMES[iterations] << "," << LOC_TRANS_TIMES[iterations] << ",";
+					pertimes << LOC_ALLGATHER_TIMES[iterations] << "," << LOC_ALLTOALL_TIMES[iterations];
 
 						//<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
 					//}
