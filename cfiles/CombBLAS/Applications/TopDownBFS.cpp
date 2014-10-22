@@ -459,8 +459,10 @@ int main(int argc, char* argv[])
 				EDGES[i] = nedges;
 				MTEPS[i] = static_cast<double>(nedges) / (t2-t1) / 1000000.0;
 				//SpParHelper::Print(outnew.str());
-				if (myrank == 0) { cout << "$\n"; }
-				cout << nprocs << endl;
+				if (myrank == 0) { 
+					cout << "$\n"; 
+					cout << nprocs << endl; 
+				}
 				for (int proc = 0; proc < nprocs; proc++ ) {
 					if (myrank == proc) { cout << pertimes.str(); }
 					usleep(200);

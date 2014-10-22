@@ -148,7 +148,7 @@ class BitMapCarousel {
 	MPI_Status status;
 	MPI_Sendrecv(bm->data(), send_words, MPIType<uint64_t>(), dest, ROTATE,
 				   recv_buff->data(), recv_words, MPIType<uint64_t>(), source, ROTATE, RowWorld, &status);
-#ifdef TIMING
+#ifdef TIMINGUGH
     double t2 = MPI_Wtime();
     bottomup_sendrecv += t2-t1;
 #endif

@@ -54,8 +54,8 @@
 
 /* Global variables for timing */
 
-double cblas_alltoalltime;
-double cblas_allgathertime;
+double cblas_alltoalltime, cblas_old_alltoalltime;
+double cblas_allgathertime, cblas_old_allgathertime;
 #ifdef _OPENMP
 int cblas_splits = omp_get_max_threads(); 
 #else

@@ -9,8 +9,8 @@
 
 using namespace std;
 #ifdef TIMING
-double cblas_alltoalltime;
-double cblas_allgathertime;
+double cblas_alltoalltime, cblas_old_alltoalltime;
+double cblas_allgathertime, cblas_old_allgathertime;
 #endif
 
 #ifdef _OPENMP
