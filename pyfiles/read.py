@@ -36,6 +36,7 @@ assert(mat_n == mat_info[1])
 print("reading matrix ..."),
 A = sio.mmread(mat_name)
 print("done\nconverting matrix to csr ..."),
+B = A
 A = A.tocsr()
 print("done")
 G = nx.to_networkx_graph(A)
@@ -49,8 +50,8 @@ front = np.zeros(gnumprocs)
 history = np.zeros((gnumprocs, numsamples))
 
 def permute_rand(A):
-  p = np.random.permutation(mat.n)
-  permute(A, p)A > 4
+  p = np.random.permutation(A.shape[0])
+  permute(A, p)
   
 def permute_by_degree(A):
   a = sum(A)

@@ -470,7 +470,11 @@ int main(int argc, char* argv[])
 					usleep(200);
 					MPI_Barrier(MPI_COMM_WORLD);
 				}
-				if (myrank == 0) { cout << "$\n"; }
+				if (myrank == 0) { 	
+					MPI_Barrier(MPI_COMM_WORLD);
+					usleep(200);
+					cout << "$\n"; 
+				}
 
 			}
 			//SpParHelper::Print("Finished\n");
