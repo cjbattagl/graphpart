@@ -1,7 +1,8 @@
 ### -*- mode: Makefile;-*-
-### Time-stamp: "2008-07-16 09:52:50 mhoemmen"
+### Time-stamp: "2008-07-28 16:11:20 mhoemmen"
 ###
-### Settings for various BeBOP Makefiles.
+### Settings for various BeBOP Makefiles, for GNU/Linux machines.
+### Last tested on x86_64 (Intel Core Duo) Fedora 6 in July 2008.
 ###
 ### ----------------------------------------------------------- 
 ### The BeBOP Sparse Matrix Converter and its associated projects
@@ -57,7 +58,7 @@ STATIC_LIB_EXTENSION=.a
 ## there is a dot.  Linux uses ".so", Darwin uses ".dylib", and 
 ## Windows uses ".dll".
 ##
-DYNAMIC_LIB_EXTENSION=.dylib
+DYNAMIC_LIB_EXTENSION=.so
 
 ##
 ## Compiler / linker flag for creating a shared library.  Eventually I
@@ -65,7 +66,7 @@ DYNAMIC_LIB_EXTENSION=.dylib
 ## have users set this flag.  This flag is "-shared" for Linux and 
 ## "-dynamiclib" for Darwin.
 ##
-DYLIB_CREATE_FLAG=-dynamiclib
+DYLIB_CREATE_FLAG=-shared
 
 ##
 ## Compiler, linker, and shell settings.
