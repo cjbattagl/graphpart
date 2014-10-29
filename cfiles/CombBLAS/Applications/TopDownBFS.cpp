@@ -435,7 +435,9 @@ int main(int argc, char* argv[])
 					// TODO: Which are most relevant?
 
 					pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
-					pertimes << LOC_ALLGATHER_TIMES[iterations] + LOC_ALLTOALL_TIMES[iterations] << ",";
+					double temp = LOC_ALLGATHER_TIMES[iterations] + LOC_ALLTOALL_TIMES[iterations];
+					if (temp < 0) { temp = -temp; }
+					pertimes << temp << ",";
 
 //					pertimes << LOC_SPMV_TIMES[iterations] << "," << LOC_MERGE_TIMES[iterations] << "," << LOC_TRANS_TIMES[iterations] << ",";
 //					pertimes << LOC_ALLGATHER_TIMES[iterations] << "," << LOC_ALLTOALL_TIMES[iterations] << ",";
@@ -464,7 +466,7 @@ int main(int argc, char* argv[])
 				TIMES[i] = t2-t1;
 				EDGES[i] = nedges;
 				MTEPS[i] = static_cast<double>(nedges) / (t2-t1) / 1000000.0;
-				//SpParHelper::Print(outnew.str());
+				SpParHelper::Print(outnew.str());
 				if (myrank == 0) { 
 					cout << "$\n"; 
 					cout << nprocs << endl; 
@@ -490,7 +492,7 @@ int main(int argc, char* argv[])
 			os << "Per iteration computation times: " << endl;
 			os << "MergeCont: " << cblas_mergeconttime / ITERS << endl;
 			os << "LocalSpmv: "  << cblas_localspmvtime / ITERS << endl;
-
+			SpParHelper::Print(os.str());
 			sort(EDGES, EDGES+ITERS);
 			os << "--------------------------" << endl;
 			os << "Min nedges: " << EDGES[0] << endl;

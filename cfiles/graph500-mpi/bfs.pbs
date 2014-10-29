@@ -6,4 +6,5 @@ export TAU_COMM_MATRIX=1
 export TAU_TRACE=1
 cd $PBS_O_WORKDIR
 #27
-aprun -n 4 tau_exec -T mpi ./graph500_mpi_simple 18 16
+aprun -n 4 ./graph500_mpi_simple 18 16
+#aprun -n 4 tau_exec -T mpi ./graph500_mpi_simple 18 16
