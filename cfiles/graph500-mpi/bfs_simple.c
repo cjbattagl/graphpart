@@ -180,10 +180,14 @@ void run_bfs(int64_t root, int64_t* pred) {
     } \
   } while (0)
 
+
   while (1) {
     memset(outgoing_counts, 0, size * sizeof(size_t));
     num_ranks_done = 1; /* I never send to myself, so I'm always done */
     
+
+    //!start time of computation here
+
     /* Start the initial receive. */
     if (num_ranks_done < size) {
       MPI_Irecv(recvbuf, coalescing_size * 2, MPI_INT64_T, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &recvreq);
@@ -192,6 +196,8 @@ void run_bfs(int64_t root, int64_t* pred) {
 
     /* Step through the current level's queue. */
     size_t i;
+
+
     for (i = 0; i < oldq_count; ++i) {
       CHECK_MPI_REQS;
       assert (VERTEX_OWNER(oldq[i]) == rank);
@@ -226,6 +232,9 @@ void run_bfs(int64_t root, int64_t* pred) {
         }
       }
     }
+
+    //! end computation measure here
+
     /* Flush any coalescing buffers that still have messages. */
     int offset;
     for (offset = 1; offset < size; ++offset) {
@@ -245,7 +254,11 @@ void run_bfs(int64_t root, int64_t* pred) {
     }
     /* Wait until everyone else is done (and thus couldn't send us any more
      * messages). */
+
+    //!time this
     while (num_ranks_done < size) CHECK_MPI_REQS;
+
+    //! end communication measure here
 
     /* Test globally if all queues are empty. */
     int64_t global_newq_count;
