@@ -28,6 +28,7 @@ static size_t* g_outgoing_counts /* 2x actual count */;
 static MPI_Request* g_outgoing_reqs;
 static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
+
 int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int offset);
 
 
@@ -89,6 +90,12 @@ void run_bfs(int64_t root, int64_t* pred) {
   int64_t* restrict newq = g_newq;
   size_t oldq_count = 0;
   size_t newq_count = 0;
+
+  double COMP_START_TIMES[1024];
+  double COMP_END_TIMES[1024];
+  double COMM_START_TIMES[1024];
+  double COMM_END_TIMES[1024];
+  int iter = 0;
 
   /* Set up the visited bitmap. */
   const int ulong_bits = sizeof(unsigned long) * CHAR_BIT;
@@ -187,6 +194,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     
 
     //!start time of computation here
+    double COMP_START_TIMES[iter] = MPI_Wtime();
 
     /* Start the initial receive. */
     if (num_ranks_done < size) {
@@ -234,6 +242,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     }
 
     //! end computation measure here
+    double COMP_END_TIMES[iter] = MPI_Wtime();
 
     /* Flush any coalescing buffers that still have messages. */
     int offset;
@@ -259,6 +268,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     while (num_ranks_done < size) CHECK_MPI_REQS;
 
     //! end communication measure here
+    double COMM_END_TIMES[iter] = MPI_Wtime();
 
     /* Test globally if all queues are empty. */
     int64_t global_newq_count;
@@ -271,8 +281,34 @@ void run_bfs(int64_t root, int64_t* pred) {
     {int64_t* temp = oldq; oldq = newq; newq = temp;}
     oldq_count = newq_count;
     newq_count = 0;
+    iter++;
   }
 #undef CHECK_MPI_REQS
+
+
+
+  //ostringstream pertimes;
+  //pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
+  if (myrank == 0) { 
+    fprintf(out, "$\n");  
+    fprintf(out, "%d\n", nprocs); 
+  }
+  int proc;
+  for (proc = 0; proc < size; proc++ ) {
+    if (myrank == proc) { 
+      for (i = 0; i<iter; i++) {
+        fprintf (out, "%f, %f, %f, ", COMP_START_TIMES[i], COMP_END_TIMES[i], COMM_END_TIMES[i]);
+      }
+      fprintf(out, "\n"); 
+    }
+    usleep(200);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  if (myrank == 0) {  
+    MPI_Barrier(MPI_COMM_WORLD);
+    usleep(200);
+    cout << "$\n"; 
+  }
 }
 
 void get_vertex_distribution_for_pred(size_t count, const int64_t* vertex_p, int* owner_p, size_t* local_p) {
