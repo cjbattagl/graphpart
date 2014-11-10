@@ -436,7 +436,7 @@ int main(int argc, char* argv[])
 
 					pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
 					double temp = LOC_ALLGATHER_TIMES[iterations] + LOC_ALLTOALL_TIMES[iterations];
-					if (temp < 0) { temp = -temp; }
+					if (temp < 0) { temp = 0.0; }
 					pertimes << temp << ",";
 
 //					pertimes << LOC_SPMV_TIMES[iterations] << "," << LOC_MERGE_TIMES[iterations] << "," << LOC_TRANS_TIMES[iterations] << ",";
@@ -477,7 +477,7 @@ int main(int argc, char* argv[])
 					MPI_Barrier(MPI_COMM_WORLD);
 				}
 				if (myrank == 0) { 	
-					MPI_Barrier(MPI_COMM_WORLD);
+					//MPI_Barrier(MPI_COMM_WORLD);
 					usleep(200);
 					cout << "$\n"; 
 				}

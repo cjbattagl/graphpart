@@ -194,7 +194,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     
 
     //!start time of computation here
-    double COMP_START_TIMES[iter] = MPI_Wtime();
+    COMP_START_TIMES[iter] = MPI_Wtime();
 
     /* Start the initial receive. */
     if (num_ranks_done < size) {
@@ -242,7 +242,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     }
 
     //! end computation measure here
-    double COMP_END_TIMES[iter] = MPI_Wtime();
+    COMP_END_TIMES[iter] = MPI_Wtime();
 
     /* Flush any coalescing buffers that still have messages. */
     int offset;
@@ -268,7 +268,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     while (num_ranks_done < size) CHECK_MPI_REQS;
 
     //! end communication measure here
-    double COMM_END_TIMES[iter] = MPI_Wtime();
+    COMM_END_TIMES[iter] = MPI_Wtime();
 
     /* Test globally if all queues are empty. */
     int64_t global_newq_count;
@@ -289,25 +289,31 @@ void run_bfs(int64_t root, int64_t* pred) {
 
   //ostringstream pertimes;
   //pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
-  if (myrank == 0) { 
-    fprintf(out, "$\n");  
-    fprintf(out, "%d\n", nprocs); 
+  if (rank == 0) { 
+    fprintf(stdout, "$\n");  
+    fprintf(stdout, "%d\n", size); 
   }
-  int proc;
+  size_t  proc, i;
+  double zerotime = COMP_START_TIMES[0];
+  for (i = 0; i < iter; i++ ) {
+    //COMP_START_TIMES[i] = COMP_START_TIMES[i] - zerotime;
+    //COMP_END_TIMES[i] = COMP_END_TIMES[i] - zerotime;
+    //COMM_END_TIMES[i] = COMM_END_TIMES[i] - zerotime;
+  }
   for (proc = 0; proc < size; proc++ ) {
-    if (myrank == proc) { 
+    if (rank == proc) { 
       for (i = 0; i<iter; i++) {
-        fprintf (out, "%f, %f, %f, ", COMP_START_TIMES[i], COMP_END_TIMES[i], COMM_END_TIMES[i]);
+        fprintf (stdout, "%f, %f, %f, ", COMP_START_TIMES[i], COMP_END_TIMES[i], COMM_END_TIMES[i]);
       }
-      fprintf(out, "\n"); 
+      fprintf(stdout, "\n"); 
     }
     usleep(200);
     MPI_Barrier(MPI_COMM_WORLD);
   }
-  if (myrank == 0) {  
-    MPI_Barrier(MPI_COMM_WORLD);
+  if (rank == 0) {  
+    //MPI_Barrier(MPI_COMM_WORLD);
     usleep(200);
-    cout << "$\n"; 
+    fprintf(stdout, "$\n"); 
   }
 }
 
