@@ -26,7 +26,7 @@
 #define NNZ_WEIGHT 1
 #define F_GAMMA 1.8
 #define F_CUTOFF 60
-#define NUM_STREAMS 1
+#define NUM_STREAMS 32
 #define SANITY
 
 static int* g_perm;
@@ -474,7 +474,9 @@ void partition_graph_data_structure(csr_graph* const g) {
           }*/
         }
       }
-      MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+
       for (l=0; l<nparts; ++l) { 
         partsize_update[l] = partsize[l] - old_partsize[l];
         partnnz_update[l] = partnnz[l] - old_partnnz[l];
@@ -531,7 +533,8 @@ void partition_graph_data_structure(csr_graph* const g) {
       parts[i] = irand(nparts);
     }
   }
-  MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+  MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+  //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
 
   if (rank == 0) {  // Print Parts
