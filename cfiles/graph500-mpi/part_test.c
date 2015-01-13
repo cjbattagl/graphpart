@@ -50,6 +50,12 @@ void shuffle_int(int *list, int len);
 int irand(int n);
 float calc_dc(float alpha, float gamma, int len);
 
+enum {s_minimum, s_firstquartile, s_median, s_thirdquartile, s_maximum, s_mean, s_std, s_LAST};
+static void get_statistics(const double x[], int n, double r[s_LAST]);
+  static int compare_doubles(const void* a, const void* b);
+
+
+
 int main(int argc, char* argv[]) {
   //int size, rank;
   double start, stop;
@@ -153,16 +159,10 @@ int main(int argc, char* argv[]) {
   for (i = 1; i < size + 1; ++i) perm_displs[i] = perm_displs[i - 1] + perm_sizes[i - 1];
 
   local_vertex_perm = (int64_t*)malloc(perm_local_size * sizeof(int64_t));
-  int perm_id = 0;
 
-  /*for (i=0; i < g.nglobalverts; ++i) {
-    if (parts[i] == rank) { 
-      local_vertex_perm[perm_id] = i; 
-      perm_id++;
-      assert(perm_id <= perm_local_size);
-    }
-  }*/
-
+  // this way codes for which vertex to receive for.
+  // we want to code for which vertex to /send/ to
+  /*
   for (i=0; i < g.nglobalverts; ++i) {
     if (perms[i] == rank) { 
       local_vertex_perm[perm_id] = i; 
@@ -170,45 +170,35 @@ int main(int argc, char* argv[]) {
       assert(perm_id <= perm_local_size);
     }
   }
-
-  fprintf (stdout, "%d :",rank);
-
-  for (i=0; i<perm_local_size; ++i) {
-    fprintf (stdout, "[%d]%d  ", (int)perm_displs[rank]+i, (int)local_vertex_perm[i]);
-  }
-  fprintf (stdout, "\n");
-
-
-  //we need to convert the 'parts' array to a permutation array
-  //perm_idxs points to the index that represents the id of the next vertex assigned to each partition
-  /*
+  */
+  int perm_id = 0;
   int64_t* perm_idxs = (int64_t*)xmalloc((size + 1) * sizeof(int64_t));
   perm_idxs[0] = 0;
   for (i = 1; i < size + 1; ++i) perm_idxs[i] = perm_displs[i];
-  int* perms = (int*)malloc(g.nglobalverts * sizeof(int));
 
-  for (i = 0; i < g.nglobalverts; ++i) {
-    int curr_part = parts[i];
-    int new_vert_id = perm_idxs[curr_part];
-    perms[i] = new_vert_id;
-    perm_idxs[curr_part]++;
+  for (i=0; i < g.nglobalverts; ++i) {
+    int part = perms[i];
+    if (i >= perm_displs[rank] && i < perm_displs[rank+1]) {
+      local_vertex_perm[perm_id] = perm_idxs[part];
+      perm_id++;
+    }
+    perm_idxs[part]++;
   }
+/*
+  fprintf (stdout, "%d :",rank+1);
 
-  for (i=0; i < perm_local_size; ++i) {
-    local_vertex_perm[i] = perms[i + perm_displs[rank]];
+  for (i=0; i<perm_local_size; ++i) {
+    fprintf (stdout, "[%d]%d  ", (int)perm_displs[rank]+i+1, (int)local_vertex_perm[i]+1);
   }
+  fprintf (stdout, "\n");
+
+  if(rank==0) {
+    for (i=0; i<g.nglobalverts; ++i) {
+    fprintf (stdout, "%d ", perms[i]+1);
+  }
+    fprintf (stdout, "\n");
+}
 */
-  //for (i = 0; i < g.nglobalverts; ++i) {
-  //  if (parts[i] == rank) { local_vertex_perm[perm_id] = perm_id++ + perm_displs[rank]; }
-  //}
-
-  //for (i=0; i < g.nglobalverts; ++i) {
-  //  if (parts[i] == rank) { local_vertex_perm[perm_id++] = i + size_so_far; }
-  //}
-
-  //for (i=size_so_far; i < perm_local_size; ++i) {
-  //  local_vertex_perm[perm_id++] = parts[i];
-  //}
 
   apply_permutation_mpi(MPI_COMM_WORLD, perm_local_size, local_vertex_perm, g.nglobalverts, nedges, edges);
   if(1) { // Print graph
@@ -237,6 +227,122 @@ int main(int argc, char* argv[]) {
     print_graph_csr(GraphFile, g2.rowstarts, g2.column, g2.nlocalverts);
     MPI_Barrier(MPI_COMM_WORLD);
   }
+
+
+  free_csr_graph(&g);
+
+
+
+
+
+
+/* Get roots for BFS runs. */
+  int num_bfs_roots = 2;
+  int64_t* bfs_roots = (int64_t*)xmalloc(num_bfs_roots * sizeof(int64_t));
+  find_bfs_roots(&num_bfs_roots, &g2, seed1, seed2, bfs_roots);
+
+  /* Number of edges visited in each BFS; a double so get_statistics can be
+   * used directly. */
+  double* edge_counts = (double*)xmalloc(num_bfs_roots * sizeof(double));
+
+  /* Run BFS. */
+  int validation_passed = 1;
+  double* bfs_times = (double*)xmalloc(num_bfs_roots * sizeof(double));
+  double* validate_times = (double*)xmalloc(num_bfs_roots * sizeof(double));
+  int64_t* pred = (int64_t*)xMPI_Alloc_mem(g.nlocalverts * sizeof(int64_t));
+
+  int bfs_root_idx;
+ 
+  for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) {
+    int64_t root = bfs_roots[bfs_root_idx];
+
+    if (rank == 0) fprintf(stderr, "Running BFS %d\n", bfs_root_idx);
+
+    /* Clear the pred array. */
+    memset(pred, 0, g2.nlocalverts * sizeof(int64_t));
+
+    /* Do the actual BFS. */
+    double bfs_start = MPI_Wtime();
+    int64_t nvisited = 0;
+    run_mpi_bfs(&g2, root, &pred[0], &nvisited);
+    double bfs_stop = MPI_Wtime();
+    bfs_times[bfs_root_idx] = bfs_stop - bfs_start;
+
+    /* Validate result. */
+    if (rank == 0) fprintf(stderr, "Validating BFS %d\n", bfs_root_idx);
+
+    double validate_start = MPI_Wtime();
+    int validation_passed_one = validate_bfs_result(&g2, root, pred, nvisited);
+    double validate_stop = MPI_Wtime();
+    validate_times[bfs_root_idx] = validate_stop - validate_start;
+
+    if (!validation_passed_one) {
+      validation_passed = 0;
+      if (rank == 0) fprintf(stderr, "Validation failed for this BFS root; skipping rest.\n");
+      break;
+    }
+
+    /* Calculate number of input edges visited. */
+    {
+      int64_t edge_visit_count = 0;
+      size_t v_local;
+      for (v_local = 0; v_local < g2.nlocalverts; ++v_local) {
+        if (pred[v_local] != -1) {
+          size_t ei, ei_end = g2.rowstarts[v_local + 1];
+          for (ei = g2.rowstarts[v_local]; ei < ei_end; ++ei) {
+            /* Test here is so that each input edge is counted exactly once, even
+             * though non-self-loops are duplicated in the CSR data structure. */
+            if (g2.column[ei] <= VERTEX_TO_GLOBAL(v_local)) {
+              ++edge_visit_count;
+            }
+          }
+        }
+      }
+      MPI_Allreduce(MPI_IN_PLACE, &edge_visit_count, 1, INT64_T_MPI_TYPE, MPI_SUM, MPI_COMM_WORLD);
+      edge_counts[bfs_root_idx] = (double)edge_visit_count;
+    }
+  }
+
+  MPI_Free_mem(pred);
+  free(bfs_roots);
+  free_csr_graph(&g2);
+
+  if (rank == 0) {
+    if (!validation_passed) {
+      fprintf(stdout, "No results printed for invalid run.\n");
+    } else {
+      int i;
+      fprintf(stdout, "SCALE:                          %d\n", SCALE);
+      fprintf(stdout, "edgefactor:                     %.2g\n", edgefactor);
+      fprintf(stdout, "NBFS:                           %d\n", num_bfs_roots);
+      fprintf(stdout, "num_mpi_processes:              %d\n", size);
+      fprintf(stdout, "construction_time:              %g s\n", data_struct_time);
+      double stats[s_LAST];
+      get_statistics(bfs_times, num_bfs_roots, stats);
+      fprintf(stdout, "min_time:                       %g s\n", stats[s_minimum]);
+      fprintf(stdout, "firstquartile_time:             %g s\n", stats[s_firstquartile]);
+      fprintf(stdout, "median_time:                    %g s\n", stats[s_median]);
+      fprintf(stdout, "thirdquartile_time:             %g s\n", stats[s_thirdquartile]);
+      fprintf(stdout, "max_time:                       %g s\n", stats[s_maximum]);
+      fprintf(stdout, "mean_time:                      %g s\n", stats[s_mean]);
+      fprintf(stdout, "stddev_time:                    %g\n", stats[s_std]);
+      double* secs_per_edge = (double*)xmalloc(num_bfs_roots * sizeof(double));
+      for (i = 0; i < num_bfs_roots; ++i) secs_per_edge[i] = bfs_times[i] / edge_counts[i];
+      get_statistics(secs_per_edge, num_bfs_roots, stats);
+      fprintf(stdout, "min_TEPS:                       %g TEPS\n", 1. / stats[s_maximum]);
+      fprintf(stdout, "firstquartile_TEPS:             %g TEPS\n", 1. / stats[s_thirdquartile]);
+      fprintf(stdout, "median_TEPS:                    %g TEPS\n", 1. / stats[s_median]);
+      fprintf(stdout, "thirdquartile_TEPS:             %g TEPS\n", 1. / stats[s_firstquartile]);
+      fprintf(stdout, "max_TEPS:                       %g TEPS\n", 1. / stats[s_minimum]);
+      fprintf(stdout, "harmonic_mean_TEPS:             %g TEPS\n", 1. / stats[s_mean]);
+    }
+  }
+
+
+
+
+
+
 
   MPI_Finalize();
   return 0;
@@ -411,12 +517,7 @@ void partition_graph_data_structure(csr_graph* const g) {
     int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff, g);
   }
 
-  if (rank == 0) {  // Print Parts
-    FILE *PartFile;
-    PartFile = fopen("parts.mat", "w");
-    assert(PartFile != NULL);
-    print_parts(PartFile, parts, n, n_local);
-  }
+
 
   // Okay this is absurd but for now, randomly assign the large vertices to a permutation
   // To prevent overly large partitions
@@ -427,6 +528,13 @@ void partition_graph_data_structure(csr_graph* const g) {
   }
   MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
+
+  if (rank == 0) {  // Print Parts
+    FILE *PartFile;
+    PartFile = fopen("parts.mat", "w");
+    assert(PartFile != NULL);
+    print_parts(PartFile, parts, n, n_local);
+  }
 
   // Sanity Checks
   for (i=0; i < g->nglobalverts; ++i) {
@@ -510,5 +618,38 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
   //fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d mylodegedges=%d totlodegedges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges,mytotlodegedges,tot_lodegedges);
   if (rank == 0) {   fprintf(stdout,"total cutedges = %d, percentage of total:%f \n", tot_cutedges, (float)tot_cutedges/tot_lodegedges); }
   return tot_cutedges;
+}
+
+static int compare_doubles(const void* a, const void* b) {
+  double aa = *(const double*)a;
+  double bb = *(const double*)b;
+  return (aa < bb) ? -1 : (aa == bb) ? 0 : 1;
+}
+
+static void get_statistics(const double x[], int n, double r[s_LAST]) {
+  double temp;
+  int i;
+  /* Compute mean. */
+  temp = 0;
+  for (i = 0; i < n; ++i) temp += x[i];
+  temp /= n;
+  r[s_mean] = temp;
+  /* Compute std. dev. */
+  temp = 0;
+  for (i = 0; i < n; ++i) temp += (x[i] - r[s_mean]) * (x[i] - r[s_mean]);
+  temp /= n - 1;
+  r[s_std] = sqrt(temp);
+  /* Sort x. */
+  double* xx = (double*)xmalloc(n * sizeof(double));
+  memcpy(xx, x, n * sizeof(double));
+  qsort(xx, n, sizeof(double), compare_doubles);
+  /* Get order statistics. */
+  r[s_minimum] = xx[0];
+  r[s_firstquartile] = (xx[(n - 1) / 4] + xx[n / 4]) * .5;
+  r[s_median] = (xx[(n - 1) / 2] + xx[n / 2]) * .5;
+  r[s_thirdquartile] = (xx[n - 1 - (n - 1) / 4] + xx[n - 1 - n / 4]) * .5;
+  r[s_maximum] = xx[n - 1];
+  /* Clean up. */
+  free(xx);
 }
 
