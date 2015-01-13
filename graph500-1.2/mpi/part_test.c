@@ -22,10 +22,11 @@
 #define VERTEX_TO_GLOBAL_ALT(r, i) ((int64_t)(MUL_SIZE((uint64_t)i) + (int)(r))) //Todo...
 #define MUL_SIZE(x) ((x) * size)
 
-#define F_DELTA 50
+#define MAT_OUT 0
+#define F_DELTA 80
 #define NNZ_WEIGHT 1
 #define F_GAMMA 1.8
-#define F_CUTOFF 60
+#define F_CUTOFF 120
 #define NUM_STREAMS 32
 #define SANITY
 
@@ -82,7 +83,7 @@ int main(int argc, char* argv[]) {
   if (rank == 0) fprintf(stderr, "Graph size is %" PRIu64 " vertices and %" PRIu64 " edges\n", (uint64_t)pow(2., SCALE), nedges);
 
 
-  if(1) { // Print graph
+  if(MAT_OUT) { // Print graph
     char filename[256];
     sprintf(filename, "out_tup%02d.mat", rank);
     FILE *GraphFile;
@@ -164,7 +165,7 @@ int main(int argc, char* argv[]) {
   }
 
   apply_permutation_mpi(MPI_COMM_WORLD, perm_local_size, local_vertex_perm, g.nglobalverts, nedges, edges);
-  if(1) { // Print graph
+  if(MAT_OUT) { // Print graph
     char filename[256];
     sprintf(filename, "out_permed%02d.mat", rank);
     FILE *GraphFile;
@@ -181,7 +182,7 @@ int main(int argc, char* argv[]) {
   data_struct_stop = MPI_Wtime();
   data_struct_time = data_struct_stop - data_struct_start;
   if (rank == 0) { fprintf(stdout, "permuted csr construction_time:              %g s\n", data_struct_time); }
-  if(1) { // Print graph
+  if(MAT_OUT) { // Print graph
     char filename[256];
     sprintf(filename, "out_pcsr%02d.mat", rank);
     FILE *GraphFile;
@@ -378,7 +379,7 @@ void partition_graph_data_structure(csr_graph* const g) {
 
   g_perm = (int*)malloc(n * sizeof(int));
  
-  if(1) { // Print graph
+  if(MAT_OUT) { // Print graph
     char filename[256];
     sprintf(filename, "out_csr%02d.mat", rank);
     FILE *GraphFile;
@@ -537,7 +538,7 @@ void partition_graph_data_structure(csr_graph* const g) {
   //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
 
-  if (rank == 0) {  // Print Parts
+  if (MAT_OUT &&(rank == 0)) {  // Print Parts
     FILE *PartFile;
     PartFile = fopen("parts.mat", "w");
     assert(PartFile != NULL);
