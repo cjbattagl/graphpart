@@ -23,10 +23,10 @@
 #define MUL_SIZE(x) ((x) * size)
 
 #define MAT_OUT 0
-#define F_DELTA 80
-#define NNZ_WEIGHT 1
+#define F_DELTA 100
+#define NNZ_WEIGHT 0.3
 #define F_GAMMA 1.8
-#define F_CUTOFF 120
+#define F_CUTOFF 30000000
 #define NUM_STREAMS 32
 #define SANITY
 
