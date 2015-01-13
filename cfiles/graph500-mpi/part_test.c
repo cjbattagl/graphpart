@@ -40,6 +40,7 @@ static int num_local_hi_deg_nodes = 0;
 static int local_lo_deg_offset = 0;*/
 void apply_permutation_mpi(MPI_Comm comm, const int64_t local_perm_size, const int64_t* const local_vertex_perm, const int64_t N, const int64_t nedges, int64_t* result);
 
+int print_parts(FILE* out, int* parts, int n, int n_local);
 int print_graph_tuple(FILE* out, int64_t* result, int64_t n_local, int rank);
 int print_graph_csr(FILE* out, size_t *rowptr, int64_t *colidx, int n_local);
 int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff, csr_graph* const g);
@@ -83,9 +84,9 @@ int main(int argc, char* argv[]) {
   if (rank == 0) fprintf(stderr, "Graph size is %" PRIu64 " vertices and %" PRIu64 " edges\n", (uint64_t)pow(2., SCALE), nedges);
 
 
-  if(0) { // Print graph
+  if(1) { // Print graph
     char filename[256];
-    sprintf(filename, "tup%02d.mat", rank);
+    sprintf(filename, "out_tup%02d.mat", rank);
     FILE *GraphFile;
     GraphFile = fopen(filename, "w");
     assert(GraphFile != NULL);
@@ -123,25 +124,117 @@ int main(int argc, char* argv[]) {
   int64_t* local_vertex_perm = NULL;
 
   // 4. PERMUTE TUPLE GRAPH BASED ON COMPUTED PERMUTATION
+  int* perms = (int*)malloc(g.nglobalverts * sizeof(int));
+  for (i=0; i<g.nglobalverts; ++i) {
+    int node = i;
+    int node_owner = VERTEX_OWNER(node);
+    int node_local_idx = VERTEX_LOCAL(node);
+    int parts_idx = node_owner*g.nlocalverts + node_local_idx;
+    int v_part = parts[parts_idx];
+    perms[i] = v_part;
+  }
+
   for (i=0; i < g.nglobalverts; ++i) {
     if (parts[i] == rank) { ++perm_local_size; }
   }
 
+  // test perm size
+  int perm_global_size;
+  MPI_Allreduce(&perm_local_size, &perm_global_size, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  if (rank == 0) { fprintf(stdout, "Permutation size:              %d\n", perm_global_size); }
+  assert(perm_global_size == g.nglobalverts);
+
+  int64_t* perm_sizes = (int64_t*)xmalloc(size * sizeof(int64_t));
+  MPI_Allgather((void*)&perm_local_size, 1, INT64_T_MPI_TYPE, perm_sizes, 1, INT64_T_MPI_TYPE, MPI_COMM_WORLD);
+  assert(perm_local_size == perm_sizes[rank]);
+
+  int64_t* perm_displs = (int64_t*)xmalloc((size + 1) * sizeof(int64_t));
+  perm_displs[0] = 0;
+  for (i = 1; i < size + 1; ++i) perm_displs[i] = perm_displs[i - 1] + perm_sizes[i - 1];
+
   local_vertex_perm = (int64_t*)malloc(perm_local_size * sizeof(int64_t));
   int perm_id = 0;
 
+  /*for (i=0; i < g.nglobalverts; ++i) {
+    if (parts[i] == rank) { 
+      local_vertex_perm[perm_id] = i; 
+      perm_id++;
+      assert(perm_id <= perm_local_size);
+    }
+  }*/
+
   for (i=0; i < g.nglobalverts; ++i) {
-    if (parts[i] == rank) { local_vertex_perm[perm_id++] = i; }
+    if (perms[i] == rank) { 
+      local_vertex_perm[perm_id] = i; 
+      perm_id++;
+      assert(perm_id <= perm_local_size);
+    }
   }
+
+  fprintf (stdout, "%d :",rank);
+
+  for (i=0; i<perm_local_size; ++i) {
+    fprintf (stdout, "[%d]%d  ", (int)perm_displs[rank]+i, (int)local_vertex_perm[i]);
+  }
+  fprintf (stdout, "\n");
+
+
+  //we need to convert the 'parts' array to a permutation array
+  //perm_idxs points to the index that represents the id of the next vertex assigned to each partition
+  /*
+  int64_t* perm_idxs = (int64_t*)xmalloc((size + 1) * sizeof(int64_t));
+  perm_idxs[0] = 0;
+  for (i = 1; i < size + 1; ++i) perm_idxs[i] = perm_displs[i];
+  int* perms = (int*)malloc(g.nglobalverts * sizeof(int));
+
+  for (i = 0; i < g.nglobalverts; ++i) {
+    int curr_part = parts[i];
+    int new_vert_id = perm_idxs[curr_part];
+    perms[i] = new_vert_id;
+    perm_idxs[curr_part]++;
+  }
+
+  for (i=0; i < perm_local_size; ++i) {
+    local_vertex_perm[i] = perms[i + perm_displs[rank]];
+  }
+*/
+  //for (i = 0; i < g.nglobalverts; ++i) {
+  //  if (parts[i] == rank) { local_vertex_perm[perm_id] = perm_id++ + perm_displs[rank]; }
+  //}
+
+  //for (i=0; i < g.nglobalverts; ++i) {
+  //  if (parts[i] == rank) { local_vertex_perm[perm_id++] = i + size_so_far; }
+  //}
+
+  //for (i=size_so_far; i < perm_local_size; ++i) {
+  //  local_vertex_perm[perm_id++] = parts[i];
+  //}
 
   apply_permutation_mpi(MPI_COMM_WORLD, perm_local_size, local_vertex_perm, g.nglobalverts, nedges, edges);
   if(1) { // Print graph
     char filename[256];
-    sprintf(filename, "permed%02d.mat", rank);
+    sprintf(filename, "out_permed%02d.mat", rank);
     FILE *GraphFile;
     GraphFile = fopen(filename, "w");
     assert(GraphFile != NULL);
     print_graph_tuple(GraphFile, edges, nedges, rank);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  // 5. CONVERT PERMUTED GRAPH TO CSR
+  csr_graph g2;
+  data_struct_start = MPI_Wtime();
+  convert_graph_to_csr(nedges, edges, &g2);
+  data_struct_stop = MPI_Wtime();
+  data_struct_time = data_struct_stop - data_struct_start;
+  if (rank == 0) { fprintf(stdout, "permuted csr construction_time:              %g s\n", data_struct_time); }
+  if(1) { // Print graph
+    char filename[256];
+    sprintf(filename, "out_pcsr%02d.mat", rank);
+    FILE *GraphFile;
+    GraphFile = fopen(filename, "w");
+    assert(GraphFile != NULL);
+    print_graph_csr(GraphFile, g2.rowstarts, g2.column, g2.nlocalverts);
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
@@ -152,7 +245,7 @@ int main(int argc, char* argv[]) {
 int print_graph_tuple(FILE* out, int64_t* result, int64_t n_local, int rank) {
   int i;
   for (i=0; i<n_local; ++i) {
-      fprintf (out, "%d %d %d\n", (int)rank, (int)result[i*2], (int)result[i*2 + 1], 1);
+      fprintf (out, "%d %d %d\n", (int)result[i*2]+1, (int)result[i*2 + 1]+1, 1);
   }
   return 1;
 }
@@ -165,6 +258,19 @@ int print_graph_csr(FILE* out, size_t *rowptr, int64_t *colidx, int n_local) {
       dst = colidx[k]; 
       fprintf (out, "%d %d %d\n",(int)VERTEX_TO_GLOBAL_ALT(rank,i)+1,(int)dst+1,1);
     }
+  }
+  return 1;
+}
+
+int print_parts(FILE* out, int* parts, int n, int n_local) {
+  int i;
+  for (i=0; i<n; ++i) {
+    int node = i;
+    int node_owner = VERTEX_OWNER(node);
+    int node_local_idx = VERTEX_LOCAL(node);
+    int parts_idx = node_owner*n_local + node_local_idx;
+    int v_part = parts[parts_idx];
+    fprintf (out, "%d %d\n",node+1,v_part+1);
   }
   return 1;
 }
@@ -202,9 +308,9 @@ void partition_graph_data_structure(csr_graph* const g) {
 
   g_perm = (int*)malloc(n * sizeof(int));
  
-  if(0) { // Print graph
+  if(1) { // Print graph
     char filename[256];
-    sprintf(filename, "csr%02d.mat", rank);
+    sprintf(filename, "out_csr%02d.mat", rank);
     FILE *GraphFile;
     GraphFile = fopen(filename, "w");
     assert(GraphFile != NULL);
@@ -226,12 +332,12 @@ void partition_graph_data_structure(csr_graph* const g) {
   if (rank==1) {fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);}
   int repeat_run;
   int run;
-  for (repeat_run = 0; repeat_run < 25; repeat_run++) {
+  for (repeat_run = 0; repeat_run < 35; repeat_run++) {
     for (run=0; run<nparts; run++) {
       if (rank == run) { //just partition one process after the other...
       //if (1) {
         for (i = 0; i < n_local; ++i) {
-          for (l = 0; l<nparts; l++) {
+          for (l = 0; l < nparts; l++) {
             partscore[l] = 0;
             partcost[l] = 0;
           }
@@ -304,7 +410,29 @@ void partition_graph_data_structure(csr_graph* const g) {
     }
     int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff, g);
   }
+
+  if (rank == 0) {  // Print Parts
+    FILE *PartFile;
+    PartFile = fopen("parts.mat", "w");
+    assert(PartFile != NULL);
+    print_parts(PartFile, parts, n, n_local);
+  }
+
+  // Okay this is absurd but for now, randomly assign the large vertices to a permutation
+  // To prevent overly large partitions
+  for (i=offset; i<offset+n_local; ++i) {
+    if (parts[i] == nparts) {
+      parts[i] = irand(nparts);
+    }
+  }
+  MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
+
+  // Sanity Checks
+  for (i=0; i < g->nglobalverts; ++i) {
+    assert(parts[i]>=0);
+    assert(parts[i]<nparts);
+  }
 }
 
 // Random permutation generator. Move to another file.
