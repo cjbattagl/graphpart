@@ -195,9 +195,9 @@ int main(int argc, char** argv) {
       fprintf(stdout, "firstquartile_time:             %g s\n", stats[s_firstquartile]);
       fprintf(stdout, "median_time:                    %g s\n", stats[s_median]);
       fprintf(stdout, "thirdquartile_time:             %g s\n", stats[s_thirdquartile]);
-      fprintf(stdout, "max_time:                       %g s\n", stats[s_maximum]);
+      fprintf(stdout, "max_time:                       %g s\n", stats[s_maximum]);*/
       fprintf(stdout, "mean_time:                      %g s\n", stats[s_mean]);
-      fprintf(stdout, "stddev_time:                    %g\n", stats[s_std]);*/
+      /*fprintf(stdout, "stddev_time:                    %g\n", stats[s_std]);*/
       get_statistics(edge_counts, num_bfs_roots, stats);
       /*fprintf(stdout, "min_nedge:                      %.11g\n", stats[s_minimum]);
       fprintf(stdout, "firstquartile_nedge:            %.11g\n", stats[s_firstquartile]);

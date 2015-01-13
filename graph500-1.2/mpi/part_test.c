@@ -284,9 +284,9 @@ int main(int argc, char* argv[]) {
       fprintf(stdout, "firstquartile_time:             %g s\n", stats[s_firstquartile]);
       fprintf(stdout, "median_time:                    %g s\n", stats[s_median]);
       fprintf(stdout, "thirdquartile_time:             %g s\n", stats[s_thirdquartile]);
-      fprintf(stdout, "max_time:                       %g s\n", stats[s_maximum]);
+      fprintf(stdout, "max_time:                       %g s\n", stats[s_maximum]);*/
       fprintf(stdout, "mean_time:                      %g s\n", stats[s_mean]);
-      fprintf(stdout, "stddev_time:                    %g\n", stats[s_std]);
+      /*fprintf(stdout, "stddev_time:                    %g\n", stats[s_std]);
       */
       double* secs_per_edge = (double*)xmalloc(num_bfs_roots * sizeof(double));
       for (i = 0; i < num_bfs_roots; ++i) secs_per_edge[i] = bfs_times[i] / edge_counts[i];
