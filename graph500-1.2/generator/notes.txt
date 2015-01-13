@@ -1,0 +1,2 @@
+ mpirun -np 2 -tag-output generator_test_mpi 3
+
