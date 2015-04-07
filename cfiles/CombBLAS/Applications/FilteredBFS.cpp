@@ -56,6 +56,10 @@
 
 double cblas_alltoalltime, cblas_old_alltoalltime;
 double cblas_allgathertime, cblas_old_allgathertime;
+
+double cblas_allgather_start_time; double cblas_allgather_end_time;
+double cblas_alltoall_start_time; double cblas_alltoall_end_time;
+
 #ifdef _OPENMP
 int cblas_splits = omp_get_max_threads(); 
 #else

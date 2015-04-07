@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
   free(edges); edges = NULL;
 
   /* Get roots for BFS runs. */
-  int num_bfs_roots = 64;
+  int num_bfs_roots = 2;
   int64_t* bfs_roots = (int64_t*)xmalloc(num_bfs_roots * sizeof(int64_t));
   find_bfs_roots(&num_bfs_roots, &g, seed1, seed2, bfs_roots);
 

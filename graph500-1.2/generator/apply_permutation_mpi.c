@@ -22,7 +22,7 @@
 #include <mpi.h>
 
 #include "graph_generator.h"
-#include "permutation_gen.h"
+//#include "permutation_gen.h"
 #include "apply_permutation_mpi.h"
 #include "utils.h"
 

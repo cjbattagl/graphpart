@@ -13,7 +13,7 @@
 #ifdef GRAPH_GENERATOR_MPI
 
 #include <stdint.h>
-#include "splittable_mrg.h"
+//#include "splittable_mrg.h"
 #include "graph_generator.h"
 #include <mpi.h>
 

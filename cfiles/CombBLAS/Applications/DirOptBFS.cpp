@@ -32,6 +32,12 @@ double cblas_transvectime; double cblas_old_transvectime;
 double cblas_localspmvtime; double cblas_old_localspmvtime;
 double cblas_ewisemulttime;
 
+double cblas_alltoall_start_time; double cblas_alltoall_end_time;
+double cblas_allgather_start_time; double cblas_allgather_end_time;
+double cblas_mergecont_start_time; double cblas_mergecont_end_time;
+double cblas_transvec_start_time; double cblas_transvec_end_time;
+double cblas_localspmv_start_time; double cblas_localspmv_end_time;
+
 double bottomup_sendrecv;
 double bottomup_allgather;
 double bottomup_total;

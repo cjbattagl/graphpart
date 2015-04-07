@@ -22,11 +22,11 @@
 #define VERTEX_TO_GLOBAL_ALT(r, i) ((int64_t)(MUL_SIZE((uint64_t)i) + (int)(r))) //Todo...
 #define MUL_SIZE(x) ((x) * size)
 
-#define MAT_OUT 0
-#define F_DELTA 100
-#define NNZ_WEIGHT 0.3
+#define MAT_OUT 1
+#define F_DELTA 60
+#define NNZ_WEIGHT 0.01
 #define F_GAMMA 1.8
-#define F_CUTOFF 30000000
+#define F_CUTOFF 1000000000
 #define NUM_STREAMS 32
 #define SANITY
 
@@ -531,7 +531,7 @@ void partition_graph_data_structure(csr_graph* const g) {
   // To prevent overly large partitions
   for (i=offset; i<offset+n_local; ++i) {
     if (parts[i] == nparts) {
-      parts[i] = irand(nparts);
+      parts[i] = nparts-1;//irand(nparts);
     }
   }
   MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
@@ -627,7 +627,7 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
   MPI_Allreduce(&cutedges, &tot_cutedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&mytotlodegedges, &tot_lodegedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   //fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d mylodegedges=%d totlodegedges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges,mytotlodegedges,tot_lodegedges);
-  if (rank == 0) {   fprintf(stdout,"total cutedges = %d, percentage of total:%f     \n", tot_cutedges, (float)tot_cutedges/tot_lodegedges); }
+  if (rank == 0) {   fprintf(stdout,"total cutedges = %d, pct of total:%f pct of worstcase:%f \n", tot_cutedges, (float)tot_cutedges/tot_lodegedges, ((float)tot_cutedges/tot_lodegedges)/((float)(nparts-1)/nparts)); }
   return tot_cutedges;
 }
 

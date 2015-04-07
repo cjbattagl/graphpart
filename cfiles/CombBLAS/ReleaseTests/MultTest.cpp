@@ -11,6 +11,10 @@ using namespace std;
 #ifdef TIMING
 double cblas_alltoalltime, cblas_old_alltoalltime;
 double cblas_allgathertime, cblas_old_allgathertime;
+
+double cblas_allgather_start_time; double cblas_allgather_end_time;
+double cblas_alltoall_start_time; double cblas_alltoall_end_time;
+
 #endif
 
 #ifdef _OPENMP

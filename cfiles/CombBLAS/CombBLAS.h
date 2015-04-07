@@ -53,6 +53,12 @@ extern double cblas_localspmvtime; extern double cblas_old_localspmvtime;
 extern double cblas_mergeconttime; extern double cblas_old_mergeconttime;
 extern double cblas_transvectime; extern double cblas_old_transvectime;
 
+extern double cblas_alltoall_start_time; extern double cblas_alltoall_end_time;
+extern double cblas_allgather_start_time; extern double cblas_allgather_end_time;
+extern double cblas_mergecont_start_time; extern double cblas_mergecont_end_time;
+extern double cblas_transvec_start_time; extern double cblas_transvec_end_time;
+extern double cblas_localspmv_start_time; extern double cblas_localspmv_end_time;
+
 // An adapter function that allows using extended-callback EWiseApply with plain-old binary functions that don't want the extra parameters.
 template <typename RETT, typename NU1, typename NU2, typename BINOP>
 class EWiseExtToPlainAdapter

@@ -24,6 +24,13 @@ double cblas_allgathertime; double cblas_old_allgathertime;
 double cblas_mergeconttime; double cblas_old_mergeconttime;
 double cblas_transvectime; double cblas_old_transvectime;
 double cblas_localspmvtime; double cblas_old_localspmvtime;
+
+double cblas_alltoall_start_time; double cblas_alltoall_end_time;
+double cblas_allgather_start_time; double cblas_allgather_end_time;
+double cblas_mergecont_start_time; double cblas_mergecont_end_time;
+double cblas_transvec_start_time; double cblas_transvec_end_time;
+double cblas_localspmv_start_time; double cblas_localspmv_end_time;
+
 #ifdef _OPENMP
 int cblas_splits = omp_get_max_threads(); 
 #else
@@ -394,9 +401,15 @@ int main(int argc, char* argv[])
 			double LOC_MERGE_TIMES[1024];
 			double LOC_TRANS_TIMES[1024];
 
+			double LOC_SPMV_END_TIMES[1024];
+			double LOC_MERGE_END_TIMES[1024];
+			double LOC_TRANS_END_TIMES[1024];
+
 			double LOC_ALLGATHER_TIMES[1024];
 			double LOC_ALLTOALL_TIMES[1024];
 
+			double LOC_ALLGATHER_END_TIMES[1024];
+			double LOC_ALLTOALL_END_TIMES[1024];
 
 
 			for(int i=0; i<ITERS; ++i)
@@ -413,6 +426,8 @@ int main(int argc, char* argv[])
 				fringe.SetElement(Cands[i], Cands[i]);
 				int iterations = 0;
 
+				double time_zero = 0;
+
 				ostringstream pertimes;
 				pertimes << myrank << "," << Aeff.getlocalnnz() << "," << Aeff.getlocalrows() << "," << Aeff.getlocalcols() << ",";
 				while(fringe.getnnz() > 0)
@@ -421,29 +436,54 @@ int main(int argc, char* argv[])
 					fringe = SpMV(Aeff, fringe,optbuf);	// SpMV with sparse vector (with indexisvalue flag preset), optimization enabled
 					fringe = EWiseMult(fringe, parents, true, (int64_t) -1);	// clean-up vertices that already has parents 
 					parents.Set(fringe);
-					iterations++;
 
 					//if (myrank == 0) {
+					/*
 					LOC_SPMV_TIMES[iterations] = cblas_localspmvtime - cblas_old_localspmvtime;
 					LOC_MERGE_TIMES[iterations] = cblas_mergeconttime - cblas_old_mergeconttime;
 					LOC_TRANS_TIMES[iterations] = cblas_transvectime - cblas_old_transvectime;
 
 					LOC_ALLGATHER_TIMES[iterations] = cblas_allgathertime - cblas_old_allgathertime;
 					LOC_ALLTOALL_TIMES[iterations] = cblas_alltoalltime - cblas_old_allgathertime;
+					*/
+					if (iterations == 0) {
+						time_zero = cblas_transvec_start_time;
+					}
+					
+					LOC_SPMV_TIMES[iterations] = cblas_localspmv_start_time - time_zero;
+					LOC_MERGE_TIMES[iterations] = cblas_mergecont_start_time - time_zero;
+					LOC_TRANS_TIMES[iterations] = cblas_transvec_start_time - time_zero;
 
+					LOC_ALLGATHER_TIMES[iterations] = cblas_allgather_start_time - time_zero;
+					LOC_ALLTOALL_TIMES[iterations] = cblas_alltoall_start_time - time_zero;
+
+					LOC_SPMV_END_TIMES[iterations] = cblas_localspmv_end_time - time_zero;
+					LOC_MERGE_END_TIMES[iterations] = cblas_mergecont_end_time - time_zero;
+					LOC_TRANS_END_TIMES[iterations] = cblas_transvec_end_time - time_zero;
+
+					LOC_ALLGATHER_END_TIMES[iterations] = cblas_allgather_end_time - time_zero;
+					LOC_ALLTOALL_END_TIMES[iterations] = cblas_alltoall_end_time - time_zero;
 
 					// TODO: Which are most relevant?
 
-					pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
+					pertimes << LOC_SPMV_TIMES[iterations] << "," << LOC_SPMV_END_TIMES[iterations] << "," <<
+					LOC_MERGE_TIMES[iterations] << "," << LOC_MERGE_END_TIMES[iterations] << "," <<
+					LOC_TRANS_TIMES[iterations] << "," << LOC_TRANS_END_TIMES[iterations] << "," <<
+					LOC_ALLGATHER_TIMES[iterations] << "," << LOC_ALLGATHER_END_TIMES[iterations] << "," <<
+					LOC_ALLTOALL_TIMES[iterations] << "," << LOC_ALLTOALL_END_TIMES[iterations] << ",";
+/*
 					double temp = LOC_ALLGATHER_TIMES[iterations] + LOC_ALLTOALL_TIMES[iterations];
 					if (temp < 0) { temp = 0.0; }
 					pertimes << temp << ",";
-
+*/
 //					pertimes << LOC_SPMV_TIMES[iterations] << "," << LOC_MERGE_TIMES[iterations] << "," << LOC_TRANS_TIMES[iterations] << ",";
 //					pertimes << LOC_ALLGATHER_TIMES[iterations] << "," << LOC_ALLTOALL_TIMES[iterations] << ",";
 
 						//<< " mergt " << LOC_MERGE_TIMES[iterations] << " transt " << LOC_TRANS_TIMES[iterations] << endl;
 					//}
+
+					iterations++;
+
 				}
 				pertimes << endl;
 				MPI_Barrier(MPI_COMM_WORLD);
@@ -471,6 +511,9 @@ int main(int argc, char* argv[])
 					cout << "$\n"; 
 					cout << nprocs << endl; 
 				}
+
+				cout.precision(15);
+
 				for (int proc = 0; proc < nprocs; proc++ ) {
 					if (myrank == proc) { cout << pertimes.str(); }
 					usleep(200);

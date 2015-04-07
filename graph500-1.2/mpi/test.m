@@ -1,23 +1,23 @@
-  %A=load('mygraphtup.mat');
-  %B=load('mygraphcsr.mat');
-  %C=load('mygraphperm.mat');
+  A=load('mygraphtup.mat');
+  B=load('mygraphcsr.mat');
+  C=load('mygraphperm.mat');
   D=load('mygraphpcsr.mat');
-  %A = spconvert(A);
-  %A(max(size(A)),max(size(A))) = 1;
-  %B = spconvert(B);
-  %C = spconvert(C);
+  A = spconvert(A);
+  A(max(size(A)),max(size(A))) = 1;
+  B = spconvert(B);
+  C = spconvert(C);
   D = spconvert(D);
   hold off;
 
   if (1==1)
-    %subplot(5,1,1)
-    %spy(A,'.');
-    %hold on;
-    %subplot(5,1,2)
-    %spy(B,'.')
-    %subplot(5,1,3)
-    %spy(C,'.')
-    %subplot(5,1,4)
+    subplot(5,1,1)
+    spy(A,'.');
+    hold on;
+    subplot(5,1,2)
+    spy(B,'.')
+    subplot(5,1,3)
+    spy(C,'.')
+    subplot(5,1,4)
     spy(D,'.')
   end
   if (0==1)
@@ -52,5 +52,5 @@
   %assert(length(P)==N);
   %assert(nnz(A)==nnz(B));
   subplot(5,1,5)
-  %spy(E,'.')
+  spy(E,'.')
   end

@@ -185,6 +185,9 @@ void LocalSpMV(const SpParMat<IT,bool,UDER> & A, int rowneighs, OptBuf<int32_t, 
 
 #ifdef TIMING
 	double t1=MPI_Wtime();
+	cblas_localspmv_start_time = t0;
+	cblas_localspmv_end_time = t1;
+
 	cblas_old_localspmvtime = cblas_localspmvtime;
 	cblas_localspmvtime += (t1-t0);
 #endif
@@ -287,6 +290,9 @@ void MergeContributions(FullyDistSpVec<IU,VT> & y, int * & recvcnt, int * & rdis
 	double t1=MPI_Wtime();
 	cblas_old_mergeconttime = cblas_mergeconttime;
 	cblas_mergeconttime += (t1-t0);
+
+	cblas_mergecont_start_time = t0;
+	cblas_mergecont_end_time = t1;
 #endif
 }	
 
@@ -320,6 +326,9 @@ FullyDistSpVec<IT,VT>  SpMV (const SpParMat<IT,bool,UDER> & A, const FullyDistSp
 	double t1=MPI_Wtime();
 	cblas_old_transvectime = cblas_transvectime;
 	cblas_transvectime += (t1-t0);
+
+	cblas_transvec_start_time = t0;
+	cblas_transvec_end_time = t1;
 #endif
 	AllGatherVector(ColWorld, trxlocnz, lenuntil, trxinds, trxnums, indacc, numacc, accnz, true);	// trxinds (and potentially trxnums) is deallocated, indacc/numacc allocated
 	
@@ -360,6 +369,9 @@ FullyDistSpVec<IT,VT>  SpMV (const SpParMat<IT,bool,UDER> & A, const FullyDistSp
 	double t3=MPI_Wtime();
 	cblas_old_alltoalltime = cblas_alltoalltime;
 	cblas_alltoalltime += (t3-t2);
+
+	cblas_alltoall_start_time = t2;
+	cblas_alltoall_end_time = t3;
 #endif
 
 	MergeContributions(y,recvcnt, rdispls, recvindbuf, recvnumbuf, rowneighs);

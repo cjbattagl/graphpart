@@ -557,6 +557,9 @@ void AllGatherVector(MPI_Comm & ColWorld, int trxlocnz, IU lenuntil, int32_t * &
 	
 	cblas_old_allgathertime = cblas_allgathertime;
 	cblas_allgathertime += (t1-t0);
+
+	cblas_allgather_start_time = t0;
+	cblas_allgather_end_time = t1;
 #endif
 	DeleteAll(colnz,dpls);
 }	
@@ -826,6 +829,9 @@ void SpMV (const SpParMat<IU,NUM,UDER> & A, const FullyDistSpVec<IU,IVT> & x, Fu
 	double t3=MPI_Wtime();
 	cblas_old_alltoalltime = cblas_alltoalltime;
 	cblas_alltoalltime += (t3-t2);
+
+	cblas_alltoall_start_time = t2;
+	cblas_alltoall_end_time = t3;
 #endif
 	
 	//	ofstream output;

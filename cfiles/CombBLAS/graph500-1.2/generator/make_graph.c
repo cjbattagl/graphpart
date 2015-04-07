@@ -79,6 +79,7 @@ void make_graph(int log_numverts, int64_t desired_nedges, uint64_t userseed1, ui
   mrg_seed(&state, seed);
   rand_sort_shared(&state, N, vertex_perm);
 
+
   /* Apply vertex permutation to graph, optionally copying into user's result
    * array. */
 #ifdef GRAPHGEN_KEEP_MULTIPLICITIES
@@ -337,7 +338,10 @@ void make_graph(int log_numverts, int64_t desired_nedges, uint64_t userseed1, ui
 
   /* Apply vertex permutation to graph. */
   start = MPI_Wtime();
-  apply_permutation_mpi(MPI_COMM_WORLD, perm_local_size, local_vertex_perm, N, nedges, result);
+  //apply_permutation_mpi(MPI_COMM_WORLD, perm_local_size, local_vertex_perm, N, nedges, result);
+  for (i=0; i<perm_local_size; ++i) {
+    vertex_perm[i] = i;
+  }
   double perm_apply_time = MPI_Wtime() - start;
 
   free(local_vertex_perm); local_vertex_perm = NULL;
@@ -352,7 +356,7 @@ void make_graph(int log_numverts, int64_t desired_nedges, uint64_t userseed1, ui
   free(result); result = NULL;
 
   *result_ptr = new_result;
-  *nedges_ptr = nedges_out;
+  *nedges_ptr = nedges_out; 
 
   if (rank == 0) {
     fprintf(stdout, "unpermuted_graph_generation:    %f s\n", gen_time);
