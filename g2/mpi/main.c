@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
   double make_graph_stop = MPI_Wtime();
   double make_graph_time = make_graph_stop - make_graph_start;
   if (rank == 0) { /* Not an official part of the results */
-    fprintf(stderr, "graph_generation:               %f s\n", make_graph_time);
+    //fprintf(stderr, "graph_generation:               %f s\n", make_graph_time);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
   double data_struct_stop = MPI_Wtime();
   double data_struct_time = data_struct_stop - data_struct_start;
   if (rank == 0) { /* Not an official part of the results */
-    fprintf(stderr, "construction_time:              %f s\n", data_struct_time);
+    //fprintf(stderr, "construction_time:              %f s\n", data_struct_time);
   }
 
   FILE *GraphFile;
@@ -419,9 +419,9 @@ int main(int argc, char** argv) {
       fprintf(stdout, "tot_num_bcasts:   %d\n", tot_num_bcasts);
 
       fprintf(stdout, "SCALE:                          %d\n", SCALE);
-      fprintf(stdout, "edgefactor:                     %d\n", edgefactor);
+      //fprintf(stdout, "edgefactor:                     %d\n", edgefactor);
       //fprintf(stdout, "NBFS:                           %d\n", num_bfs_roots);
-      fprintf(stdout, "graph_generation:               %g\n", make_graph_time);
+      //fprintf(stdout, "graph_generation:               %g\n", make_graph_time);
       fprintf(stdout, "num_mpi_processes:              %d\n", size);
       //fprintf(stdout, "construction_time:              %g\n", data_struct_time);
       double stats[s_LAST];
