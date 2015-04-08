@@ -419,18 +419,18 @@ int main(int argc, char** argv) {
   }
 
   /* Print results. */
-  int tot_num_sends;
-  int tot_num_bcasts;
-  int tot_num_processed;
-  MPI_Reduce(&num_sends, &tot_num_sends, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-  MPI_Reduce(&num_bcasts, &tot_num_bcasts, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-  MPI_Reduce(&num_processed, &tot_num_processed, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  int64_t tot_num_sends;
+  int64_t tot_num_bcasts;
+  int64_t tot_num_processed;
+  MPI_Reduce(&num_sends, &tot_num_sends, 1, MPI_INT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_bcasts, &tot_num_bcasts, 1, MPI_INT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_processed, &tot_num_processed, 1, MPI_INT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
   //fprintf(stdout, "num_sends:   %d\n", num_sends);
   if (rank == 0) {
     if (!validation_passed) {
       fprintf(stdout, "No results printed for invalid run.\n");
     } else {
-      fprintf(stdout, "tot_sends:   %d   tot_bcasts: %d   tot_processed: %d\n", tot_num_sends, tot_num_bcasts, tot_num_processed);
+      fprintf(stdout, "tot_sends:   %" PRId64 "   tot_bcasts: %" PRId64 "   tot_processed: %" PRId64 "\n", tot_num_sends, tot_num_bcasts, tot_num_processed);
 
       fprintf(stdout, "SCALE:                          %d\n", SCALE);
       //fprintf(stdout, "edgefactor:                     %d\n", edgefactor);

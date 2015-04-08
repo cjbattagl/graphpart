@@ -21,10 +21,10 @@
 extern int rank, size;
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 extern int lgsize;
-extern int local_partsize;
-extern int num_processed;
-extern int num_sends;
-extern int num_bcasts;
+extern int64_t local_partsize;
+extern int64_t num_processed;
+extern int64_t num_sends;
+extern int64_t num_bcasts;
 #endif
 extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct */
 
@@ -36,7 +36,7 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 #define F_DELTA 60
 #define NNZ_WEIGHT 0.01
 #define F_GAMMA 1.8
-#define F_CUTOFF 70
+#define F_CUTOFF 100
 #define NUM_STREAMS 3
 #define SANITY 1
 #define HI_RAND 1

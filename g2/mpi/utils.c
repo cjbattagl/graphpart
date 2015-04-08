@@ -15,12 +15,12 @@
 #include "common.h"
 
 int rank, size;
-int local_partsize;
+int64_t local_partsize;
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 int lgsize;
-int num_sends;
-int num_bcasts;
-int num_processed;
+int64_t num_sends;
+int64_t num_bcasts;
+int64_t num_processed;
 #endif
 MPI_Datatype packed_edge_mpi_type;
 
@@ -39,7 +39,7 @@ void setup_globals() {
   assert (lgsize < size);
 #endif
 
-  local_partsize = (int)(pow(2,lgsize)/size);
+  local_partsize = (int64_t)(pow(2,lgsize)/size);
   num_sends = 0;
   num_bcasts = 0;
   num_processed = 0;
