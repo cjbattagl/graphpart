@@ -284,8 +284,8 @@ int main(int argc, char** argv) {
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
-  fprintf(stderr, "%d: nedges = %" PRId64 " of %" PRId64 "   ", rank, (int64_t)tg.edgememory_size, (int64_t)tg.nglobaledges);
-  fprintf(stderr, "max = %" PRId64 "\n", (int64_t)tg.max_edgememory_size);
+  //fprintf(stderr, "%d: nedges = %" PRId64 " of %" PRId64 "   ", rank, (int64_t)tg.edgememory_size, (int64_t)tg.nglobaledges);
+  //fprintf(stderr, "max = %" PRId64 "\n", (int64_t)tg.max_edgememory_size);
 
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -410,7 +410,7 @@ int main(int argc, char** argv) {
   MPI_Reduce(&num_sends, &tot_num_sends, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Reduce(&num_bcasts, &tot_num_bcasts, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-  fprintf(stdout, "num_sends:   %d\n", num_sends);
+  //fprintf(stdout, "num_sends:   %d\n", num_sends);
   if (rank == 0) {
     if (!validation_passed) {
       fprintf(stdout, "No results printed for invalid run.\n");
