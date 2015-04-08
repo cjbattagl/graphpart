@@ -18,26 +18,15 @@
 #include <limits.h>
 #include <assert.h>
 
-/// NEW, TRICKY STUFF
 #include <time.h>
 #include <math.h>
 
-#define MAT_OUT 1
-#define F_DELTA 60
-#define NNZ_WEIGHT 0.01
-#define F_GAMMA 1.8
-#define F_CUTOFF 80
-#define NUM_STREAMS 32
-#define SANITY
+///////////////////
+//#define TO_NEW_IDX(x) g_perm[x]
+//#define NEW_PART_OF_IDX(x) parts[TO_NEW_IDX(x)]
+///////////////////
 static int* g_perm;
 static int* parts;
-
-#define TO_NEW_IDX(x) g_perm[x]
-#define NEW_PART_OF_IDX(x) parts[TO_NEW_IDX(x)]
-#define VERTEX_TO_GLOBAL_ALT(r, i) ((int64_t)(MUL_SIZE((uint64_t)i) + (int)(r))) //Todo...
-
-///////////////////
-
 static oned_csr_graph g;
 static int64_t* g_oldq;
 static int64_t* g_newq;
@@ -284,22 +273,10 @@ void get_vertex_distribution_for_pred(size_t count, const int64_t* vertex_p, int
   }
 }
 
-int64_t vertex_to_global_for_pred(int v_rank, size_t v_local) {
-  return VERTEX_TO_GLOBAL(v_rank, v_local);
-}
-
-size_t get_nlocalverts_for_pred(void) {
-  return g.nlocalverts;
-}
+int64_t vertex_to_global_for_pred(int v_rank, size_t v_local) { return VERTEX_TO_GLOBAL(v_rank, v_local); }
+size_t get_nlocalverts_for_pred(void) { return g.nlocalverts; }
 
 void permute_tuple_graph(tuple_graph* tg) {
-
-  /*int64_t perm_local_size = (int64_t)nglobalverts/size;
-  int64_t* local_vertex_perm = (int64_t*)malloc(perm_local_size * sizeof(int64_t));
-  int offset = rank*perm_local_size;
-  for (int i = 0; i<perm_local_size; ++i) {
-    local_vertex_perm[i] = i + offset;
-  }*/
   if (tg->edgememory_size > 0) {
     int64_t i;
     int perm_local_size = g.nglobalverts;
@@ -330,16 +307,16 @@ void permute_tuple_graph(tuple_graph* tg) {
 
     for (i=0; i < g.nglobalverts; ++i) {
       int part = perms[i];
-      //if (i >= perm_displs[rank] && i < perm_displs[rank+1]) {
       g_perm[perm_id] = perm_idxs[part];
       perm_id++;
-      //}
       perm_idxs[part]++;
     }
 
     packed_edge* result = tg->edgememory;
     int64_t v0, v1;
     int64_t v0_new, v1_new;
+    int src_proc, tgt_proc;
+    int64_t partsize = (int)(g.nglobalverts / size);
     packed_edge* edge;
     for (i = 0; i < (int64_t)tg->edgememory_size; ++i) {
       //fprintf(stderr, "%d ", (int)tg->edgememory_size);
@@ -347,8 +324,29 @@ void permute_tuple_graph(tuple_graph* tg) {
       v0 = get_v0_from_edge(edge);
       v1 = get_v1_from_edge(edge);
 
-      v0_new = g_perm[v0];//g_perm[v0] < g_perm[v1] ? g_perm[v0] : g_perm[v1];
-      v1_new = g_perm[v1];//g_perm[v0] < g_perm[v1] ? g_perm[v1] : g_perm[v0];
+
+
+      //we have to do this because it mods by source vertex....
+      src_proc = floor(g_perm[v0]/(g.nglobalverts/size));
+      tgt_proc = floor(g_perm[v1]/(g.nglobalverts/size));
+      //v0_new = VERTEX_TO_GLOBAL(src_proc,g_perm[v0]);
+      //v1_new = VERTEX_TO_GLOBAL(targ_proc,g_perm[v1]);
+      //v0_new = VERTEX_TO_GLOBAL(src_proc,floor(g_perm[v0]);
+      //v1_new = VERTEX_TO_GLOBAL(targ_proc,floor(g_perm[v1]);
+      
+
+      /////v0_new = (g_perm[v0] % partsize) * size + src_proc;
+      v0_new = g_perm[v0];
+      v1_new = g_perm[v1];
+
+      v0_new = (v0_new % partsize) * size + src_proc;
+      v1_new = (v1_new % partsize) * size + tgt_proc;
+
+
+      //fprintf(stderr, "%d %d %d %d %d %d %d %d\n", (int)v0, (int)v1, (int)g_perm[v0], (int)g_perm[v1], (int)src_proc, (int)targ_proc, (int)v0_new, (int)v1_new);
+
+      //v0_new = g_perm[v0];//g_perm[v0] < g_perm[v1] ? g_perm[v0] : g_perm[v1];
+      //v1_new = g_perm[v1];//g_perm[v0] < g_perm[v1] ? g_perm[v1] : g_perm[v0];
       //if (v0 >= perm_displs[rank] && v0 < perm_displs[rank + 1]) {
       //  v0_new = local_vertex_perm[v0 - perm_displs[rank]] - N - 1;
       //}
@@ -581,14 +579,15 @@ void partition_graph_data_structure() {
 
 #endif
 
-    int cutedges = mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
+    mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
   }
 
   // Okay this is absurd but for now, randomly assign the large vertices to a permutation
   // To prevent overly large partitions
   for (i=offset; i<offset+n_local; ++i) {
     if (parts[i] == nparts) {
-      parts[i] = irand(nparts);//nparts-1;//irand(nparts);
+      if (HI_RAND) { parts[i] = irand(nparts); }
+      else { parts[i] = nparts-1; }
     }
   }
   MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
@@ -705,11 +704,18 @@ int print_graph_tuple(FILE* out, tuple_graph* tg, int rank) {
 
 int print_graph_csr(FILE* out, size_t *rowptr, int64_t *colidx, int n_local) {
   int i, k;
-  int64_t dst;
+  int64_t src, dst;
   for (i=0; i<n_local; ++i) {
     for (k = rowptr[i]; k < rowptr[i+1]; ++k) {
+      src = n_local*rank + i;
+      //src = VERTEX_TO_GLOBAL(rank,i);
+      //colidxs are correct, but to correctly vis
+      //communication, we need to map them
       dst = colidx[k]; 
-      fprintf (out, "%d %d %d\n",(int)VERTEX_TO_GLOBAL_ALT(rank,i)+1,(int)dst+1,1);
+      dst = ((dst-VERTEX_OWNER(dst))/size) + n_local*VERTEX_OWNER(dst);
+      //src = (int)VERTEX_TO_GLOBAL(rank,i);
+      //fprintf (out, "%d %d %d\n",(int)VERTEX_TO_GLOBAL(rank,i)+1,(int)dst+1,1);
+      fprintf (out, "%d %d %d\n",(int)src+1,(int)dst+1,1);
     }
   }
   return 1;

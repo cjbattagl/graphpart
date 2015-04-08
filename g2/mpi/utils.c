@@ -15,6 +15,7 @@
 #include "common.h"
 
 int rank, size;
+int local_partsize;
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 int lgsize;
 #endif
@@ -34,6 +35,8 @@ void setup_globals() {
   }
   assert (lgsize < size);
 #endif
+
+  local_partsize = (int)(pow(2,lgsize)/size);
 
   int blocklengths[] = {1, 1, 1};
   MPI_Aint displs[] = {0, 0, 0};

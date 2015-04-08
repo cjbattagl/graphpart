@@ -1,6 +1,8 @@
   clf
   %A=load('mygraphtup.mat');
-  A = load('mygraphperm.mat');
+  A = load('mygraphpcsr.mat');
+  %A = load('out_pcsr02.mat');
+
   %C=load('mygraphperm.mat');
   %D=load('mygraphpcsr.mat');
   A = spconvert(A);

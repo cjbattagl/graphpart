@@ -30,10 +30,6 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#define NUM_ROOTS 10
-#define VERBY
-#define MAT_OUT 0
-
 static int compare_doubles(const void* a, const void* b) {
   double aa = *(const double*)a;
   double bb = *(const double*)b;
@@ -380,7 +376,7 @@ int main(int argc, char** argv) {
 
     /* Validate result. */
     //if (rank == 0) fprintf(stderr, "Validating BFS %d\n", bfs_root_idx);
-#if 0
+#if 1
     double validate_start = MPI_Wtime();
     int64_t edge_visit_count;
     int validation_passed_one = validate_bfs_result(&tg, max_used_vertex + 1, nlocalverts, root, pred, &edge_visit_count);

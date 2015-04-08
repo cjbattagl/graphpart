@@ -12,6 +12,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <math.h>
 #include "../generator/graph_generator.h"
 #include "mpi_workarounds.h"
 
@@ -20,8 +21,22 @@
 extern int rank, size;
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 extern int lgsize;
+extern int local_partsize;
 #endif
 extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct */
+
+#define MAT_OUT 0
+#define VERBY
+#define NUM_ROOTS 3
+
+
+#define F_DELTA 60
+#define NNZ_WEIGHT 0.01
+#define F_GAMMA 1.8
+#define F_CUTOFF 80
+#define NUM_STREAMS 8
+#define SANITY
+#define HI_RAND 0
 
 /* Distribute edges by their endpoints (make two directed copies of each input
  * undirected edge); distribution is 1-d and cyclic. */
@@ -37,6 +52,11 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 #define VERTEX_OWNER(v) ((int)(MOD_SIZE(v)))
 #define VERTEX_LOCAL(v) ((size_t)(DIV_SIZE(v)))
 #define VERTEX_TO_GLOBAL(r, i) ((int64_t)(MUL_SIZE((uint64_t)i) + (int)(r)))
+
+//#define VERTEX_OWNER(v) ((int)(v / local_partsize))
+//#define VERTEX_LOCAL(v) ((size_t)(v % local_partsize))
+//n_local*rank + i;
+//#define VERTEX_TO_GLOBAL(r, i) ((int64_t)(r * local_partsize) + (int)(i))
 
 typedef struct tuple_graph {
   int data_in_file; /* 1 for file, 0 for memory */
