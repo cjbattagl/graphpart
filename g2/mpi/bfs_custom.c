@@ -53,6 +53,10 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
 }
 
+int64_t get_permed_vertex(int64_t id) { 
+  return ((g_perm[id] % g.nlocalverts) * size + floor(g_perm[id]/(g.nglobalverts/size))); 
+}
+
 void print_graph() {
     char filename[256];
     sprintf(filename, "out_pcsr%02d.mat", rank);
@@ -201,7 +205,7 @@ void run_bfs(int64_t root, int64_t* pred) {
 
 
       int this_nnz = g.rowstarts[VERTEX_LOCAL(oldq[i]) + 1] - g.rowstarts[VERTEX_LOCAL(oldq[i])];
-      if (this_nnz > F_CUTOFF) { num_sends--; num_bcasts++; }
+      //if (this_nnz > F_CUTOFF) { num_sends--; num_bcasts++; }
 
       for (j = g.rowstarts[VERTEX_LOCAL(oldq[i])]; j < j_end; ++j) {
         int64_t tgt = g.column[j];
@@ -209,8 +213,8 @@ void run_bfs(int64_t root, int64_t* pred) {
 
         //UPDATE COMMUNICATION COUNTS
         if (owner == rank) { }
-        else if (this_nnz <= F_CUTOFF) { num_sends++; }
-
+        else { num_sends++; }//if (this_nnz <= F_CUTOFF) { num_sends++; }
+        num_processed++; 
         /* If the other endpoint is mine, update the visited map, predecessor
          * map, and next-level queue locally; otherwise, send the target and
          * the current vertex (its possible predecessor) to the target's owner.

@@ -20,6 +20,7 @@ int local_partsize;
 int lgsize;
 int num_sends;
 int num_bcasts;
+int num_processed;
 #endif
 MPI_Datatype packed_edge_mpi_type;
 
@@ -41,6 +42,7 @@ void setup_globals() {
   local_partsize = (int)(pow(2,lgsize)/size);
   num_sends = 0;
   num_bcasts = 0;
+  num_processed = 0;
 
   int blocklengths[] = {1, 1, 1};
   MPI_Aint displs[] = {0, 0, 0};

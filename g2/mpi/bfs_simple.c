@@ -49,7 +49,7 @@ void make_graph_data_structure(const tuple_graph* const tg) {
 void permute_tuple_graph(tuple_graph* tg) {  }
 void print_graph() { }
 int print_graph_tuple(FILE* out, tuple_graph* tg, int rank) { return 0; }
-
+int64_t get_permed_vertex(int64_t id) { return id; }
 void free_graph_data_structure(void) {
   free(g_oldq);
   free(g_newq);
@@ -195,7 +195,8 @@ void run_bfs(int64_t root, int64_t* pred) {
         //UPDATE COMMUNICATION COUNTS
         if (owner == rank) { }
         else { num_sends++; }
-         
+        num_processed++; 
+
         if (owner == rank) {
           if (!TEST_VISITED(tgt)) {
             SET_VISITED(tgt);

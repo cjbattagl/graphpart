@@ -283,11 +283,8 @@ int main(int argc, char** argv) {
     //fprintf(stderr, "graph_generation:               %f s\n", make_graph_time);
   }
 
-  MPI_Barrier(MPI_COMM_WORLD);
   //fprintf(stderr, "%d: nedges = %" PRId64 " of %" PRId64 "   ", rank, (int64_t)tg.edgememory_size, (int64_t)tg.nglobaledges);
   //fprintf(stderr, "max = %" PRId64 "\n", (int64_t)tg.max_edgememory_size);
-
-  MPI_Barrier(MPI_COMM_WORLD);
 
   ////////// 2. CONVERT TO CSR  /////////////////
   /* Make user's graph data structure. */
@@ -328,6 +325,7 @@ int main(int argc, char** argv) {
   ////////// 4. PERMUTE TUPLE GRAPH BASED ON COMPUTED PERMUTATION  /////////////////
   permute_tuple_graph(&tg);
 
+
   if(MAT_OUT) {
     char filename2[256];
     sprintf(filename2, "out_permed%02d.mat", rank);
@@ -340,6 +338,23 @@ int main(int argc, char** argv) {
 
   free_graph_data_structure();
   make_graph_data_structure(&tg);
+
+  // permute roots
+  int bfs_root_idx;
+
+
+  for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) {
+    bfs_roots[bfs_root_idx] = get_permed_vertex(bfs_roots[bfs_root_idx]);
+    if(VERBY) {fprintf(stdout, " %d ", (int)bfs_roots[bfs_root_idx]); }
+  }
+
+  MPI_Allreduce(MPI_IN_PLACE, bfs_roots, num_bfs_roots, MPI_INT64_T, MPI_MAX, MPI_COMM_WORLD);
+
+  if(VERBY) {
+    for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) {
+      fprintf(stdout, " %d ", (int)bfs_roots[bfs_root_idx]);
+    }
+  }
 
   if(MAT_OUT){
     print_graph();
@@ -358,7 +373,6 @@ int main(int argc, char** argv) {
   uint64_t nlocalverts = get_nlocalverts_for_pred();
   int64_t* pred = (int64_t*)xMPI_Alloc_mem(nlocalverts * sizeof(int64_t));
 
-  int bfs_root_idx;
   for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) {
     int64_t root = bfs_roots[bfs_root_idx];
 
@@ -407,16 +421,16 @@ int main(int argc, char** argv) {
   /* Print results. */
   int tot_num_sends;
   int tot_num_bcasts;
+  int tot_num_processed;
   MPI_Reduce(&num_sends, &tot_num_sends, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Reduce(&num_bcasts, &tot_num_bcasts, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-
+  MPI_Reduce(&num_processed, &tot_num_processed, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   //fprintf(stdout, "num_sends:   %d\n", num_sends);
   if (rank == 0) {
     if (!validation_passed) {
       fprintf(stdout, "No results printed for invalid run.\n");
     } else {
-      fprintf(stdout, "tot_num_sends:   %d\n", tot_num_sends);
-      fprintf(stdout, "tot_num_bcasts:   %d\n", tot_num_bcasts);
+      fprintf(stdout, "tot_sends:   %d   tot_bcasts: %d   tot_processed: %d\n", tot_num_sends, tot_num_bcasts, tot_num_processed);
 
       fprintf(stdout, "SCALE:                          %d\n", SCALE);
       //fprintf(stdout, "edgefactor:                     %d\n", edgefactor);

@@ -22,23 +22,24 @@ extern int rank, size;
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 extern int lgsize;
 extern int local_partsize;
+extern int num_processed;
 extern int num_sends;
 extern int num_bcasts;
 #endif
 extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct */
 
 #define MAT_OUT 0
-#define VERBY
-#define NUM_ROOTS 3
+#define VERBY 0
+#define NUM_ROOTS 8
 
 
 #define F_DELTA 60
 #define NNZ_WEIGHT 0.01
 #define F_GAMMA 1.8
 #define F_CUTOFF 70
-#define NUM_STREAMS 8
+#define NUM_STREAMS 2
 #define SANITY 1
-#define HI_RAND 0
+#define HI_RAND 1
 #define VALIDATE 0
 
 /* Distribute edges by their endpoints (make two directed copies of each input
@@ -177,6 +178,7 @@ void get_vertex_distribution_for_pred(size_t count, const int64_t* vertices, int
 int64_t vertex_to_global_for_pred(int v_rank, size_t v_local); /* Only used for error messages */
 size_t get_nlocalverts_for_pred(void);
 
+int64_t get_permed_vertex(int64_t id);
 void partition_graph_data_structure();
 void print_graph();
 void permute_tuple_graph(tuple_graph* tg);
