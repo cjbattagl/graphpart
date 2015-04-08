@@ -205,7 +205,7 @@ void run_bfs(int64_t root, int64_t* pred) {
 
 
       int this_nnz = g.rowstarts[VERTEX_LOCAL(oldq[i]) + 1] - g.rowstarts[VERTEX_LOCAL(oldq[i])];
-      //if (this_nnz > F_CUTOFF) { num_sends--; num_bcasts++; }
+      if (this_nnz > F_CUTOFF) { num_sends--; num_bcasts++; }
 
       for (j = g.rowstarts[VERTEX_LOCAL(oldq[i])]; j < j_end; ++j) {
         int64_t tgt = g.column[j];
@@ -213,7 +213,9 @@ void run_bfs(int64_t root, int64_t* pred) {
 
         //UPDATE COMMUNICATION COUNTS
         if (owner == rank) { }
-        else { num_sends++; }//if (this_nnz <= F_CUTOFF) { num_sends++; }
+        else { num_sends++;
+          if (this_nnz > F_CUTOFF) { num_sends--; }
+        }
         num_processed++; 
         /* If the other endpoint is mine, update the visited map, predecessor
          * map, and next-level queue locally; otherwise, send the target and
@@ -418,7 +420,7 @@ void partition_graph_data_structure() {
   int localedges = (int)g.nlocaledges;
   MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
-  if (rank==1) {fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);}
+  //if (rank==1) {fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);}
   int repeat_run;
   int run;
   for (repeat_run = 0; repeat_run < NUM_STREAMS; repeat_run++) {
@@ -534,7 +536,7 @@ void partition_graph_data_structure() {
       if (partnnz[l] < min_partnnz) { min_partnnz = partnnz[l]; }
     }
     //if (rank==0) { fprintf(stdout,"max partsize = %d, min partsize = %d max/min partnnz = %d, %d ", max_partsize, min_partsize, max_partnnz, min_partnnz); }
-    if (rank==0) { fprintf(stdout,"n balance: %f, nnz balance: %f\t", (float)max_partsize / min_partsize, (float)max_partnnz / min_partnnz); }
+    //if (rank==0) { fprintf(stdout,"n balance: %f, nnz balance: %f\t", (float)max_partsize / min_partsize, (float)max_partnnz / min_partnnz); }
 #endif
 
     mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
@@ -642,7 +644,7 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int
   MPI_Allreduce(&cutedges, &tot_cutedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&mytotlodegedges, &tot_lodegedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   //fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d mylodegedges=%d totlodegedges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges,mytotlodegedges,tot_lodegedges);
-  if (rank == 0) {   fprintf(stdout,"total cutedges = %d, pct of total:%f pct of worstcase:%f \n", tot_cutedges, (float)tot_cutedges/tot_lodegedges, ((float)tot_cutedges/tot_lodegedges)/((float)(nparts-1)/nparts)); }
+  //if (rank == 0) {   fprintf(stdout,"total cutedges = %d, pct of total:%f pct of worstcase:%f \n", tot_cutedges, (float)tot_cutedges/tot_lodegedges, ((float)tot_cutedges/tot_lodegedges)/((float)(nparts-1)/nparts)); }
   return tot_cutedges;
 }
 

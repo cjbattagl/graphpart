@@ -345,7 +345,7 @@ int main(int argc, char** argv) {
 
   for (bfs_root_idx = 0; bfs_root_idx < num_bfs_roots; ++bfs_root_idx) {
     bfs_roots[bfs_root_idx] = get_permed_vertex(bfs_roots[bfs_root_idx]);
-    if(VERBY) {fprintf(stdout, " %d ", (int)bfs_roots[bfs_root_idx]); }
+    if (VERBY) {fprintf(stdout, " %d ", (int)bfs_roots[bfs_root_idx]); }
   }
 
   MPI_Allreduce(MPI_IN_PLACE, bfs_roots, num_bfs_roots, MPI_INT64_T, MPI_MAX, MPI_COMM_WORLD);
@@ -386,7 +386,7 @@ int main(int argc, char** argv) {
     run_bfs(root, &pred[0]);
     double bfs_stop = MPI_Wtime();
     bfs_times[bfs_root_idx] = bfs_stop - bfs_start;
-    if (rank == 0) fprintf(stderr, "Time for BFS %d is %f\n", bfs_root_idx, bfs_times[bfs_root_idx]);
+    //if (rank == 0) fprintf(stderr, "Time for BFS %d is %f\n", bfs_root_idx, bfs_times[bfs_root_idx]);
 
     /* Validate result. */
     //if (rank == 0) fprintf(stderr, "Validating BFS %d\n", bfs_root_idx);
@@ -436,7 +436,7 @@ int main(int argc, char** argv) {
       //fprintf(stdout, "edgefactor:                     %d\n", edgefactor);
       //fprintf(stdout, "NBFS:                           %d\n", num_bfs_roots);
       //fprintf(stdout, "graph_generation:               %g\n", make_graph_time);
-      fprintf(stdout, "num_mpi_processes:              %d\n", size);
+      //fprintf(stdout, "num_mpi_processes:              %d\n", size);
       //fprintf(stdout, "construction_time:              %g\n", data_struct_time);
       double stats[s_LAST];
       get_statistics(bfs_times, num_bfs_roots, stats);
