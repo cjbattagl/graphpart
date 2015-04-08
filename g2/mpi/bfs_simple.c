@@ -191,6 +191,11 @@ void run_bfs(int64_t root, int64_t* pred) {
          * map, and next-level queue locally; otherwise, send the target and
          * the current vertex (its possible predecessor) to the target's owner.
          * */
+
+        //UPDATE COMMUNICATION COUNTS
+        if (owner == rank) { }
+        else { num_sends++; }
+         
         if (owner == rank) {
           if (!TEST_VISITED(tgt)) {
             SET_VISITED(tgt);

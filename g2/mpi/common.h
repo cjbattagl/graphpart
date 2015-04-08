@@ -22,6 +22,8 @@ extern int rank, size;
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 extern int lgsize;
 extern int local_partsize;
+extern int num_sends;
+extern int num_bcasts;
 #endif
 extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct */
 
@@ -33,10 +35,11 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 #define F_DELTA 60
 #define NNZ_WEIGHT 0.01
 #define F_GAMMA 1.8
-#define F_CUTOFF 80
+#define F_CUTOFF 50
 #define NUM_STREAMS 8
-#define SANITY
+#define SANITY 1
 #define HI_RAND 0
+#define VALIDATE 0
 
 /* Distribute edges by their endpoints (make two directed copies of each input
  * undirected edge); distribution is 1-d and cyclic. */

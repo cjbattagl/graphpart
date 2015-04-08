@@ -376,7 +376,7 @@ int main(int argc, char** argv) {
 
     /* Validate result. */
     //if (rank == 0) fprintf(stderr, "Validating BFS %d\n", bfs_root_idx);
-#if 1
+#if VALIDATE
     double validate_start = MPI_Wtime();
     int64_t edge_visit_count;
     int validation_passed_one = validate_bfs_result(&tg, max_used_vertex + 1, nlocalverts, root, pred, &edge_visit_count);
@@ -405,11 +405,19 @@ int main(int argc, char** argv) {
   }
 
   /* Print results. */
+  int tot_num_sends;
+  int tot_num_bcasts;
+  MPI_Reduce(&num_sends, &tot_num_sends, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&num_bcasts, &tot_num_bcasts, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  fprintf(stdout, "num_sends:   %d\n", num_sends);
   if (rank == 0) {
     if (!validation_passed) {
       fprintf(stdout, "No results printed for invalid run.\n");
     } else {
-      int i;
+      fprintf(stdout, "tot_num_sends:   %d\n", tot_num_sends);
+      fprintf(stdout, "tot_num_bcasts:   %d\n", tot_num_bcasts);
+
       fprintf(stdout, "SCALE:                          %d\n", SCALE);
       fprintf(stdout, "edgefactor:                     %d\n", edgefactor);
       //fprintf(stdout, "NBFS:                           %d\n", num_bfs_roots);
@@ -426,6 +434,8 @@ int main(int argc, char** argv) {
       fprintf(stdout, "mean_time:                      %g\n", stats[s_mean]);
       //fprintf(stdout, "stddev_time:                    %g\n", stats[s_std]);
       get_statistics(edge_counts, num_bfs_roots, stats);
+#if VALIDATE
+      int i;
       //fprintf(stdout, "min_nedge:                      %.11g\n", stats[s_minimum]);
       //fprintf(stdout, "firstquartile_nedge:            %.11g\n", stats[s_firstquartile]);
       fprintf(stdout, "median_nedge:                   %.11g\n", stats[s_median]);
@@ -454,7 +464,7 @@ int main(int argc, char** argv) {
       free(secs_per_edge); secs_per_edge = NULL;
       free(edge_counts); edge_counts = NULL;
       get_statistics(validate_times, num_bfs_roots, stats);
-#if 0
+
       fprintf(stdout, "min_validate:                   %g\n", stats[s_minimum]);
       fprintf(stdout, "firstquartile_validate:         %g\n", stats[s_firstquartile]);
       fprintf(stdout, "median_validate:                %g\n", stats[s_median]);

@@ -18,6 +18,8 @@ int rank, size;
 int local_partsize;
 #ifdef SIZE_MUST_BE_A_POWER_OF_TWO
 int lgsize;
+int num_sends;
+int num_bcasts;
 #endif
 MPI_Datatype packed_edge_mpi_type;
 
@@ -37,6 +39,8 @@ void setup_globals() {
 #endif
 
   local_partsize = (int)(pow(2,lgsize)/size);
+  num_sends = 0;
+  num_bcasts = 0;
 
   int blocklengths[] = {1, 1, 1};
   MPI_Aint displs[] = {0, 0, 0};

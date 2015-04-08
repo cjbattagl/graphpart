@@ -198,9 +198,19 @@ void run_bfs(int64_t root, int64_t* pred) {
       int64_t src = oldq[i];
       /* Iterate through its incident edges. */
       size_t j, j_end = g.rowstarts[VERTEX_LOCAL(oldq[i]) + 1];
+
+
+      int this_nnz = g.rowstarts[VERTEX_LOCAL(oldq[i]) + 1] - g.rowstarts[VERTEX_LOCAL(oldq[i])];
+      if (this_nnz > F_CUTOFF) { num_sends--; num_bcasts++; }
+
       for (j = g.rowstarts[VERTEX_LOCAL(oldq[i])]; j < j_end; ++j) {
         int64_t tgt = g.column[j];
         int owner = VERTEX_OWNER(tgt);
+
+        //UPDATE COMMUNICATION COUNTS
+        if (owner == rank) { }
+        else if (this_nnz <= F_CUTOFF) { num_sends++; }
+
         /* If the other endpoint is mine, update the visited map, predecessor
          * map, and next-level queue locally; otherwise, send the target and
          * the current vertex (its possible predecessor) to the target's owner.
@@ -324,75 +334,20 @@ void permute_tuple_graph(tuple_graph* tg) {
       v0 = get_v0_from_edge(edge);
       v1 = get_v1_from_edge(edge);
 
-
-
       //we have to do this because it mods by source vertex....
       src_proc = floor(g_perm[v0]/(g.nglobalverts/size));
       tgt_proc = floor(g_perm[v1]/(g.nglobalverts/size));
-      //v0_new = VERTEX_TO_GLOBAL(src_proc,g_perm[v0]);
-      //v1_new = VERTEX_TO_GLOBAL(targ_proc,g_perm[v1]);
-      //v0_new = VERTEX_TO_GLOBAL(src_proc,floor(g_perm[v0]);
-      //v1_new = VERTEX_TO_GLOBAL(targ_proc,floor(g_perm[v1]);
-      
 
-      /////v0_new = (g_perm[v0] % partsize) * size + src_proc;
       v0_new = g_perm[v0];
       v1_new = g_perm[v1];
 
       v0_new = (v0_new % partsize) * size + src_proc;
       v1_new = (v1_new % partsize) * size + tgt_proc;
 
-
       //fprintf(stderr, "%d %d %d %d %d %d %d %d\n", (int)v0, (int)v1, (int)g_perm[v0], (int)g_perm[v1], (int)src_proc, (int)targ_proc, (int)v0_new, (int)v1_new);
-
-      //v0_new = g_perm[v0];//g_perm[v0] < g_perm[v1] ? g_perm[v0] : g_perm[v1];
-      //v1_new = g_perm[v1];//g_perm[v0] < g_perm[v1] ? g_perm[v1] : g_perm[v0];
-      //if (v0 >= perm_displs[rank] && v0 < perm_displs[rank + 1]) {
-      //  v0_new = local_vertex_perm[v0 - perm_displs[rank]] - N - 1;
-      //}
-      //if (v1 >= perm_displs[rank] && v1 < perm_displs[rank + 1]) {
-      //  v1_new = local_vertex_perm[v1 - perm_displs[rank]] - N - 1;
-      //}
       write_edge(edge, v0_new, v1_new);
     }
   }
-
-#if 0
-  //Compute g_perm
-  int64_t* perm_displs = (int64_t*)xmalloc((size + 1) * sizeof(int64_t));
-  perm_displs[0] = 0;
-  for (i = 1; i < size + 1; ++i) { perm_displs[i] = perm_displs[i - 1] + partsize[i - 1]; }
-  int64_t* perm_idxs = (int64_t*)xmalloc((size + 1) * sizeof(int64_t));
-  perm_idxs[0] = 0;
-  for (i = 1; i < size + 1; ++i) { perm_idxs[i] = perm_displs[i]; }
-  for (i = 0; i < g.nglobalverts; ++i) {
-    int this_part = perms[i];
-    int target_idx = perm_idxs[this_part];
-    g_perm[target_idx] = i;
-    perm_idxs[this_part]++;
-  }
-
-  packed_edge* result = tg->edgememory;
-  int64_t v0, v1;
-  int64_t v0_new, v1_new;
-  packed_edge* edge;
-  for (i = 0; i < (int64_t)tg->edgememory_size; ++i) {
-    //fprintf(stderr, "%d ", (int)tg->edgememory_size);
-    edge = &result[i];
-    v0 = get_v0_from_edge(edge);
-    v1 = get_v1_from_edge(edge);
-
-    v0_new = g_perm[v0];//g_perm[v0] < g_perm[v1] ? g_perm[v0] : g_perm[v1];
-    v1_new = g_perm[v1];//g_perm[v0] < g_perm[v1] ? g_perm[v1] : g_perm[v0];
-    //if (v0 >= perm_displs[rank] && v0 < perm_displs[rank + 1]) {
-    //  v0_new = local_vertex_perm[v0 - perm_displs[rank]] - N - 1;
-    //}
-    //if (v1 >= perm_displs[rank] && v1 < perm_displs[rank + 1]) {
-    //  v1_new = local_vertex_perm[v1 - perm_displs[rank]] - N - 1;
-    //}
-    write_edge(edge, v0_new, v1_new);
-  }
-#endif
 }
 
 void partition_graph_data_structure() { 
@@ -576,7 +531,6 @@ void partition_graph_data_structure() {
     }
     //if (rank==0) { fprintf(stdout,"max partsize = %d, min partsize = %d max/min partnnz = %d, %d ", max_partsize, min_partsize, max_partnnz, min_partnnz); }
     if (rank==0) { fprintf(stdout,"n balance: %f, nnz balance: %f\t", (float)max_partsize / min_partsize, (float)max_partnnz / min_partnnz); }
-
 #endif
 
     mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
