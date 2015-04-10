@@ -30,7 +30,7 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 
 #define MAT_OUT 0
 #define VERBY 0
-#define NUM_ROOTS 8
+#define NUM_ROOTS 2
 
 
 #define F_DELTA 60

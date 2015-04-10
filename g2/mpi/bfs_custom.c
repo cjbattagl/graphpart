@@ -354,6 +354,9 @@ void permute_tuple_graph(tuple_graph* tg) {
       write_edge(edge, v0_new, v1_new);
     }
   }
+
+  free_graph_data_structure();
+  make_graph_data_structure(tg);
 }
 
 void partition_graph_data_structure() { 

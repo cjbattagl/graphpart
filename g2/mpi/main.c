@@ -336,8 +336,7 @@ int main(int argc, char** argv) {
     fclose(GraphFile);
   }
 
-  free_graph_data_structure();
-  make_graph_data_structure(&tg);
+
 
   // permute roots
   int bfs_root_idx;
@@ -386,7 +385,7 @@ int main(int argc, char** argv) {
     run_bfs(root, &pred[0]);
     double bfs_stop = MPI_Wtime();
     bfs_times[bfs_root_idx] = bfs_stop - bfs_start;
-    //if (rank == 0) fprintf(stderr, "Time for BFS %d is %f\n", bfs_root_idx, bfs_times[bfs_root_idx]);
+    if (rank == 0) fprintf(stderr, "Time for BFS %d is %f\n", bfs_root_idx, bfs_times[bfs_root_idx]);
 
     /* Validate result. */
     //if (rank == 0) fprintf(stderr, "Validating BFS %d\n", bfs_root_idx);
@@ -408,9 +407,14 @@ int main(int argc, char** argv) {
 #endif
   }
 
+  double graph_free_start = MPI_Wtime();
   MPI_Free_mem(pred);
   free(bfs_roots);
   free_graph_data_structure();
+  double graph_free_stop = MPI_Wtime();
+  if (rank == 0) { fprintf(stderr, "graph cleanup time:               %f s\n", graph_free_stop - graph_free_start); }
+
+
 
   if (tg.data_in_file) {
     MPI_File_close(&tg.edgefile);
@@ -494,10 +498,13 @@ int main(int argc, char** argv) {
 #endif
     }
   }
+
+  double free_start = MPI_Wtime();
   free(bfs_times);
   free(validate_times);
-
   cleanup_globals();
+  double free_stop = MPI_Wtime();
+  if (rank == 0) { fprintf(stderr, "global cleanup time:               %f s\n", free_stop - free_start); }
   MPI_Finalize();
   return 0;
 }
