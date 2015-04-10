@@ -435,9 +435,9 @@ int main(int argc, char** argv) {
       fprintf(stdout, "SCALE:                          %d\n", SCALE);
       //fprintf(stdout, "edgefactor:                     %d\n", edgefactor);
       //fprintf(stdout, "NBFS:                           %d\n", num_bfs_roots);
-      //fprintf(stdout, "graph_generation:               %g\n", make_graph_time);
-      //fprintf(stdout, "num_mpi_processes:              %d\n", size);
-      //fprintf(stdout, "construction_time:              %g\n", data_struct_time);
+      fprintf(stdout, "graph_generation:               %g\n", make_graph_time);
+      fprintf(stdout, "num_mpi_processes:              %d\n", size);
+      fprintf(stdout, "construction_time:              %g\n", data_struct_time);
       double stats[s_LAST];
       get_statistics(bfs_times, num_bfs_roots, stats);
       //fprintf(stdout, "min_time:                       %g\n", stats[s_minimum]);
