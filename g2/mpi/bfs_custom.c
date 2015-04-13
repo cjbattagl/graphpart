@@ -495,7 +495,10 @@ void partition_graph_data_structure() {
         }
       }
       //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
-      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      //double allgstart= MPI_Wtime();
+      //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      //double allgstop = MPI_Wtime();
+      //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
 
       for (l=0; l<nparts; ++l) { 
         partsize_update[l] = partsize[l] - old_partsize[l];
@@ -513,6 +516,12 @@ void partition_graph_data_structure() {
         partnnz[l] = old_partnnz[l];
       }
     }
+
+      double allgstart= MPI_Wtime();
+      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      double allgstop = MPI_Wtime();
+      if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
+
 
     //sanity check: manually compute partsizes
 #ifdef SANITY
@@ -542,7 +551,7 @@ void partition_graph_data_structure() {
     //if (rank==0) { fprintf(stdout,"n balance: %f, nnz balance: %f\t", (float)max_partsize / min_partsize, (float)max_partnnz / min_partnnz); }
 #endif
 
-    if (SANITY) {
+    if (1 || SANITY) {
       mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
     }
   }
