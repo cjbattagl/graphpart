@@ -308,7 +308,10 @@ int main(int argc, char** argv) {
   }
 
   ////////// 3. RUN FENNEL ON CSR  /////////////////
+  double graph_part_start = MPI_Wtime();
   partition_graph_data_structure(); 
+  double graph_part_stop = MPI_Wtime();
+  if (rank == 0) { fprintf(stderr, "graph part time:               %f s\n", graph_part_stop - graph_part_start); }
 
   //////OLD SHIT, IGNORE
 #if 0
@@ -323,7 +326,10 @@ int main(int argc, char** argv) {
 #endif
 
   ////////// 4. PERMUTE TUPLE GRAPH BASED ON COMPUTED PERMUTATION  /////////////////
+  double graph_perm_start = MPI_Wtime();
   permute_tuple_graph(&tg);
+  double graph_perm_stop = MPI_Wtime();
+  if (rank == 0) { fprintf(stderr, "graph perm time:               %f s\n", graph_perm_stop - graph_perm_start); }
 
 
   if(MAT_OUT) {
