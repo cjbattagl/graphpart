@@ -120,26 +120,26 @@ int deg_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
     oldpart = -1;
     if(nnz_row != 0) {
       if(nnz_row < cutoff) {  //only partition low degrees
-      // generate partition scores for each partition
-      for (k = *row; k < ((*row)+nnz_row); k++) {
-        node = colidx[k];
-        for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; /*break;*/ }}
-      }
-        
-      // choose optimal partition (initializing first)
-      best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
-      best_part = 0;
-      for (s = 1; s < nparts; s++) {
-        curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
-        if (curr_score > best_score) { best_score = curr_score; best_part = s; }
-      }
-      for (s = 0; s < nparts; s++) { 
-        if (parts[s][vert] == 1) { oldpart = s; }
-        parts[s][vert] = 0; 
-      }
-      parts[best_part][vert] = 1;
-      partsize[best_part]++;
-      if (oldpart >= 0) { partsize[oldpart]--; }  
+        // generate partition scores for each partition
+        for (k = *row; k < ((*row)+nnz_row); k++) {
+          node = colidx[k];
+          for (s = 0; s < nparts; s++) { if (parts[s][node] == 1) { partscore[s]++; /*break;*/ }}
+        }
+          
+        // choose optimal partition (initializing first)
+        best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
+        best_part = 0;
+        for (s = 1; s < nparts; s++) {
+          curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
+          if (curr_score > best_score) { best_score = curr_score; best_part = s; }
+        }
+        for (s = 0; s < nparts; s++) { 
+          if (parts[s][vert] == 1) { oldpart = s; }
+          parts[s][vert] = 0; 
+        }
+        parts[best_part][vert] = 1;
+        partsize[best_part]++;
+        if (oldpart >= 0) { partsize[oldpart]--; }  
       }
     } else { // empty vertex for some reason... assign it to random permutation
       emptyverts++;
@@ -254,10 +254,10 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
 
   float alpha = sqrt(2) * (nnz/pow(n,gamma));
   //float alpha = nnz * pow(2,(gamma-1))/pow(m,gamma);
-  fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
+  //fprintf (stdout, "----> gamma = %f, alpha = %f\n",gamma,alpha);
           
   // Allocate partition vectors
-  fprintf (stdout, "----> Gen %d partition vectors\n",nparts);
+  //fprintf (stdout, "----> Gen %d partition vectors\n",nparts);
   bool** parts = (bool**)malloc(nparts * sizeof(bool*));
   for(int i = 0; i < nparts; i++) {
     parts[i] = (bool*)malloc(n * sizeof(bool));
@@ -267,7 +267,7 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
   assert(parts);
 
   // Iterate over vorder
-  fprintf (stdout, "----> Begin outer loop... \n");
+  //fprintf (stdout, "----> Begin outer loop... \n");
   int vert, k, s, node = 0;
   int *row;
   int nnz_row = 0;
@@ -289,26 +289,26 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
     if (partsize[s] > max_load) {max_load = partsize[s];}
     if (partsize[s] < min_load) {min_load = partsize[s];}
   }
-
+/*
   fprintf (stdout, "\n===== Fennel Complete in %g seconds =====\n", seconds);
   fprintf (stdout, "----> Partition sizes: ");
   for (s = 0; s < nparts; s++) { fprintf (stdout, "| %d |", partsize[s]); }
   fprintf (stdout, "\n----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
-
+*/
   // Compute cut quality
   int cutedges = 0;
   int emptyparts = 0; //empty assignments
   int redparts = 0; //redundant assignments
   
-  cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL, cutoff);
-    
+  //cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL, cutoff);
+    /*
   fprintf (stdout, "----> Percent edges cut = %d / %d = %1.3f\n",cutedges,nnz,(float)cutedges/nnz);
   fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
   fprintf (stdout, "===== Sanity Check =====\n");
   fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
   fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
   fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
-  
+  */
   FILE *PartFile;
   PartFile = fopen("parts.mat", "w");
   assert(PartFile != NULL);
@@ -350,19 +350,19 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
     redparts = 0; //redundant assignments
     
     if (run < numruns-1) {
-      cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL, cutoff);
+      //cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL, cutoff);
     }
     else {
       cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile, cutoff);
     }
-    fprintf (stdout, "Percent edges cut = %d / %d = %1.3f", cutedges,nnz,(float)cutedges/nnz);
+    //fprintf (stdout, "Percent edges cut = %d / %d = %1.3f", cutedges,nnz,(float)cutedges/nnz);
     max_load = partsize[0];
     min_load = partsize[0];
     for (s = 1; s < nparts; s++) {
       if (partsize[s] > max_load) {max_load = partsize[s];}
       if (partsize[s] < min_load) {min_load = partsize[s];}
     }
-    fprintf (stdout, "       ----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
+    //fprintf (stdout, "       ----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
     fprintf(LambdaFile, "%1.3f, ",(float)cutedges/nnz);
 
     if (run == numruns-1) {
@@ -504,23 +504,26 @@ static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx,
       emptyparts++;
     }
     
-    if (out != NULL) {
-      fprintf (out, "%d %d\n",i+1,v_part+1);
-    }
+    if (out != NULL) { fprintf (out, "%d %d\n",i+1,v_part+1); }
     
     // count edges to other partitions
     for (int k = *row; k < ((*row)+nnz_row); k++) {
       nnz++;
-      if (nnz_row < cutoff && rowptr[colidx[k]+1] - rowptr[colidx[k]] < cutoff) { tot_lo_deg_edges++; }
-      if (nnz_row < cutoff && rowptr[colidx[k]+1] - rowptr[colidx[k]] < cutoff && parts[v_part][colidx[k]] != 1) { cutedges++; }
+      int deg = rowptr[colidx[k]+1] - rowptr[colidx[k]];
+      int is_src_vtx_lo_deg = (nnz_row < cutoff);
+      int is_tgt_vtx_lo_deg = (deg < cutoff);
+
+      if (is_src_vtx_lo_deg && is_tgt_vtx_lo_deg) { tot_lo_deg_edges++; }
+      if (is_src_vtx_lo_deg && is_tgt_vtx_lo_deg && parts[v_part][colidx[k]] != 1) { cutedges++; }
     }
   }
-  fprintf (stdout, "Lo deg cut pct: %f\n",(float)cutedges/tot_lo_deg_edges);
-  fprintf (stdout, "Pct nnz below cutoff: %f\n",(float)tot_lo_deg_edges/nnz);
-  fprintf (stdout, "Pct nodes below cutoff: %f\n",(float)numnodes/totnodes);
+  //fprintf (stdout, "%d / %d = \t",cutedges, tot_lo_deg_edges);
+  fprintf (stdout, "%f\t",(float)cutedges/tot_lo_deg_edges);
+  //fprintf (stdout, "Pct nnz below cutoff: %f\n",(float)tot_lo_deg_edges/nnz);
+  fprintf (stdout, "%f\n",(float)numnodes/totnodes);
   return cutedges;
 }
 
 static float calc_dc(float alpha, float gamma, int len) {
-  return (alpha*pow(len+0.5,gamma)) - (alpha*pow(len,gamma));
+  return (alpha*pow(len+10,gamma)) - (alpha*pow(len,gamma));
 }

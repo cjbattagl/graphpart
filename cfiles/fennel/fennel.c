@@ -210,7 +210,18 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-  run_fennel(repr, parts, 1.5, cutoff); //todo: nparts, gamma as inputs
+
+  int q;
+
+  for (q=2; q<20; q++) {
+    fprintf (stdout, "\t%d\t",q);
+    run_fennel(repr, parts, 1.9, q); //todo: nparts, gamma as inputs
+  }
+  for (q=20; q<200; q+=5) {
+    fprintf (stdout, "\t%d\t",q);
+    run_fennel(repr, parts, 1.9, q); //todo: nparts, gamma as inputs
+  }
+
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);
   destroy_sparse_matrix (A);

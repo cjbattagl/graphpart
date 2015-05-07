@@ -1,11 +1,3 @@
-/* Copyright (C) 2010-2011 The Trustees of Indiana University.             */
-/*                                                                         */
-/* Use, modification and distribution is subject to the Boost Software     */
-/* License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at */
-/* http://www.boost.org/LICENSE_1_0.txt)                                   */
-/*                                                                         */
-/*  Authors: Jeremiah Willcock                                             */
-/*           Andrew Lumsdaine                                              */
 
 #include "common.h"
 #include "oned_csr.h"
@@ -339,17 +331,13 @@ void permute_tuple_graph(tuple_graph* tg) {
       edge = &result[i];
       v0 = get_v0_from_edge(edge);
       v1 = get_v1_from_edge(edge);
-
       //we have to do this because it mods by source vertex....
       src_proc = floor(g_perm[v0]/(g.nglobalverts/size));
       tgt_proc = floor(g_perm[v1]/(g.nglobalverts/size));
-
       v0_new = g_perm[v0];
       v1_new = g_perm[v1];
-
       v0_new = (v0_new % partsize) * size + src_proc;
       v1_new = (v1_new % partsize) * size + tgt_proc;
-
       //fprintf(stderr, "%d %d %d %d %d %d %d %d\n", (int)v0, (int)v1, (int)g_perm[v0], (int)g_perm[v1], (int)src_proc, (int)targ_proc, (int)v0_new, (int)v1_new);
       write_edge(edge, v0_new, v1_new);
     }
@@ -360,9 +348,6 @@ void permute_tuple_graph(tuple_graph* tg) {
 }
 
 void partition_graph_data_structure() { 
-// distribute the low-degree vertices as in redistribute.h
-// distribute high-degree vertices using the owner function on the /destination/ vertex of each edge
-// we will need a special CSR structure that has offset columns. 
   int n = g.nglobalverts;
   int n_local = g.nlocalverts;
   int offset = g.nlocalverts * rank; //!//Does this work?
@@ -380,6 +365,7 @@ void partition_graph_data_structure() {
   int *partscore = (int*)malloc(nparts * sizeof(int));
   int *partcost = (int*)malloc(nparts * sizeof(int));
   int *vorder = (int*)malloc(n_local * sizeof(int)); 
+
   int oldpart;
   int emptyverts = 0;
   int randidx;
@@ -391,7 +377,6 @@ void partition_graph_data_structure() {
   int64_t node = 0;
   size_t *rowptr = g.rowstarts;
   float curr_score, best_score;
-  //genRandPerm(vorder, n_local);
   float gamma = F_GAMMA;
   int i, s, l; //,j;
 
@@ -413,93 +398,104 @@ void partition_graph_data_structure() {
     partsize[l] = 0;
     old_partsize[l] = 0;
     partsize_update[l] = 0;
-
     partnnz[l] = 0;
     old_partnnz[l] = 0;
     partnnz_update[l] = 0;
   }
 
-  //int num_local_hi = 0;
   int localedges = (int)g.nlocaledges;
   MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
-  //if (rank==1) {fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);}
+  
+  fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);
   int repeat_run;
-  int run;
+  //int run;
+  genRandPerm(vorder, n_local);
   for (repeat_run = 0; repeat_run < NUM_STREAMS; repeat_run++) {
-    genRandPerm(vorder, n_local);
-    for (run=0; run<nparts; run++) {
-      if (rank == run) { //just partition one process after the other...
-        for (i = 0; i < n_local; ++i) {
-          for (l = 0; l < nparts; l++) {
-            partscore[l] = 0;
-            partcost[l] = 0;
-          }
-          vert = (size_t)vorder[i];
-          //int global_vert_idx = VERTEX_TO_GLOBAL(rank, vert);
-          int local_idx = offset + vert; //VERTEX_LOCAL(global_vert_idx);
-          row = &rowptr[vert];
-          nnz_row = *(row+1) - *row;
-          oldpart = -1;
-          if (nnz_row >= cutoff) { parts[local_idx] = nparts; }
-          else if(nnz_row > 0) {
-            for (k = *row; k < ((*row)+nnz_row); ++k) {
-              node = colidx[k]; 
-              int node_owner = VERTEX_OWNER(node);
-              int node_local_idx = VERTEX_LOCAL(node);
-              int parts_idx = node_owner*g.nlocalverts + node_local_idx;
-              int node_part = parts[parts_idx]; /////
-              if (node_part >= 0 && node_part < nparts) { 
-                partscore[parts[parts_idx]]++; //?
-              }
-            }
-            for (s = 0; s < nparts; ++s) { 
-              float dc = calc_dc(alpha,gamma,partsize[s]+(NNZ_WEIGHT*partnnz[s])); //are partsizes calculated correctly
-              int normscore = partscore[s] - (int)nnz_row;
-              partcost[s] = normscore - dc; 
-            }
-
-            best_part = nparts-1;
-            best_score = partcost[nparts-1];
-            for (s = nparts-2; s >= 0; --s) { 
-              curr_score = partcost[s]; 
-              if (curr_score > best_score) {
-                best_score = curr_score;  best_part = s;
-              }
-            }
-
-            oldpart = parts[local_idx];
-            parts[local_idx] = best_part;
-            partsize[best_part]++; partnnz[best_part]+=nnz_row;
-
-            if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
-          } else { // empty vertex, assign randomly
-            emptyverts++;
+    //for (run=0; run<nparts; run++) {
+      //if (rank == run) { //just partition one process after the other...
+        //First run: initialize with hashed partition
+        if (repeat_run == 0) {
+          for (i = 0; i < n_local; ++i) {
+            vert = (size_t)vorder[i];
+            int local_idx = offset + vert; 
+            //fprintf(stdout," %d ",local_idx);
             randidx = irand(nparts);
-            oldpart = parts[local_idx];
+            //oldpart = parts[local_idx];
             parts[local_idx] = randidx;
             partsize[randidx]++;
-            if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
+            row = &rowptr[vert];
+            nnz_row = *(row+1) - *row;
+            partnnz[randidx] += nnz_row;
           }
-          /*if (i % 32 == 0) { //(isPowerOfTwo(i)) {
-            MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
-            for (l=0; l<nparts; ++l) { 
-              partsize_update[l] = partsize[l] - old_partsize[l];
-            }            
-            MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-            for (l=0; l<nparts; ++l) { 
-              old_partsize[l] += partsize_update[l]; 
-              partsize[l] = old_partsize[l];
-            }
-          }*/
         }
-      }
+        else {    //Additional runs: run FENNEL algorithm. todo: tempering
+          alpha *= 2;
+          for (i = 0; i < n_local; ++i) {
+            for (l = 0; l < nparts; l++) {
+              partscore[l] = 0;
+              partcost[l] = 0;
+            }
+            vert = (size_t)vorder[i];
+            //int global_vert_idx = VERTEX_TO_GLOBAL(rank, vert);
+            int local_idx = offset + vert; //VERTEX_LOCAL(global_vert_idx);
+            row = &rowptr[vert];
+            nnz_row = *(row+1) - *row;
+            oldpart = -1;
+            if (nnz_row >= cutoff) { parts[local_idx] = nparts; }
+            else if(nnz_row > 0) {
+              for (k = *row; k < ((*row)+nnz_row); ++k) {
+                node = colidx[k]; 
+                int node_owner = VERTEX_OWNER(node);
+                int node_local_idx = VERTEX_LOCAL(node);
+                int parts_idx = node_owner*g.nlocalverts + node_local_idx;
+                int node_part = parts[parts_idx]; /////
+                if (node_part >= 0 && node_part < nparts) { partscore[parts[parts_idx]]++; }
+              }
+              for (s = 0; s < nparts; ++s) { 
+                float dc = calc_dc(alpha,gamma,partsize[s]); 
+                int normscore = partscore[s] - (int)nnz_row;
+                partcost[s] = normscore - dc; 
+              }
+              best_part = nparts-1;
+              best_score = partcost[nparts-1];
+              for (s = nparts-2; s >= 0; --s) { 
+                curr_score = partcost[s]; 
+                if (curr_score > best_score) {
+                  best_score = curr_score;  best_part = s;
+                }
+              }
+              oldpart = parts[local_idx];
+              parts[local_idx] = best_part;
+              partsize[best_part]++; partnnz[best_part]+=nnz_row;
+              if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
+            } else { // empty vertex, assign randomly
+              emptyverts++;
+              randidx = irand(nparts);
+              oldpart = parts[local_idx];
+              parts[local_idx] = randidx;
+              partsize[randidx]++;
+              if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
+            }
+            /*if (i % 32 == 0) { //(isPowerOfTwo(i)) {
+              MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+              for (l=0; l<nparts; ++l) { 
+                partsize_update[l] = partsize[l] - old_partsize[l];
+              }            
+              MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+              for (l=0; l<nparts; ++l) { 
+                old_partsize[l] += partsize_update[l]; 
+                partsize[l] = old_partsize[l];
+              }
+            }*/
+          }
+        }
+      //}
       //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       //double allgstart= MPI_Wtime();
       //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       //double allgstop = MPI_Wtime();
       //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
-
       for (l=0; l<nparts; ++l) { 
         partsize_update[l] = partsize[l] - old_partsize[l];
         partnnz_update[l] = partnnz[l] - old_partnnz[l];
@@ -511,45 +507,44 @@ void partition_graph_data_structure() {
       for (l=0; l<nparts; ++l) { 
         old_partsize[l] += partsize_update[l]; 
         old_partnnz[l] += partnnz_update[l]; 
-
         partsize[l] = old_partsize[l];
         partnnz[l] = old_partnnz[l];
       }
-    }
 
-      double allgstart= MPI_Wtime();
+      //double allgstart= MPI_Wtime();
       MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
-      double allgstop = MPI_Wtime();
-      if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
-
+      //double allgstop = MPI_Wtime();
+      //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
 
     //sanity check: manually compute partsizes
-#ifdef SANITY
-    int max_partsize = 0;
-    int min_partsize = n;
-    int *check_partsize = (int*)malloc((nparts+1)*sizeof(int));
-    int max_partnnz = 0;
-    int min_partnnz = tot_nnz;
-    for (l=0; l<=nparts; ++l) { 
-      check_partsize[l] = 0; 
+    if (SANITY) {
+      int max_partsize = 0;
+      int min_partsize = n;
+      int *check_partsize = (int*)malloc((nparts+1)*sizeof(int));
+      int max_partnnz = 0;
+      int min_partnnz = tot_nnz;
+      for (l=0; l<=nparts; ++l) { 
+        check_partsize[l] = 0; 
+      }
+      for (i=0; i<n; ++i) {
+        int mypart = parts[i];
+        if (mypart == -1) { fprintf(stderr, "-1 :("); }
+        assert(mypart>=0 && mypart<=nparts);
+        check_partsize[mypart]++;
+      }
+      for (l=0; l<nparts; ++l) { 
+        if (rank==l && VERBY) { fprintf(stdout,"partsize[%d] on rank %d is %d. check_partsize is %d\n", l, rank, partsize[l], check_partsize[l]); }
+        assert(check_partsize[l] == partsize[l]); 
+        if (check_partsize[l] > max_partsize) { max_partsize = check_partsize[l]; }
+        if (check_partsize[l] < min_partsize) { min_partsize = check_partsize[l]; }
+        if (partnnz[l] > max_partnnz) { max_partnnz = partnnz[l]; }
+        if (partnnz[l] < min_partnnz) { min_partnnz = partnnz[l]; }
+        //if (rank==0) { fprintf(stdout,"%d / %d\n",max_partsize, min_partsize); }
+        //if (rank==0) { fprintf(stdout,"%d / %d\n",max_partnnz, min_partnnz); }
+      }
+      //if (rank==0) { fprintf(stdout,"max partsize = %d, min partsize = %d max/min partnnz = %d, %d ", max_partsize, min_partsize, max_partnnz, min_partnnz); }
+      if (rank==0) { fprintf(stdout,"n balance: %f, nnz balance: %f\t", (float)max_partsize / min_partsize, (float)max_partnnz / min_partnnz); }
     }
-
-    for (i=0; i<n; ++i) {
-      int mypart = parts[i];
-      assert(mypart>=0 && mypart<=nparts);
-      check_partsize[mypart]++;
-    }
-    for (l=0; l<nparts; ++l) { 
-      //if (rank==l) { fprintf(stdout,"partsize[%d] on rank %d is %d. check_partsize is %d\n", l, rank, partsize[l], check_partsize[l]); }
-      assert(check_partsize[l] == partsize[l]); 
-      if (check_partsize[l] > max_partsize) { max_partsize = check_partsize[l]; }
-      if (check_partsize[l] < min_partsize) { min_partsize = check_partsize[l]; }
-      if (partnnz[l] > max_partnnz) { max_partnnz = partnnz[l]; }
-      if (partnnz[l] < min_partnnz) { min_partnnz = partnnz[l]; }
-    }
-    //if (rank==0) { fprintf(stdout,"max partsize = %d, min partsize = %d max/min partnnz = %d, %d ", max_partsize, min_partsize, max_partnnz, min_partnnz); }
-    //if (rank==0) { fprintf(stdout,"n balance: %f, nnz balance: %f\t", (float)max_partsize / min_partsize, (float)max_partnnz / min_partnnz); }
-#endif
 
     if (1 || SANITY) {
       mpi_compute_cut(rowptr, colidx, parts, nparts, n_local, offset, cutoff);
@@ -576,13 +571,13 @@ void partition_graph_data_structure() {
     fclose(PartFile);
   }
 
-#ifdef SANITY
-  // Sanity Checks
-  for (i=0; i < g.nglobalverts; ++i) {
-    assert(parts[i]>=0);
-    assert(parts[i]<nparts);
+  if (SANITY) {
+    // Sanity Checks
+    for (i=0; i < g.nglobalverts; ++i) {
+      assert(parts[i]>=0);
+      assert(parts[i]<nparts);
+    }
   }
-#endif
 }
 
 // Random permutation generator. Move to another file.

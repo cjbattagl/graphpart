@@ -7,7 +7,7 @@
   B = spconvert(B);
   C = spconvert(C);
   D = spconvert(D);
-  hold off;
+  hold on;
 
   %A(4096,4096)=1;   B(4096,4096)=1;   C(4096,4096)=1;   D(4096,4096)=1;
 
