@@ -36,8 +36,9 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 #define NNZ_WEIGHT 0
 #define F_GAMMA 2
 #define F_CUTOFF 100
-#define NUM_STREAMS 24
-#define SANITY 1
+#define ALPHA_EXP_RATE 1.1
+#define NUM_STREAMS 10
+#define SANITY 0
 #define HI_RAND 1
 #define VALIDATE 0
 
@@ -181,6 +182,7 @@ int64_t get_permed_vertex(int64_t id);
 void partition_graph_data_structure();
 void print_graph();
 void permute_tuple_graph(tuple_graph* tg);
+void distribute_hi_degrees();
 
 void apply_permutation_mpi(MPI_Comm comm, const int64_t local_perm_size, const int64_t* const local_vertex_perm, const int64_t N, const int64_t nedges, int64_t* result);
 int print_parts(FILE* out, int* parts, int n, int n_local);

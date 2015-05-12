@@ -330,7 +330,8 @@ int main(int argc, char** argv) {
   permute_tuple_graph(&tg);
   double graph_perm_stop = MPI_Wtime();
   if (rank == 0) { fprintf(stderr, "graph perm time:               %f s\n", graph_perm_stop - graph_perm_start); }
-
+  //This has re-computed a new distributed CSR graph, oned_csr_graph g
+  distribute_hi_degrees();
 
   if(MAT_OUT) {
     char filename2[256];

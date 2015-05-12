@@ -29,7 +29,9 @@ static MPI_Request* g_outgoing_reqs;
 static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
 
-void partition_graph_data_structure(){  }
+void partition_graph_data_structure(){ }
+void distribute_hi_degrees() { }
+
 
 void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);

@@ -20,6 +20,7 @@
 static int* g_perm;
 static int* parts;
 static oned_csr_graph g;
+static oned_csr_graph g_hi;
 static int64_t* g_oldq;
 static int64_t* g_newq;
 static unsigned long* g_visited;
@@ -29,6 +30,8 @@ static size_t* g_outgoing_counts /* 2x actual count */;
 static MPI_Request* g_outgoing_reqs;
 static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
+
+static int num_hi_deg_verts;
 
 void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);
@@ -284,6 +287,124 @@ void get_vertex_distribution_for_pred(size_t count, const int64_t* vertex_p, int
 int64_t vertex_to_global_for_pred(int v_rank, size_t v_local) { return VERTEX_TO_GLOBAL(v_rank, v_local); }
 size_t get_nlocalverts_for_pred(void) { return g.nlocalverts; }
 
+void distribute_hi_degrees() {
+  int n = g.nglobalverts;
+  int n_local = g.nlocalverts;
+  int offset = g.nlocalverts * rank; //!//Does this work?
+  int nparts = size;
+  int cutoff = F_CUTOFF;
+  size_t *row;
+  size_t vert = 0;
+  size_t k,  nnz_row, best_part;
+  int64_t *colidx = g.column;
+  int64_t node = 0;
+  size_t *rowptr = g.rowstarts;
+  int i,j,l;
+
+  int* hi_deg_total_sends = (int*)malloc(nparts * sizeof(int));
+  int* hi_deg_total_recvs = (int*)malloc(nparts * sizeof(int));
+
+  for (l=0; l<nparts; ++l) { hi_deg_total_sends[l] = 0; }
+
+  MPI_Allreduce(MPI_IN_PLACE, &num_hi_deg_verts, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  int num_local_hi_verts = 0;
+
+  if (VERBY && rank==0) { fprintf(stdout,"n = %d, n_local = %d, num hi = %d\n",n,n_local,num_hi_deg_verts); }
+  for (i = 0; i < n_local; ++i) {
+    row = &rowptr[i];
+    nnz_row = *(row+1) - *row;
+    if (nnz_row > cutoff) {
+      num_local_hi_verts++;
+      int local_idx = offset + vert; 
+      // count total edges we are sending to each process
+      for (k = *row; k < ((*row)+nnz_row); ++k) {
+        node = colidx[k]; 
+        int node_owner = VERTEX_OWNER(node);
+        hi_deg_total_sends[node_owner]++;
+      }
+    }
+  }
+
+  MPI_Allreduce(hi_deg_total_sends, hi_deg_total_recvs, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+  for (l=0; l<nparts; ++l) {
+    //fprintf(stdout, "SEND %d: %d\n", rank, hi_deg_total_sends[l]);
+    //fprintf(stdout, "RECV %d: %d\n", rank, hi_deg_total_recvs[l]);
+  }
+
+  //size_t total_recvs = 0;
+  size_t total_sends = 0;
+  for (l=0; l<nparts; ++l) {
+    //total_recvs += hi_deg_total_recvs[l];
+    total_sends += hi_deg_total_sends[l];
+  }
+
+  if (VERBY) { fprintf(stdout,"total_sends = %d,  num_hi_deg_verts = %d, num hi = %d\n",total_sends, num_hi_deg_verts); }
+
+  size_t* hi_rowstarts = (size_t*)malloc((num_hi_deg_verts+1)*sizeof(size_t));
+  int* sendcounts = (int *)malloc( size * sizeof(int) );
+  int* recvcounts = (int *)malloc( size * sizeof(int) );
+  int* rdispls = (int *)malloc( (size+1) * sizeof(int) );
+  int* sdispls = (int *)malloc( (size+1) * sizeof(int) );
+
+  int64_t* send_buffer = (int64_t*)malloc(total_sends * sizeof(int64_t));
+  int64_t* send_buffer_writers = (int64_t*)malloc(nparts * sizeof(int64_t));
+
+  int so_far = 0;
+  for (l=0; l<nparts; ++l) {
+    send_buffer_writers[l] = so_far;
+    sdispls[l] = so_far;
+    sendcounts[l] = hi_deg_total_sends[l];
+    so_far += hi_deg_total_sends[l];
+  }
+
+  MPI_Alltoall(sendcounts, 1, MPI_INT, recvcounts, 1, MPI_INT, MPI_COMM_WORLD);
+  rdispls[0] = 0; 
+  sdispls[0] = 0; 
+  for (i = 0; i < size; ++i) { 
+    rdispls[i + 1] = rdispls[i] + recvcounts[i]; 
+    sdispls[i + 1] = sdispls[i] + sendcounts[i]; 
+  }
+
+  for (i = 0; i < n_local; ++i) {
+    row = &rowptr[i];
+    nnz_row = *(row+1) - *row;
+    if (nnz_row > cutoff) {
+      int local_idx = offset + vert; 
+      // count total edges we are sending to each process
+      for (k = *row; k < ((*row)+nnz_row); ++k) {
+        node = colidx[k]; 
+        int node_owner = VERTEX_OWNER(node);
+        send_buffer[send_buffer_writers[node_owner]] = node;
+        send_buffer_writers[node_owner]++;
+      }
+    }
+  }
+
+  if(VERBY){
+    fprintf(stdout, "SEND  %d: ", rank);
+    for (l=0; l<nparts; ++l) {
+      fprintf(stdout, " %d ", sendcounts[l]);
+    }
+    fprintf(stdout, "\nRECV %d: ", rank);
+    for (l=0; l<nparts; ++l) {
+      fprintf(stdout, " %d ", recvcounts[l]);
+    }
+    fprintf(stdout, "\nSEND_DSPL  %d: ", rank);
+    for (l=0; l<=nparts; ++l) {
+      fprintf(stdout, " %d ", sdispls[l]);
+    }
+    fprintf(stdout, "\nRECV_DSPL %d: ", rank);
+    for (l=0; l<=nparts; ++l) {
+      fprintf(stdout, " %d ", rdispls[l]);
+    }
+    fprintf(stdout, "\n");
+  }
+
+  int64_t* hi_column = (int64_t*)malloc(rdispls[size] * sizeof(int64_t));
+  MPI_Alltoallv(send_buffer, sendcounts, sdispls, MPI_INT64_T, hi_column, recvcounts, rdispls, MPI_INT64_T, MPI_COMM_WORLD);
+}
+
 void permute_tuple_graph(tuple_graph* tg) {
   if (tg->edgememory_size > 0) {
     int64_t i;
@@ -368,6 +489,7 @@ void partition_graph_data_structure() {
 
   int oldpart;
   int emptyverts = 0;
+  num_hi_deg_verts = 0;
   int randidx;
   int cutoff = F_CUTOFF;
   size_t *row;
@@ -418,19 +540,23 @@ void partition_graph_data_structure() {
         if (repeat_run == 0) {
           for (i = 0; i < n_local; ++i) {
             vert = (size_t)vorder[i];
-            int local_idx = offset + vert; 
-            //fprintf(stdout," %d ",local_idx);
-            randidx = irand(nparts);
-            //oldpart = parts[local_idx];
-            parts[local_idx] = randidx;
-            partsize[randidx]++;
             row = &rowptr[vert];
             nnz_row = *(row+1) - *row;
-            partnnz[randidx] += nnz_row;
+            int local_idx = offset + vert; 
+
+            if (nnz_row >= cutoff) { parts[local_idx] = nparts; num_hi_deg_verts++; }
+            else {
+              //fprintf(stdout," %d ",local_idx);
+              randidx = irand(nparts);
+              //oldpart = parts[local_idx];
+              parts[local_idx] = randidx;
+              partsize[randidx]++;
+              partnnz[randidx] += nnz_row;
+            }
           }
         }
         else {    //Additional runs: run FENNEL algorithm. todo: tempering
-          alpha *= 2;
+          alpha *= ALPHA_EXP_RATE;
           for (i = 0; i < n_local; ++i) {
             for (l = 0; l < nparts; l++) {
               partscore[l] = 0;
@@ -450,16 +576,18 @@ void partition_graph_data_structure() {
                 int node_local_idx = VERTEX_LOCAL(node);
                 int parts_idx = node_owner*g.nlocalverts + node_local_idx;
                 int node_part = parts[parts_idx]; /////
-                if (node_part >= 0 && node_part < nparts) { partscore[parts[parts_idx]]++; }
+                if (node_part >= 0 && node_part < nparts) { partscore[node_part]++; }
               }
               for (s = 0; s < nparts; ++s) { 
-                float dc = calc_dc(alpha,gamma,partsize[s]); 
-                int normscore = partscore[s] - (int)nnz_row;
-                partcost[s] = normscore - dc; 
+                //float dc = calc_dc(alpha,gamma,partsize[s]); 
+                //int normscore = partscore[s] - (int)nnz_row;
+                //partcost[s] = normscore - dc; 
+
+                partcost[s] = partscore[s] - alpha*(gamma/2)*pow(partsize[s],gamma-1);
               }
-              best_part = nparts-1;
-              best_score = partcost[nparts-1];
-              for (s = nparts-2; s >= 0; --s) { 
+              best_part = 0;
+              best_score = partcost[0];
+              for (s = 1; s < nparts; ++s) { 
                 curr_score = partcost[s]; 
                 if (curr_score > best_score) {
                   best_score = curr_score;  best_part = s;
@@ -470,14 +598,16 @@ void partition_graph_data_structure() {
               partsize[best_part]++; partnnz[best_part]+=nnz_row;
               if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
             } else { // empty vertex, assign randomly
-              emptyverts++;
-              randidx = irand(nparts);
-              oldpart = parts[local_idx];
-              parts[local_idx] = randidx;
-              partsize[randidx]++;
-              if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
+              if (parts[local_idx]==-1) {
+                emptyverts++;
+                randidx = irand(nparts);
+                oldpart = parts[local_idx];
+                parts[local_idx] = randidx;
+                partsize[randidx]++;
+                if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
+              }
             }
-            /*if (i % 32 == 0) { //(isPowerOfTwo(i)) {
+            if (i % 512 == 0) { //(isPowerOfTwo(i)) {
               MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
               for (l=0; l<nparts; ++l) { 
                 partsize_update[l] = partsize[l] - old_partsize[l];
@@ -487,7 +617,7 @@ void partition_graph_data_structure() {
                 old_partsize[l] += partsize_update[l]; 
                 partsize[l] = old_partsize[l];
               }
-            }*/
+            }
           }
         }
       //}
@@ -556,7 +686,7 @@ void partition_graph_data_structure() {
   for (i=offset; i<offset+n_local; ++i) {
     if (parts[i] == nparts) {
       if (HI_RAND) { parts[i] = irand(nparts); }
-      else { parts[i] = nparts-1; }
+      else { parts[i] = nparts; }
     }
   }
   MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
