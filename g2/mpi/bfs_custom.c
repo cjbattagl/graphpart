@@ -19,6 +19,7 @@
 ///////////////////
 static int* g_perm;
 static int* parts;
+static int* hi_deg_ids;
 static oned_csr_graph g;
 static oned_csr_graph g_hi;
 static int64_t* g_oldq;
@@ -200,38 +201,44 @@ void run_bfs(int64_t root, int64_t* pred) {
 
 
       int this_nnz = g.rowstarts[VERTEX_LOCAL(oldq[i]) + 1] - g.rowstarts[VERTEX_LOCAL(oldq[i])];
-      if (this_nnz > F_CUTOFF) { num_sends--; num_bcasts++; }
+      if (this_nnz >= F_CUTOFF) { num_sends--; num_bcasts++; }
 
-      for (j = g.rowstarts[VERTEX_LOCAL(oldq[i])]; j < j_end; ++j) {
-        int64_t tgt = g.column[j];
-        int owner = VERTEX_OWNER(tgt);
+      // BROADCAST
+      if (this_nnz >= F_CUTOFF) {
+        num_processed+=this_nnz; 
+      }
+      else { // SEND
+        for (j = g.rowstarts[VERTEX_LOCAL(oldq[i])]; j < j_end; ++j) {
+          int64_t tgt = g.column[j];
+          int owner = VERTEX_OWNER(tgt);
 
-        //UPDATE COMMUNICATION COUNTS
-        if (owner == rank) { }
-        else { num_sends++;
-          if (this_nnz > F_CUTOFF) { num_sends--; }
-        }
-        num_processed++; 
-        /* If the other endpoint is mine, update the visited map, predecessor
-         * map, and next-level queue locally; otherwise, send the target and
-         * the current vertex (its possible predecessor) to the target's owner.
-         * */
-        if (owner == rank) {
-          if (!TEST_VISITED(tgt)) {
-            SET_VISITED(tgt);
-            pred[VERTEX_LOCAL(tgt)] = src;
-            newq[newq_count++] = tgt;
+          //UPDATE COMMUNICATION COUNTS
+          if (owner == rank) { }
+          else { num_sends++;
+            if (this_nnz >= F_CUTOFF) { num_sends--; }
           }
-        } else {
-          while (outgoing_reqs_active[owner]) CHECK_MPI_REQS; /* Wait for buffer to be available */
-          size_t c = outgoing_counts[owner];
-          outgoing[owner * coalescing_size * 2 + c] = tgt;
-          outgoing[owner * coalescing_size * 2 + c + 1] = src;
-          outgoing_counts[owner] += 2;
-          if (outgoing_counts[owner] == coalescing_size * 2) {
-            MPI_Isend(&outgoing[owner * coalescing_size * 2], coalescing_size * 2, MPI_INT64_T, owner, 0, MPI_COMM_WORLD, &outgoing_reqs[owner]);
-            outgoing_reqs_active[owner] = 1;
-            outgoing_counts[owner] = 0;
+          num_processed++; 
+          /* If the other endpoint is mine, update the visited map, predecessor
+           * map, and next-level queue locally; otherwise, send the target and
+           * the current vertex (its possible predecessor) to the target's owner.
+           * */
+          if (owner == rank) {
+            if (!TEST_VISITED(tgt)) {
+              SET_VISITED(tgt);
+              pred[VERTEX_LOCAL(tgt)] = src;
+              newq[newq_count++] = tgt;
+            }
+          } else {
+            while (outgoing_reqs_active[owner]) CHECK_MPI_REQS; /* Wait for buffer to be available */
+            size_t c = outgoing_counts[owner];
+            outgoing[owner * coalescing_size * 2 + c] = tgt;
+            outgoing[owner * coalescing_size * 2 + c + 1] = src;
+            outgoing_counts[owner] += 2;
+            if (outgoing_counts[owner] == coalescing_size * 2) {
+              MPI_Isend(&outgoing[owner * coalescing_size * 2], coalescing_size * 2, MPI_INT64_T, owner, 0, MPI_COMM_WORLD, &outgoing_reqs[owner]);
+              outgoing_reqs_active[owner] = 1;
+              outgoing_counts[owner] = 0;
+            }
           }
         }
       }
@@ -309,13 +316,23 @@ void distribute_hi_degrees() {
   MPI_Allreduce(MPI_IN_PLACE, &num_hi_deg_verts, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   int num_local_hi_verts = 0;
 
-  if (VERBY && rank==0) { fprintf(stdout,"n = %d, n_local = %d, num hi = %d\n",n,n_local,num_hi_deg_verts); }
+  if (1 && rank==0) { fprintf(stdout,"n = %d, n_local = %d, num hi = %d\n",n,n_local,num_hi_deg_verts); }
+
+
+  hi_deg_ids = (int*)malloc(n * sizeof(int));
+  memset(hi_deg_ids, -1, n * sizeof(int));
+
+  // Count total sends so we can allocate basic data structures
   for (i = 0; i < n_local; ++i) {
     row = &rowptr[i];
     nnz_row = *(row+1) - *row;
-    if (nnz_row > cutoff) {
+    if (nnz_row >= cutoff) {
       num_local_hi_verts++;
-      int local_idx = offset + vert; 
+
+      size_t local_idx = offset + i; 
+
+      //fprintf(stdout, "%d ",local_idx);
+      hi_deg_ids[local_idx] = num_local_hi_verts-1;
       // count total edges we are sending to each process
       for (k = *row; k < ((*row)+nnz_row); ++k) {
         node = colidx[k]; 
@@ -326,9 +343,15 @@ void distribute_hi_degrees() {
   }
 
   MPI_Allreduce(hi_deg_total_sends, hi_deg_total_recvs, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, hi_deg_ids, n_local, MPI_INT, MPI_COMM_WORLD);
 
   for (l=0; l<nparts; ++l) {
     //fprintf(stdout, "SEND %d: %d\n", rank, hi_deg_total_sends[l]);
+    //fprintf(stdout, "RECV %d: %d\n", rank, hi_deg_total_recvs[l]);
+  }
+
+  for (l=0; l<n; ++l) {
+    //fprintf(stdout, "%d ", hi_deg_ids[l]);
     //fprintf(stdout, "RECV %d: %d\n", rank, hi_deg_total_recvs[l]);
   }
 
@@ -339,7 +362,7 @@ void distribute_hi_degrees() {
     total_sends += hi_deg_total_sends[l];
   }
 
-  if (VERBY) { fprintf(stdout,"total_sends = %d,  num_hi_deg_verts = %d, num hi = %d\n",total_sends, num_hi_deg_verts); }
+  if (VERBY) { fprintf(stdout,"total_sends = %d,  num_hi_deg_verts = %d, num hi = %d\n",total_sends, num_hi_deg_verts, num_local_hi_verts); }
 
   size_t* hi_rowstarts = (size_t*)malloc((num_hi_deg_verts+1)*sizeof(size_t));
   int* sendcounts = (int *)malloc( size * sizeof(int) );
@@ -366,10 +389,23 @@ void distribute_hi_degrees() {
     sdispls[i + 1] = sdispls[i] + sendcounts[i]; 
   }
 
+  size_t* row_ptr_sends = ( size_t* )malloc(size * num_local_hi_verts * sizeof(size_t*));
+  int* row_ptr_sends_map = (int*)malloc(size*sizeof(int*));
+  for (i=0; i<size; i++) { 
+    row_ptr_sends_map[i] = (num_local_hi_verts)*i; 
+    //row_ptr_sends[row_ptr_sends_map[i]] = 0;
+  }
+
+  int* targ_proc_counts = (int*)malloc(size * sizeof(int*));
+  memset(targ_proc_counts, 0, size * sizeof(int));
+  size_t new_vert_id = 0;
+
+  // Count number of incident edges to send to each processor, to compute rowstarts
+  // Bin together edges to send to each processor, to compute col_idx
   for (i = 0; i < n_local; ++i) {
     row = &rowptr[i];
     nnz_row = *(row+1) - *row;
-    if (nnz_row > cutoff) {
+    if (nnz_row >= cutoff) {
       int local_idx = offset + vert; 
       // count total edges we are sending to each process
       for (k = *row; k < ((*row)+nnz_row); ++k) {
@@ -377,7 +413,25 @@ void distribute_hi_degrees() {
         int node_owner = VERTEX_OWNER(node);
         send_buffer[send_buffer_writers[node_owner]] = node;
         send_buffer_writers[node_owner]++;
+        targ_proc_counts[node_owner]++;
       }
+
+      for (k = 0; k<size; ++k) {
+        int vert_idx = row_ptr_sends_map[k] + new_vert_id;
+        row_ptr_sends[vert_idx] = targ_proc_counts[k];
+      }
+
+      new_vert_id++;
+      memset(targ_proc_counts, 0, size * sizeof(int));
+    }
+  }
+
+  if(VERBY){
+    for(j=0; j<size; j++){
+      for (i=0; i<num_local_hi_verts; i++) {
+        fprintf(stdout, " %d ", row_ptr_sends[row_ptr_sends_map[j] + i]);
+      }
+      fprintf(stdout, "\n");
     }
   }
 
@@ -401,8 +455,50 @@ void distribute_hi_degrees() {
     fprintf(stdout, "\n");
   }
 
+  /////////Send columns
   int64_t* hi_column = (int64_t*)malloc(rdispls[size] * sizeof(int64_t));
   MPI_Alltoallv(send_buffer, sendcounts, sdispls, MPI_INT64_T, hi_column, recvcounts, rdispls, MPI_INT64_T, MPI_COMM_WORLD);
+  
+  /////////Send rowstarts
+  int* r_sendcounts = (int *)malloc( size * sizeof(int) );
+  int* r_recvcounts = (int *)malloc( size * sizeof(int) );
+  int* r_rdispls = (int *)malloc( (size+1) * sizeof(int) );
+  int* r_sdispls = (int *)malloc( (size+1) * sizeof(int) );
+  for (i = 0; i < size; ++i) { r_sendcounts[i] = num_local_hi_verts; }
+  MPI_Alltoall(r_sendcounts, 1, MPI_INT, r_recvcounts, 1, MPI_INT, MPI_COMM_WORLD);
+  r_rdispls[0] = 0; 
+  r_sdispls[0] = 0; 
+  for (i = 0; i < size; ++i) { 
+    r_rdispls[i + 1] = r_rdispls[i] + r_recvcounts[i]; 
+    r_sdispls[i + 1] = r_sdispls[i] + r_sendcounts[i]; 
+  }
+  MPI_Alltoallv(row_ptr_sends, r_sendcounts, r_sdispls, MPI_INT64_T, hi_rowstarts, r_recvcounts, r_rdispls, MPI_INT64_T, MPI_COMM_WORLD);
+  //for (i=0; i<num_hi_deg_verts; ++i) { fprintf(stdout, "%d ", hi_rowstarts[i]); }
+  //fprintf(stdout, "\n");
+  size_t temp = hi_rowstarts[0];
+  size_t sum_so_far = 0;
+  hi_rowstarts[0] = 0;
+  for (i=0; i<num_hi_deg_verts; i++) {
+    sum_so_far += temp;
+    temp = hi_rowstarts[i+1];
+    hi_rowstarts[i+1] = sum_so_far;
+  }
+
+  for (i=1; i<nparts; ++i) {
+    size_t hi_offset = r_rdispls[i];
+    for (j=0; j<n_local; ++j) {
+      if (hi_deg_ids[j+(n_local*i)] >= 0) {
+        hi_deg_ids[j+(n_local*i)] += hi_offset;
+      }
+    }
+  }
+
+  for (l=0; l<n; ++l) {
+    //if (hi_deg_ids[l] >= 0) {fprintf(stdout, "%d ", hi_deg_ids[l]);}
+    //fprintf(stdout, "RECV %d: %d\n", rank, hi_deg_total_recvs[l]);
+  }
+  //for (i=0; i<=num_hi_deg_verts; ++i) { fprintf(stdout, "%d ", hi_rowstarts[i]); }
+  //fprintf(stdout, "\n");
 }
 
 void permute_tuple_graph(tuple_graph* tg) {
@@ -462,8 +558,9 @@ void permute_tuple_graph(tuple_graph* tg) {
       //fprintf(stderr, "%d %d %d %d %d %d %d %d\n", (int)v0, (int)v1, (int)g_perm[v0], (int)g_perm[v1], (int)src_proc, (int)targ_proc, (int)v0_new, (int)v1_new);
       write_edge(edge, v0_new, v1_new);
     }
+    free(perms);
+    free(parts);
   }
-
   free_graph_data_structure();
   make_graph_data_structure(tg);
 }
@@ -529,7 +626,7 @@ void partition_graph_data_structure() {
   MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
   
-  fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);
+  //fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);
   int repeat_run;
   //int run;
   genRandPerm(vorder, n_local);
