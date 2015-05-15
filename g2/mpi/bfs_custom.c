@@ -19,9 +19,7 @@
 ///////////////////
 static int* g_perm;
 static int* parts;
-static int* hi_deg_ids;
 static oned_csr_graph g;
-static oned_csr_graph g_hi;
 static int64_t* g_oldq;
 static int64_t* g_newq;
 static unsigned long* g_visited;
@@ -33,6 +31,9 @@ static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
 
 static int num_hi_deg_verts;
+static int64_t* hi_column;
+static size_t* hi_rowstarts;
+static int* hi_deg_ids;
 
 void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);
@@ -100,6 +101,27 @@ void run_bfs(int64_t root, int64_t* pred) {
   memset(visited, 0, visited_size * sizeof(unsigned long));
 #define SET_VISITED(v) do {visited[VERTEX_LOCAL((v)) / ulong_bits] |= (1UL << (VERTEX_LOCAL((v)) % ulong_bits));} while (0)
 #define TEST_VISITED(v) ((visited[VERTEX_LOCAL((v)) / ulong_bits] & (1UL << (VERTEX_LOCAL((v)) % ulong_bits))) != 0)
+
+  //////Set up Hi-deg visited bitmap
+  int64_t hi_visited_size = (num_hi_deg_verts + ulong_bits - 1) / ulong_bits; //number of longs needed to fit all bits
+  unsigned long* hi_deg_visited;
+  unsigned long* hi_deg_visited_old;
+  unsigned long* hi_deg_visited_new;
+
+  hi_deg_visited = (unsigned long*)xMPI_Alloc_mem(hi_visited_size * sizeof(unsigned long));
+  hi_deg_visited_old = (unsigned long*)xMPI_Alloc_mem(hi_visited_size * sizeof(unsigned long));
+  hi_deg_visited_new = (unsigned long*)xMPI_Alloc_mem(hi_visited_size * sizeof(unsigned long));
+
+  memset(hi_deg_visited, 0, hi_visited_size * sizeof(unsigned long));
+  memset(hi_deg_visited_old, 0, hi_visited_size * sizeof(unsigned long));
+  memset(hi_deg_visited_new, 0, hi_visited_size * sizeof(unsigned long));
+
+#define SET_HI_VISITED(v) do {hi_deg_visited_new[hi_deg_ids[v] / ulong_bits] |= (1UL << (hi_deg_ids[v] % ulong_bits));} while (0)
+#define TEST_HI_VISITED(v) ((hi_deg_visited[hi_deg_ids[v] / ulong_bits] & (1UL << (hi_deg_ids[v] % ulong_bits))) != 0)
+#define TEST_HI_NEW_VISITED(v) ((hi_deg_visited_new[hi_deg_ids[v] / ulong_bits] & (1UL << (hi_deg_ids[v] % ulong_bits))) != 0)
+
+  //MPI_Allreduce(MPI_IN_PLACE, hi_deg_visited, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
+
 
   /* Set up buffers for message coalescing, MPI requests, etc. for
    * communication. */
@@ -189,8 +211,43 @@ void run_bfs(int64_t root, int64_t* pred) {
       recvreq_active = 1;
     }
 
+    size_t i,j;
+    /* Step through incoming hi-degree vertices */
+    for (i = 0; i < num_hi_deg_verts; ++i) {
+      if (TEST_HI_NEW_VISITED(i)) {
+        int64_t src = hi_deg_ids[i];
+        for (j = hi_rowstarts[hi_deg_ids[i]]; j<hi_rowstarts[hi_deg_ids[i]+1]; ++j) {
+        int64_t tgt = hi_column[j];
+        int owner = VERTEX_OWNER(tgt);
+          if (hi_deg_ids[tgt] >= 0 && !TEST_HI_VISITED(tgt)) {
+            //Hi degree
+            SET_HI_VISITED(tgt);
+          }
+          else {
+            assert(owner==rank);
+            if (owner == rank) {
+              if (!TEST_VISITED(tgt)) {
+                SET_VISITED(tgt);
+                pred[VERTEX_LOCAL(tgt)] = src;
+                newq[newq_count++] = tgt;
+              }
+            } else {
+              while (outgoing_reqs_active[owner]) CHECK_MPI_REQS; /* Wait for buffer to be available */
+              size_t c = outgoing_counts[owner];
+              outgoing[owner * coalescing_size * 2 + c] = tgt;
+              outgoing[owner * coalescing_size * 2 + c + 1] = src;
+              outgoing_counts[owner] += 2;
+              if (outgoing_counts[owner] == coalescing_size * 2) {
+                MPI_Isend(&outgoing[owner * coalescing_size * 2], coalescing_size * 2, MPI_INT64_T, owner, 0, MPI_COMM_WORLD, &outgoing_reqs[owner]);
+                outgoing_reqs_active[owner] = 1;
+                outgoing_counts[owner] = 0;
+              }
+            }
+          }
+        }
+      }
+    }
     /* Step through the current level's queue. */
-    size_t i;
     for (i = 0; i < oldq_count; ++i) {
       CHECK_MPI_REQS;
       assert (VERTEX_OWNER(oldq[i]) == rank);
@@ -204,19 +261,32 @@ void run_bfs(int64_t root, int64_t* pred) {
       if (this_nnz >= F_CUTOFF) { num_sends--; num_bcasts++; }
 
       // BROADCAST
+      /*
       if (this_nnz >= F_CUTOFF) {
         num_processed+=this_nnz; 
-      }
-      else { // SEND
-        for (j = g.rowstarts[VERTEX_LOCAL(oldq[i])]; j < j_end; ++j) {
-          int64_t tgt = g.column[j];
-          int owner = VERTEX_OWNER(tgt);
+        if (!TEST_HI_VISITED(tgt)) {
+          SET_HI_VISITED(tgt);
+          pred[VERTEX_LOCAL(tgt)] = src;
+        }
+      }*/
+      for (j = g.rowstarts[VERTEX_LOCAL(oldq[i])]; j < j_end; ++j) {
+        int64_t tgt = g.column[j];
+        int owner = VERTEX_OWNER(tgt);
 
-          //UPDATE COMMUNICATION COUNTS
-          if (owner == rank) { }
-          else { num_sends++;
-            if (this_nnz >= F_CUTOFF) { num_sends--; }
+
+        if (hi_deg_ids[tgt] >= 0 && !TEST_HI_VISITED(tgt)) {
+          SET_HI_VISITED(tgt);
+          if (owner == rank) {
+            pred[VERTEX_LOCAL(tgt)] = src;
           }
+          num_processed++; 
+        }
+        else {
+          //UPDATE COMMUNICATION COUNTS
+          //if (owner == rank) { }
+          //else { num_sends++;
+          //  if (this_nnz >= F_CUTOFF) { num_sends--; }
+          //}
           num_processed++; 
           /* If the other endpoint is mine, update the visited map, predecessor
            * map, and next-level queue locally; otherwise, send the target and
@@ -263,6 +333,10 @@ void run_bfs(int64_t root, int64_t* pred) {
     /* Wait until everyone else is done (and thus couldn't send us any more
      * messages). */
     while (num_ranks_done < size) CHECK_MPI_REQS;
+
+    //GET NEWLY BROADCASTED HI_VERTICES
+    MPI_Allreduce(hi_deg_visited_old, hi_deg_visited_new, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
+    for (i=0; i<hi_visited_size; ++i) { hi_deg_visited[i] |= hi_deg_visited_old[i]; }
 
     /* Test globally if all queues are empty. */
     int64_t global_newq_count;
@@ -318,6 +392,18 @@ void distribute_hi_degrees() {
 
   if (1 && rank==0) { fprintf(stdout,"n = %d, n_local = %d, num hi = %d\n",n,n_local,num_hi_deg_verts); }
 
+//////////////////
+#if 0
+  const int ulong_bits = sizeof(unsigned long) * CHAR_BIT; //number of bits in ulong
+  int64_t visited_size = (num_hi_deg_verts + ulong_bits - 1) / ulong_bits; //number of longs needed to fit all bits
+  unsigned long* hi_deg_visited;
+  hi_deg_visited = (unsigned long*)xMPI_Alloc_mem(visited_size * sizeof(unsigned long));
+  memset(hi_deg_visited, 0, visited_size * sizeof(unsigned long));
+#define SET_VISITED(v) do {hi_deg_visited[hi_deg_ids[v] / ulong_bits] |= (1UL << (hi_deg_ids[v] % ulong_bits));} while (0)
+#define TEST_VISITED(v) ((hi_deg_visited[hi_deg_ids[v] / ulong_bits] & (1UL << (hi_deg_ids[v] % ulong_bits))) != 0)
+  MPI_Allreduce(MPI_IN_PLACE, hi_deg_visited, visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
+#endif
+//////////////////
 
   hi_deg_ids = (int*)malloc(n * sizeof(int));
   memset(hi_deg_ids, -1, n * sizeof(int));
@@ -364,7 +450,7 @@ void distribute_hi_degrees() {
 
   if (VERBY) { fprintf(stdout,"total_sends = %d,  num_hi_deg_verts = %d, num hi = %d\n",total_sends, num_hi_deg_verts, num_local_hi_verts); }
 
-  size_t* hi_rowstarts = (size_t*)malloc((num_hi_deg_verts+1)*sizeof(size_t));
+  hi_rowstarts = (size_t*)malloc((num_hi_deg_verts+1)*sizeof(size_t));
   int* sendcounts = (int *)malloc( size * sizeof(int) );
   int* recvcounts = (int *)malloc( size * sizeof(int) );
   int* rdispls = (int *)malloc( (size+1) * sizeof(int) );
@@ -456,7 +542,7 @@ void distribute_hi_degrees() {
   }
 
   /////////Send columns
-  int64_t* hi_column = (int64_t*)malloc(rdispls[size] * sizeof(int64_t));
+  hi_column = (int64_t*)malloc(rdispls[size] * sizeof(int64_t));
   MPI_Alltoallv(send_buffer, sendcounts, sdispls, MPI_INT64_T, hi_column, recvcounts, rdispls, MPI_INT64_T, MPI_COMM_WORLD);
   
   /////////Send rowstarts
@@ -499,6 +585,7 @@ void distribute_hi_degrees() {
   }
   //for (i=0; i<=num_hi_deg_verts; ++i) { fprintf(stdout, "%d ", hi_rowstarts[i]); }
   //fprintf(stdout, "\n");
+
 }
 
 void permute_tuple_graph(tuple_graph* tg) {
