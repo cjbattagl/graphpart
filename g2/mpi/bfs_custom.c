@@ -792,7 +792,8 @@ void partition_graph_data_structure() {
               }
             }
             if (i % 512 == 0) { //(isPowerOfTwo(i)) {
-              MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+              //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+              MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
               for (l=0; l<nparts; ++l) { 
                 partsize_update[l] = partsize[l] - old_partsize[l];
               }            
