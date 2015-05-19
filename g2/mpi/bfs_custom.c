@@ -134,7 +134,7 @@ void run_bfs(int64_t root, int64_t* pred) {
   MPI_Request* restrict outgoing_reqs = g_outgoing_reqs;
   int* restrict outgoing_reqs_active = g_outgoing_reqs_active;
   memset(outgoing_reqs_active, 0, size * sizeof(int));
-  
+
   int64_t* restrict recvbuf = g_recvbuf;
   MPI_Request recvreq;
   int recvreq_active = 0;
@@ -672,7 +672,8 @@ void permute_tuple_graph(tuple_graph* tg) {
     free(perms);
     free(parts);
   }
-  free_graph_data_structure();
+  //free_oned_csr_graph(&g);
+  //free_graph_data_structure();
   make_graph_data_structure(tg);
 }
 
