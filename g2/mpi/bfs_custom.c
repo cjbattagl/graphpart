@@ -215,10 +215,13 @@ void run_bfs(int64_t root, int64_t* pred) {
     }
 
     size_t i,j;
+
     /* Step through incoming hi-degree vertices */
     for (i = 0; i < num_hi_deg_verts; ++i) {
       if (TEST_HI_VISITED(i)) {
+        //we never reach here
         int64_t src = hi_deg_ids[i];
+
         for (j = hi_rowstarts[hi_deg_ids[i]]; j<hi_rowstarts[hi_deg_ids[i]+1]; ++j) {
         //assert(local_hi_nnzs >= hi_rowstarts[hi_deg_ids[i]+1]);
         int64_t tgt = hi_column[j];
@@ -285,6 +288,7 @@ void run_bfs(int64_t root, int64_t* pred) {
         int owner = VERTEX_OWNER(tgt);
 
         if (IS_HI_DEG_VERTEX(tgt)) {
+          //if (TEST_HI_EVER_VISITED(tgt)) { fprintf(stdout, " %d ", (int)tgt); }
           if (!TEST_HI_EVER_VISITED(tgt)) {
             SET_HI_VISITED(tgt);
             if (owner == rank) { pred[VERTEX_LOCAL(tgt)] = src; }
@@ -345,7 +349,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     while (num_ranks_done < size) CHECK_MPI_REQS;
 
     //BROADCAST NEXT_HI -> NEW_HI BMAPS
-    MPI_Allreduce(hi_deg_visited_new, hi_deg_visited_next, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
+    MPI_Allreduce(hi_deg_visited_next, hi_deg_visited_new, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
     //HI BMAP |= NEW_HI BMAP
     for (i=0; i<hi_visited_size; ++i) { hi_deg_visited[i] |= hi_deg_visited_new[i]; }
     //MEMSET NEXT_HI -> 0
