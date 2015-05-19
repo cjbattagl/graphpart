@@ -348,10 +348,12 @@ void run_bfs(int64_t root, int64_t* pred) {
      * messages). */
     while (num_ranks_done < size) CHECK_MPI_REQS;
 
-    //BROADCAST NEXT_HI -> NEW_HI BMAPS
-    MPI_Allreduce(hi_deg_visited_next, hi_deg_visited_new, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
     //HI BMAP |= NEW_HI BMAP
     for (i=0; i<hi_visited_size; ++i) { hi_deg_visited[i] |= hi_deg_visited_new[i]; }
+    //MEMSET NEW_HI -> 0
+    memset(hi_deg_visited_new, 0, hi_visited_size * sizeof(unsigned long));
+    //BROADCAST NEXT_HI -> NEW_HI BMAPS
+    MPI_Allreduce(hi_deg_visited_next, hi_deg_visited_new, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
     //MEMSET NEXT_HI -> 0
     memset(hi_deg_visited_next, 0, hi_visited_size * sizeof(unsigned long));
 
