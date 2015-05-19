@@ -34,6 +34,7 @@ static int num_hi_deg_verts;
 static int64_t* hi_column;
 static size_t* hi_rowstarts;
 static int* hi_deg_ids;
+static int local_hi_nnzs;
 
 void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);
@@ -105,20 +106,22 @@ void run_bfs(int64_t root, int64_t* pred) {
   //////Set up Hi-deg visited bitmap
   int64_t hi_visited_size = (num_hi_deg_verts + ulong_bits - 1) / ulong_bits; //number of longs needed to fit all bits
   unsigned long* hi_deg_visited;
-  unsigned long* hi_deg_visited_old;
   unsigned long* hi_deg_visited_new;
+  unsigned long* hi_deg_visited_next;
 
   hi_deg_visited = (unsigned long*)xMPI_Alloc_mem(hi_visited_size * sizeof(unsigned long));
-  hi_deg_visited_old = (unsigned long*)xMPI_Alloc_mem(hi_visited_size * sizeof(unsigned long));
   hi_deg_visited_new = (unsigned long*)xMPI_Alloc_mem(hi_visited_size * sizeof(unsigned long));
+  hi_deg_visited_next = (unsigned long*)xMPI_Alloc_mem(hi_visited_size * sizeof(unsigned long));
 
   memset(hi_deg_visited, 0, hi_visited_size * sizeof(unsigned long));
-  memset(hi_deg_visited_old, 0, hi_visited_size * sizeof(unsigned long));
   memset(hi_deg_visited_new, 0, hi_visited_size * sizeof(unsigned long));
+  memset(hi_deg_visited_next, 0, hi_visited_size * sizeof(unsigned long));
 
-#define SET_HI_VISITED(v) do {hi_deg_visited_new[hi_deg_ids[v] / ulong_bits] |= (1UL << (hi_deg_ids[v] % ulong_bits));} while (0)
-#define TEST_HI_VISITED(v) ((hi_deg_visited[hi_deg_ids[v] / ulong_bits] & (1UL << (hi_deg_ids[v] % ulong_bits))) != 0)
-#define TEST_HI_NEW_VISITED(v) ((hi_deg_visited_new[hi_deg_ids[v] / ulong_bits] & (1UL << (hi_deg_ids[v] % ulong_bits))) != 0)
+#define SET_HI_VISITED(v) do {hi_deg_visited_next[hi_deg_ids[v] / ulong_bits] |= (1UL << (hi_deg_ids[v] % ulong_bits));} while (0)
+#define TEST_HI_VISITED(v) ((hi_deg_visited_new[hi_deg_ids[v] / ulong_bits] & (1UL << (hi_deg_ids[v] % ulong_bits))) != 0)
+#define TEST_HI_NEXT_VISITED(v) ((hi_deg_visited_next[hi_deg_ids[v] / ulong_bits] & (1UL << (hi_deg_ids[v] % ulong_bits))) != 0)
+#define TEST_HI_EVER_VISITED(v) ((hi_deg_visited[hi_deg_ids[v] / ulong_bits] & (1UL << (hi_deg_ids[v] % ulong_bits))) != 0)
+#define IS_HI_DEG_VERTEX(v) (hi_deg_ids[tgt] >= 0)
 
   //MPI_Allreduce(MPI_IN_PLACE, hi_deg_visited, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
 
@@ -214,16 +217,24 @@ void run_bfs(int64_t root, int64_t* pred) {
     size_t i,j;
     /* Step through incoming hi-degree vertices */
     for (i = 0; i < num_hi_deg_verts; ++i) {
-      if (TEST_HI_NEW_VISITED(i)) {
+      if (TEST_HI_VISITED(i)) {
         int64_t src = hi_deg_ids[i];
         for (j = hi_rowstarts[hi_deg_ids[i]]; j<hi_rowstarts[hi_deg_ids[i]+1]; ++j) {
+        //assert(local_hi_nnzs >= hi_rowstarts[hi_deg_ids[i]+1]);
         int64_t tgt = hi_column[j];
         int owner = VERTEX_OWNER(tgt);
-          if (hi_deg_ids[tgt] >= 0 && !TEST_HI_VISITED(tgt)) {
-            //Hi degree
-            SET_HI_VISITED(tgt);
+          if (IS_HI_DEG_VERTEX(tgt)) {
+            if (!TEST_HI_EVER_VISITED(tgt)) {
+              SET_HI_VISITED(tgt); //Hi degree, unvisited
+              if (owner == rank) {
+                if (!TEST_VISITED(tgt)) {
+                  SET_VISITED(tgt);
+                  pred[VERTEX_LOCAL(tgt)] = src;
+                }
+              }
+            }
           }
-          else {
+          else { //Lo degree
             assert(owner==rank);
             if (owner == rank) {
               if (!TEST_VISITED(tgt)) {
@@ -273,13 +284,12 @@ void run_bfs(int64_t root, int64_t* pred) {
         int64_t tgt = g.column[j];
         int owner = VERTEX_OWNER(tgt);
 
-
-        if (hi_deg_ids[tgt] >= 0 && !TEST_HI_VISITED(tgt)) {
-          SET_HI_VISITED(tgt);
-          if (owner == rank) {
-            pred[VERTEX_LOCAL(tgt)] = src;
+        if (IS_HI_DEG_VERTEX(tgt)) {
+          if (!TEST_HI_EVER_VISITED(tgt)) {
+            SET_HI_VISITED(tgt);
+            if (owner == rank) { pred[VERTEX_LOCAL(tgt)] = src; }
+            num_processed++; 
           }
-          num_processed++; 
         }
         else {
           //UPDATE COMMUNICATION COUNTS
@@ -334,9 +344,14 @@ void run_bfs(int64_t root, int64_t* pred) {
      * messages). */
     while (num_ranks_done < size) CHECK_MPI_REQS;
 
-    //GET NEWLY BROADCASTED HI_VERTICES
-    MPI_Allreduce(hi_deg_visited_old, hi_deg_visited_new, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
-    for (i=0; i<hi_visited_size; ++i) { hi_deg_visited[i] |= hi_deg_visited_old[i]; }
+    //BROADCAST NEXT_HI -> NEW_HI BMAPS
+    MPI_Allreduce(hi_deg_visited_new, hi_deg_visited_next, hi_visited_size, MPI_UNSIGNED_LONG, MPI_BOR, MPI_COMM_WORLD);
+    //HI BMAP |= NEW_HI BMAP
+    for (i=0; i<hi_visited_size; ++i) { hi_deg_visited[i] |= hi_deg_visited_new[i]; }
+    //MEMSET NEXT_HI -> 0
+    memset(hi_deg_visited_next, 0, hi_visited_size * sizeof(unsigned long));
+
+    //for (i=0; i<hi_visited_size; ++i) { hi_deg_visited_old[i] |= hi_deg_visited_new[i]; }
 
     /* Test globally if all queues are empty. */
     int64_t global_newq_count;
@@ -375,7 +390,7 @@ void distribute_hi_degrees() {
   int nparts = size;
   int cutoff = F_CUTOFF;
   size_t *row;
-  size_t vert = 0;
+  //size_t vert = 0;
   size_t k,  nnz_row, best_part;
   int64_t *colidx = g.column;
   int64_t node = 0;
@@ -448,7 +463,7 @@ void distribute_hi_degrees() {
     total_sends += hi_deg_total_sends[l];
   }
 
-  if (VERBY) { fprintf(stdout,"total_sends = %d,  num_hi_deg_verts = %d, num hi = %d\n",total_sends, num_hi_deg_verts, num_local_hi_verts); }
+  if (VERBY) { fprintf(stdout,"total_sends = %d,  num_hi_deg_verts = %d, num hi = %d\n",(int)total_sends, num_hi_deg_verts, num_local_hi_verts); }
 
   hi_rowstarts = (size_t*)malloc((num_hi_deg_verts+1)*sizeof(size_t));
   int* sendcounts = (int *)malloc( size * sizeof(int) );
@@ -492,7 +507,7 @@ void distribute_hi_degrees() {
     row = &rowptr[i];
     nnz_row = *(row+1) - *row;
     if (nnz_row >= cutoff) {
-      int local_idx = offset + vert; 
+      //int local_idx = offset + vert; 
       // count total edges we are sending to each process
       for (k = *row; k < ((*row)+nnz_row); ++k) {
         node = colidx[k]; 
@@ -515,7 +530,7 @@ void distribute_hi_degrees() {
   if(VERBY){
     for(j=0; j<size; j++){
       for (i=0; i<num_local_hi_verts; i++) {
-        fprintf(stdout, " %d ", row_ptr_sends[row_ptr_sends_map[j] + i]);
+        fprintf(stdout, " %d ", (int)row_ptr_sends[row_ptr_sends_map[j] + i]);
       }
       fprintf(stdout, "\n");
     }
@@ -543,6 +558,7 @@ void distribute_hi_degrees() {
 
   /////////Send columns
   hi_column = (int64_t*)malloc(rdispls[size] * sizeof(int64_t));
+  local_hi_nnzs = rdispls[size];
   MPI_Alltoallv(send_buffer, sendcounts, sdispls, MPI_INT64_T, hi_column, recvcounts, rdispls, MPI_INT64_T, MPI_COMM_WORLD);
   
   /////////Send rowstarts
@@ -585,6 +601,7 @@ void distribute_hi_degrees() {
   }
   //for (i=0; i<=num_hi_deg_verts; ++i) { fprintf(stdout, "%d ", hi_rowstarts[i]); }
   //fprintf(stdout, "\n");
+  if(rank==0) { printf("hi deg verts: %d, local hi nnzs: %d\n", (int)num_hi_deg_verts, local_hi_nnzs); }
 
 }
 
