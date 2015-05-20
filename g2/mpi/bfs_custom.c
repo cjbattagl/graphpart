@@ -36,6 +36,18 @@ static size_t* hi_rowstarts;
 static int* hi_deg_ids;
 static int local_hi_nnzs;
 
+void free_graph_data_structure(void) {
+  free(g_oldq);
+  free(g_newq);
+  free(g_visited);
+  MPI_Free_mem(g_outgoing);
+  free(g_outgoing_counts);
+  free(g_outgoing_reqs);
+  free(g_outgoing_reqs_active);
+  MPI_Free_mem(g_recvbuf);
+  free_oned_csr_graph(&g);
+}
+
 void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);
   const size_t nlocalverts = g.nlocalverts;
@@ -49,6 +61,8 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_outgoing_reqs = (MPI_Request*)xmalloc(size * sizeof(MPI_Request));
   g_outgoing_reqs_active = (int*)xmalloc(size * sizeof(int));
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
+
+  assert(g_outgoing_counts);
 }
 
 int64_t get_permed_vertex(int64_t id) { 
@@ -64,18 +78,6 @@ void print_graph() {
     print_graph_csr(GraphFile, g.rowstarts, g.column, g.nlocalverts);
     MPI_Barrier(MPI_COMM_WORLD);
     fclose(GraphFile);
-}
-
-void free_graph_data_structure(void) {
-  free(g_oldq);
-  free(g_newq);
-  free(g_visited);
-  MPI_Free_mem(g_outgoing);
-  free(g_outgoing_counts);
-  free(g_outgoing_reqs);
-  free(g_outgoing_reqs_active);
-  MPI_Free_mem(g_recvbuf);
-  free_oned_csr_graph(&g);
 }
 
 int bfs_writes_depth_map(void) {
@@ -133,6 +135,7 @@ void run_bfs(int64_t root, int64_t* pred) {
   size_t* restrict outgoing_counts = g_outgoing_counts;
   MPI_Request* restrict outgoing_reqs = g_outgoing_reqs;
   int* restrict outgoing_reqs_active = g_outgoing_reqs_active;
+  assert(outgoing_reqs_active);
   memset(outgoing_reqs_active, 0, size * sizeof(int));
 
   int64_t* restrict recvbuf = g_recvbuf;
