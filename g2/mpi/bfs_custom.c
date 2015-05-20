@@ -104,7 +104,7 @@ void run_bfs(int64_t root, int64_t* pred) {
   /* Set up the visited bitmap. */
   const int ulong_bits = sizeof(unsigned long) * CHAR_BIT;
   int64_t visited_size = (nlocalverts + ulong_bits - 1) / ulong_bits;
-  unsigned long* restrict visited = g_visited;
+  unsigned long* restrict visited = (unsigned long*)xmalloc(visited_size * sizeof(unsigned long));//g_visited;
   memset(visited, 0, visited_size * sizeof(unsigned long));
 #define SET_VISITED(v) do {visited[VERTEX_LOCAL((v)) / ulong_bits] |= (1UL << (VERTEX_LOCAL((v)) % ulong_bits));} while (0)
 #define TEST_VISITED(v) ((visited[VERTEX_LOCAL((v)) / ulong_bits] & (1UL << (VERTEX_LOCAL((v)) % ulong_bits))) != 0)
@@ -143,7 +143,7 @@ void run_bfs(int64_t root, int64_t* pred) {
   assert(outgoing_reqs_active);
   memset(outgoing_reqs_active, 0, size * sizeof(int));
 
-  int64_t* restrict recvbuf = g_recvbuf;
+  int64_t* restrict recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));//g_recvbuf;
   MPI_Request recvreq;
   int recvreq_active = 0;
 
