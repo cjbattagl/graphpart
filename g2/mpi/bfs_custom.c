@@ -51,6 +51,11 @@ void free_graph_data_structure(void) {
 void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);
   const size_t nlocalverts = g.nlocalverts;
+}
+
+void remake_graph_data_structure(const tuple_graph* const tg) {
+  convert_graph_to_oned_csr(tg, &g);
+  const size_t nlocalverts = g.nlocalverts;
   g_oldq = (int64_t*)xmalloc(nlocalverts * sizeof(int64_t));
   g_newq = (int64_t*)xmalloc(nlocalverts * sizeof(int64_t));
   const int ulong_bits = sizeof(unsigned long) * CHAR_BIT;
@@ -62,6 +67,7 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_outgoing_reqs_active = (int*)xmalloc(size * sizeof(int));
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
 }
+
 
 int64_t get_permed_vertex(int64_t id) { 
   return ((g_perm[id] % g.nlocalverts) * size + floor(g_perm[id]/(g.nglobalverts/size))); 
@@ -675,7 +681,7 @@ void permute_tuple_graph(tuple_graph* tg) {
   }
   //free_oned_csr_graph(&g);
   free_graph_data_structure();
-  make_graph_data_structure(tg);
+  remake_graph_data_structure(tg);
 }
 
 void partition_graph_data_structure() { 

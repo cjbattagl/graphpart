@@ -171,6 +171,7 @@ int validate_bfs_result(const tuple_graph* const tg, const int64_t nglobalverts,
 /* Definitions in each BFS file, using static global variables for internal
  * storage: */
 void make_graph_data_structure(const tuple_graph* const tg);
+void remake_graph_data_structure(const tuple_graph* const tg);
 void free_graph_data_structure(void);
 int bfs_writes_depth_map(void); /* True if high 16 bits of pred entries are zero-based level numbers, or UINT16_MAX for unreachable. */
 void run_bfs(int64_t root, int64_t* pred);
