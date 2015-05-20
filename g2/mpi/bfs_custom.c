@@ -61,8 +61,6 @@ void make_graph_data_structure(const tuple_graph* const tg) {
   g_outgoing_reqs = (MPI_Request*)xmalloc(size * sizeof(MPI_Request));
   g_outgoing_reqs_active = (int*)xmalloc(size * sizeof(int));
   g_recvbuf = (int64_t*)xMPI_Alloc_mem(coalescing_size * 2 * sizeof(int64_t));
-
-  assert(g_outgoing_counts);
 }
 
 int64_t get_permed_vertex(int64_t id) { 
@@ -676,7 +674,7 @@ void permute_tuple_graph(tuple_graph* tg) {
     free(parts);
   }
   //free_oned_csr_graph(&g);
-  //free_graph_data_structure();
+  free_graph_data_structure();
   make_graph_data_structure(tg);
 }
 

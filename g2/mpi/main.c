@@ -332,7 +332,7 @@ int main(int argc, char** argv) {
   if (rank == 0) { fprintf(stderr, "graph perm time:               %f s\n", graph_perm_stop - graph_perm_start); }
   //This has re-computed a new distributed CSR graph, oned_csr_graph g
   distribute_hi_degrees();
-
+#if 0
   if(MAT_OUT) {
     char filename2[256];
     sprintf(filename2, "out_permed%02d.mat", rank);
@@ -512,6 +512,7 @@ int main(int argc, char** argv) {
   cleanup_globals();
   double free_stop = MPI_Wtime();
   if (rank == 0) { fprintf(stderr, "global cleanup time:               %f s\n", free_stop - free_start); }
+#endif
   MPI_Finalize();
   return 0;
 }
