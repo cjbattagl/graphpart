@@ -37,14 +37,14 @@ static int* hi_deg_ids;
 static int local_hi_nnzs;
 
 void free_graph_data_structure(void) {
-  free(g_oldq);
+  /*free(g_oldq);
   free(g_newq);
   free(g_visited);
   MPI_Free_mem(g_outgoing);
   free(g_outgoing_counts);
   free(g_outgoing_reqs);
   free(g_outgoing_reqs_active);
-  MPI_Free_mem(g_recvbuf);
+  MPI_Free_mem(g_recvbuf);*/
   free_oned_csr_graph(&g);
 }
 
