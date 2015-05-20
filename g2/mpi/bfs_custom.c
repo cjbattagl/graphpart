@@ -138,7 +138,8 @@ void run_bfs(int64_t root, int64_t* pred) {
   int64_t* restrict outgoing = g_outgoing;
   size_t* restrict outgoing_counts = g_outgoing_counts;
   MPI_Request* restrict outgoing_reqs = g_outgoing_reqs;
-  int* restrict outgoing_reqs_active = g_outgoing_reqs_active;
+  fprintf(stdout,"rank %d: memsetting\n",rank);
+  int* restrict outgoing_reqs_active = (int*)xmalloc(size * sizeof(int));//g_outgoing_reqs_active;
   assert(outgoing_reqs_active);
   memset(outgoing_reqs_active, 0, size * sizeof(int));
 
@@ -161,6 +162,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     pred[VERTEX_LOCAL(root)] = root;
     oldq[oldq_count++] = root;
   }
+  fprintf(stdout,"rank %d: defining\n",rank);
 
 #define CHECK_MPI_REQS \
   /* Check all MPI requests and handle any that have completed. */ \
@@ -223,6 +225,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     }
 
     size_t i,j;
+  fprintf(stdout,"rank %d: stepping hi\n",rank);
 
     /* Step through incoming hi-degree vertices */
     for (i = 0; i < num_hi_deg_verts; ++i) {
@@ -269,6 +272,8 @@ void run_bfs(int64_t root, int64_t* pred) {
         }
       }
     }
+      fprintf(stdout,"rank %d: stepping lo\n",rank);
+
     /* Step through the current level's queue. */
     for (i = 0; i < oldq_count; ++i) {
       CHECK_MPI_REQS;
@@ -335,6 +340,8 @@ void run_bfs(int64_t root, int64_t* pred) {
         }
       }
     }
+      fprintf(stdout,"rank %d: flushing\n",rank);
+
     /* Flush any coalescing buffers that still have messages. */
     int offset;
     for (offset = 1; offset < size; ++offset) {
@@ -355,6 +362,7 @@ void run_bfs(int64_t root, int64_t* pred) {
     /* Wait until everyone else is done (and thus couldn't send us any more
      * messages). */
     while (num_ranks_done < size) CHECK_MPI_REQS;
+  fprintf(stdout,"rank %d: bitmapping\n",rank);
 
     //HI BMAP |= NEW_HI BMAP
     for (i=0; i<hi_visited_size; ++i) { hi_deg_visited[i] |= hi_deg_visited_new[i]; }
