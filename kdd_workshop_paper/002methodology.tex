@@ -1,7 +1,18 @@
 \section{Methodology}
-Our first goal was to implement the generalized WDG partitioner FENNEL, and test it on a wide variety of real-world and synthetic graphs. Our initial `test-bed' was implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices. As we scaled to larger graphs, the outer for-loop in the code (which iterates over each vertex) began to take an infeasible amount of time, so we implemented a more fully-featured test-bed in C. Our MATLAB and C code is located at~\url{https://github.com/cjbattagl/graphpart/}. The C code makes significant use of BeBoP's Sparse Matrix Converter:~\url{http://bebop.cs.berkeley.edu/smc/}.
+Our first goal was to implement the generalized WDG partitioner FENNEL, and test it on a wide variety of real-world and synthetic graphs. 
+Our initial `test-bed' was implemented in MATLAB, because many important properties of graphs can be easily extracted using vector notation on their adjacency matrices. 
+As we scaled to larger graphs, the outer for-loop in the code (which iterates over each vertex) began to take an infeasible amount of time, so we implemented a more fully-featured test-bed in C. Our MATLAB and C code is located at~\url{https://github.com/cjbattagl/graphpart/}. 
+The C code makes significant use of BeBoP's Sparse Matrix Converter:~\url{http://bebop.cs.berkeley.edu/smc/}.
 
 \subsection{Features}
-Our implementation can read graphs in three formats (Harwell-Boeing, Matlab, and Matrix-Market Formats). This allows us to read in the entire SNAP graph archive~\cite{Leskovec-data}. It can read in symmetric (undirected) and unsymmetric (directed) graphs. Once the graph is read in, we convert it from unordered triplet format to Compressed Sparse Row format, which allows us to iterate through the neighbor list of any node in linear time, as well as compute the degree of any node in constant time.
+Our implementation can read graphs in three formats (Harwell-Boeing, Matlab, and Matrix-Market Formats). 
+This allows us to read in the entire SNAP graph archive~\cite{Leskovec-data}. 
+It can read in symmetric (undirected) and unsymmetric (directed) graphs. 
+Once the graph is read in, we convert it from unordered triplet format to Compressed Sparse Row format, which allows us to iterate through the neighbor list of any node in linear time, as well as compute the degree of any node in constant time.
 
-Once we have our graph stored as a matrix in CSR form, we can perform a simulation of streaming $k-$partitioning. First we generate the traversal order of the graph (a random vertex order, which we generate using a Knuth Shuffle). We maintain a data structure that contains the assignment of every assigned vertex to its partition. Thus, for a given vertex, we can compute the number of edges from that vertex to each partition by iterating over each edge incident to the vertex. We also maintain a running total of vertices in each partition. This process lets us compute the FENNEL algorithm in $O(|E|)=O(nnz(A))$ time. 
+Once we have our graph stored as a matrix in CSR form, we can perform a simulation of streaming $k-$partitioning. 
+First we generate the traversal order of the graph (a random vertex order, which we generate using a Knuth Shuffle). 
+We maintain a data structure that contains the assignment of every assigned vertex to its partition. 
+Thus, for a given vertex, we can compute the number of edges from that vertex to each partition by iterating over each edge incident to the vertex. 
+We also maintain a running total of vertices in each partition. 
+This process lets us compute the FENNEL algorithm in $O(|E|)=O(nnz(A))$ time. 
