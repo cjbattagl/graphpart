@@ -30,39 +30,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-static int compare_doubles(const void* a, const void* b) {
-  double aa = *(const double*)a;
-  double bb = *(const double*)b;
-  return (aa < bb) ? -1 : (aa == bb) ? 0 : 1;
-}
-
 enum {s_minimum, s_firstquartile, s_median, s_thirdquartile, s_maximum, s_mean, s_std, s_LAST};
-static void get_statistics(const double x[], int n, double r[s_LAST]) {
-  double temp;
-  int i;
-  /* Compute mean. */
-  temp = 0;
-  for (i = 0; i < n; ++i) temp += x[i];
-  temp /= n;
-  r[s_mean] = temp;
-  /* Compute std. dev. */
-  temp = 0;
-  for (i = 0; i < n; ++i) temp += (x[i] - r[s_mean]) * (x[i] - r[s_mean]);
-  temp /= n - 1;
-  r[s_std] = sqrt(temp);
-  /* Sort x. */
-  double* xx = (double*)xmalloc(n * sizeof(double));
-  memcpy(xx, x, n * sizeof(double));
-  qsort(xx, n, sizeof(double), compare_doubles);
-  /* Get order statistics. */
-  r[s_minimum] = xx[0];
-  r[s_firstquartile] = (xx[(n - 1) / 4] + xx[n / 4]) * .5;
-  r[s_median] = (xx[(n - 1) / 2] + xx[n / 2]) * .5;
-  r[s_thirdquartile] = (xx[n - 1 - (n - 1) / 4] + xx[n - 1 - n / 4]) * .5;
-  r[s_maximum] = xx[n - 1];
-  /* Clean up. */
-  free(xx);
-}
 
 int main(int argc, char** argv) {
   MPI_Init(&argc, &argv);
@@ -280,7 +248,7 @@ int main(int argc, char** argv) {
   double make_graph_stop = MPI_Wtime();
   double make_graph_time = make_graph_stop - make_graph_start;
   if (rank == 0) { /* Not an official part of the results */
-    //fprintf(stderr, "graph_generation:               %f s\n", make_graph_time);
+    fprintf(stderr, "graph_generation:               %f s\n", make_graph_time);
   }
 
   //fprintf(stderr, "%d: nedges = %" PRId64 " of %" PRId64 "   ", rank, (int64_t)tg.edgememory_size, (int64_t)tg.nglobaledges);
@@ -293,7 +261,7 @@ int main(int argc, char** argv) {
   double data_struct_stop = MPI_Wtime();
   double data_struct_time = data_struct_stop - data_struct_start;
   if (rank == 0) { /* Not an official part of the results */
-    //fprintf(stderr, "construction_time:              %f s\n", data_struct_time);
+    fprintf(stderr, "construction_time:              %f s\n", data_struct_time);
   }
 
   FILE *GraphFile;
@@ -329,10 +297,9 @@ int main(int argc, char** argv) {
   double graph_perm_start = MPI_Wtime();
   permute_tuple_graph(&tg);
   double graph_perm_stop = MPI_Wtime();
+  if (rank == 0) { fprintf(stderr, "graph perm time:               %f s\n", graph_perm_stop - graph_perm_start); }
 
   cleanup_globals();
-  double free_stop = MPI_Wtime();
-  if (rank == 0) { fprintf(stderr, "global cleanup time:               %f s\n", free_stop - free_start); }
   MPI_Finalize();
   return 0;
 }

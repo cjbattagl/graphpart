@@ -31,10 +31,6 @@ static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
 
 static int num_hi_deg_verts;
-static int64_t* hi_column;
-static size_t* hi_rowstarts;
-static int* hi_deg_ids;
-static int local_hi_nnzs;
 
 void free_graph_data_structure(void) {
   /*free(g_oldq);
@@ -50,7 +46,7 @@ void free_graph_data_structure(void) {
 
 void make_graph_data_structure(const tuple_graph* const tg) {
   convert_graph_to_oned_csr(tg, &g);
-  const size_t nlocalverts = g.nlocalverts;
+//  const size_t nlocalverts = g.nlocalverts;
 }
 
 void remake_graph_data_structure(const tuple_graph* const tg) {
