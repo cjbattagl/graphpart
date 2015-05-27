@@ -1,5 +1,6 @@
 \section{Evaluation}
-\todo{We measure 1) the quality of our approach and 2) the scalability of our impz.}\\
+\todo{We measure (1) the quality of \ourmethod and (2) the scalability of our implementation.}\\
+We ran our distributed experiments on \todo{machine stats here}.
 
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}
@@ -10,6 +11,7 @@ In general, we can compare this to the expected quality of a random $k-$partitio
 Any partitioner that produces a partition with $\lambda < \lambda_r$ has thus improved the parallel locality of the graph ordering, so we present $\lambda_{r,k}$ along with our results.
 
 \subsubsection{SNAP Data Set}
+\todo{We need to select a subset of these graphs to show, otherwise the plots are utterly impossible to read.}\\
 The SNAP data set is a set of real-world networks collected by Jure Leskovec and collaborators~\cite{Leskovec-data}. Many networks in the collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be ideal targets for streaming partitioning, because these domains are producing the vast majority of the `big-data' that is difficult to partition using traditional methods. 
 
 We also speculate (but have no proof) that the `random' structure of scale-free networks better suits the random quality of streaming graph partitioning, whereas a spatially-oriented graph would be poorly suited (for instance, in a grid, a streaming partitioner would create many local pockets for one particular partition, whereas a spatial partitioner would recognize that the graph could be geometrically bisected). 

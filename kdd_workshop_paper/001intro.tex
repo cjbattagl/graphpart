@@ -38,7 +38,7 @@ In Figure~\ref{fig:0}, if we have 4 processes, all 14 nonzeros in the non-diagon
 A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducing communication (which is the main bottleneck in almost all graph computations). 
 
 \section{Streaming Graph Partitioning}
-Streaming graph partitioning has hained traction in the last few years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}.
+Streaming graph partitioning has gained traction in the last few years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}.
 As graphs grow to the point where they do not fit into memory, or must be distributed to compute nodes on the fly we need methods that support partitioning on only limited information.
 In the streaming model, input data (vertices) arrive sequentially from a generating source (such as a web-crawler), and must be partitioned as they arrive.
 
