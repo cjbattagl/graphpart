@@ -1,5 +1,23 @@
-\subsection{Streaming Heuristics}
-Given a stream of vertices, a heuristic makes a partition decision, given vertex $v$, and capacity constraint $C$ (where $C$ is generally $\approx \frac{(\epsilon+|V|)}{n}$ Stanton presents the following heuristics, roughly in order from most naive to most complex~\cite{Stanton:2012:SGP:2339530.2339722}: (only the un-buffered heuristics are presented)
+%!TEX root=kdd15_workshop_main.tex
+\section{Related Work}
+Partitioning is an important step in many algorithms.
+In high performance computing cases, from simulation to web analytics, the quality of partitions can strongly affect the parallel performance of many algorithms.
+In the following section, we will cover a small sample of the vast work that has gone into approximating solutions to graph partitioning.
+
+\paragraph{Partitioning}
+Spatial methods like \cite{Gilbert95geometricmesh} that leverage geometric data to supplement the partition formation process.
+Arora et al. proposed a fast approximation algorithm using spectral projection to perform sparse cuts, edge expansions, and separator balance \cite{arora2009expander}.
+Some of the most successful partitioners use multilevel approaches \cite{karypis1998multilevel}.
+Which achieve a high level of concurrency while maintaining good partition quality.
+Some recent approaches have been designed specifically to address small-world networks \cite{slota2014pulp}.
+
+\paragraph{Streaming Partitioning}
+Streaming graph partitioning has gained traction in the last few years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}.
+Typically these streaming partitioners use a heuristic to determine the formation of the partitions.
+
+\paragraph{Streaming Heuristics}
+A heuristic makes a partition decision given a stream of vertices, a vertex $v$, and a capacity constraint $C$ (where $C$ is generally $\approx \frac{(\epsilon+|V|)}{n}$ )
+Stanton presents the following heuristics, roughly in order from most naive to most complex~\cite{Stanton:2012:SGP:2339530.2339722}: (only the un-buffered heuristics are presented)
 
 \begin{enumerate}
 \item \textbf{Balanced:} assign $v$ to partition of minimum size, with random tie breaking.
@@ -8,7 +26,7 @@ Given a stream of vertices, a heuristic makes a partition decision, given vertex
 \item \textbf{Weighted Deterministic Greedy (WDG):} Assign $v$ to partition that it has most edges to, weighted by the relative size of each partition (weight function can be linear or exponential).
 \item \textbf{Weighted Randomized Greedy:} Assign $v$ randomly according to a probability distribution defined by the weights of each partition in WDG.
 \item \textbf{Weighted Triangles:} Assign $v$ to partition whose intersection with $v$ contains the most triangles, weighted by the relative size of each partition.
-\item \textbf{Balance Big:} for high-degree $v$, use Balanced. For low-degree $v$, use WDG. 
+\item \textbf{Balance Big:} for high-degree $v$, use Balanced. For low-degree $v$, use WDG.
 \end{enumerate}
 
 Of note is that many major graph-processing toolkits such as GraphLab~\cite{Low:2012:DGF:2212351.2212354} use the hashed (random) partitioning method, which essentially produces a worst-case edgecut of size $\frac{k-1}{k}|E|$, but which has the benefit that $H(v)$ can be called at any time to return the compute node that owns $v$.
@@ -16,4 +34,5 @@ Of note is that many major graph-processing toolkits such as GraphLab~\cite{Low:
 
 In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG performed far better than any other partitioner.
 FENNEL~\cite{tsourakakis2012fennel} is a heuristic that generalizes the WDG partitioner for any weight function, and provides a somewhat more rigorous theoretical framework.
-For this project, we always consider a WDG partitioner. 
+Nishimura et al. investigated the properies of streaming and then re-streaming a graph to overcome the downfalls of single-pass streams \cite{nishimura2013restream}.
+Restreaming success lead us to investigate a multi-pass streaming approach when developing \ourmethod.

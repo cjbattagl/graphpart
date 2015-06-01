@@ -1,10 +1,10 @@
+%!TEX root=kdd15_workshop_main.tex
 \section{Introduction}
 \subsection{Graph Partitioning}
 Graph partitioning has been a standard problem in theoretical computer science for decades and has seen increasing attention as a method of dividing up problems to improve algorithm performance.
 
 We wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges that cross partition boundaries is minimized.
 The number of inter-partition edges, which we seek to minimize, is often called the cost.
-% While satisfying either the capacity constraint or the partitioning objective on their own is trivial, requiring both balanced and cost-minimization can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete.
 The process of balancing partition size while maintaining minimum cost can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete.
 For this reason it is computationally infeasible to expect an optimal solution for even modest-sized graphs; approximation techniques are common.
 
@@ -13,19 +13,19 @@ An effective partitioning of a graph can greatly improve the performance of grap
 Consider a parallel Breadth-First Search where a graph's vertices (vertex edge lists) are partitioned between two machines.
 During each BFS step, each process must communicate all newly explored vertices to the owner of those vertices.
 In Figure~\ref{fig:0}, if we have 4 processes, all 14 nonzeros in the non-diagonal blocks must be communicated at some point.
-A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducing communication (which is the main bottleneck in almost all graph computations). 
+A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducing communication (which is the main bottleneck in almost all graph computations).
 
 Offline graph partitioning algorithms have existed for decades.
 They work by storing the graph in memory with complete information about the edges.
 Hundreds of variants of these algorithms exist and range from spatial methods~\cite{Gilbert95geometricmesh} to spectral methods~\cite{arora2009expander}.
-Some of the most scalable and effective graph partitioners are multi-level partitioners, which recursively contract the graph to a small number of vertices, and then heuristically optimize the problem on each subsequent expansion~\cite{karypis1998multilevel}. 
+Some of the most scalable and effective graph partitioners are multi-level partitioners, which recursively contract the graph to a small number of vertices, and then heuristically optimize the problem on each subsequent expansion~\cite{karypis1998multilevel}.
 
 \paragraph{Why Use Streaming Partitioning?}
 The most salient property of streaming partitioning is its speed: it can partition the graph in a single sweep, with $O(|E|)$ memory access, storage, and run time.
 Existing graph partitioners require the whole graph to be represented in memory, whereas streaming graph partitioning can process vertices as they arrive.
 
 For example, partitioning a 26GB Twitter graph can take nearly a day using the fastest offline algorithms, but can take a matter of minutes using a streaming algorithm, with similar partition quality~\cite{tsourakakis2012fennel}.
-This also suggests that we could do multiple passes of a streaming partitioner (using the same or different heuristics) to further improve the partitioning, all in a fraction of the time that an offline partitioner would take to terminate. 
+This also suggests that we could do multiple passes of a streaming partitioner (using the same or different heuristics) to further improve the partitioning, all in a fraction of the time that an offline partitioner would take to terminate.
 
 
 \begin{figure}[h]
@@ -43,7 +43,7 @@ In the streaming model, input data (vertices) arrive sequentially from a generat
 Streaming partitioning is dependent on the order in which vertices arrive.
 A web crawler might generate vertices in an order that represents a Breadth-First or Depth-First traversal of the web, or we may receive vertices in a random order.
 An analysis of streaming algorithms may also consider an adversarial ordering that produces the worst possible results~\cite{Stanton:2012:SGP:2339530.2339722}.
-We have created \ourmethod, a fast, iterative, distributed streaming graph partitioner. 
+We have created \ourmethod, a fast, iterative, distributed streaming graph partitioner.
 \todo{somewhere need to mention the ordering. Maybe in eval?}
 
 We make the following contributions:
