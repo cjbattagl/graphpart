@@ -1,10 +1,11 @@
 %!TEX root=kdd15_workshop_main.tex
 \begin{abstract}
-Modern graph data have grown beyond the memory limits of most single machines.
-The first the step in dividing up large graph problems is often partitioning the graph into manageable subgraphs.
-The goal of partitioning is to both plit up the graph and minimize the number of edges between the subgraphs.
-In this work we investigate the process of partitioning a graph using a \emph{distributed, streaming} partitioner, \ourmethod, which must make partition decisions as each vertex is read from memory, simulating an online algorithm that must process nodes as they arrive.
+
+The size of real-world graph data sets continues to grow past the limits of commodity machines. An initial step in many large-scale graph mining approaches is partitioning the graph across machines in a way that reduces communication volume while simultaneously promoting load-balance. While graph partitioning is a mature field, recent work has shown that low-overhead streaming heuristics can perform competitively with heavyweight graph partitioners when the data is scale-free. 
+
+In this work we investigate the process of partitioning a social graph using a \emph{distributed, streaming} partitioner, \ourmethod, makes partition decisions as each vertex is read from memory, simulating an online algorithm that must process nodes as they arrive. We make use of the MPI paradigm, ubiquitous in the HPC world, to promote \ourmethod as a simple library to substitute for existing libraries such as parMetis. 
+
 \ourmethod uses an efficient distributed, sparse representation of the graph to perform fast, scalable partitioning.
-We demonstrate and analyze \ourmethod on a wide spectrum of real-world and synthetic graphs, as well as demnostrate several ways of improving partition quality.
+We demonstrate the scalability of \ourmethod on XXXX nodes on NERSC's Edison supercomputer on a wide spectrum of real-world and synthetic graphs, and demonstrate several ways of improving partition quality.
 \end{abstract}
 
