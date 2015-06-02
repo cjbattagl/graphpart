@@ -13,13 +13,18 @@ To estimate this we assume that each block has the same density of nonzeros, so 
 
 Any partitioner that produces a partition with $\lambda < \lambda_r$ has thus improved the parallel locality of the graph ordering, so we present $\lambda_{r,k}$ along with our results.
 
-\subsubsection{SNAP Data Set}
+\subsection{Test Graphs}
+We chose to test on both real and synthetic networks.
+Real networks demonstrate \ourmethod's potential for use on real domain problems.
+We also selected synthetic graphs, because they allow better experimental control over size and structure.
+\subsubsection{Real-world Graphs}
 \todo{We need to select a subset of these graphs to show, otherwise the plots are utterly impossible to read.}\\
-The SNAP data set is a set of real-world networks collected by Jure Leskovec and collaborators~\cite{Leskovec-data}. Many networks in the collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be ideal targets for streaming partitioning, because these domains are producing the vast majority of the `big-data' that is difficult to partition using traditional methods.
+The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data}. 
+Many networks in the collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be ideal targets for streaming partitioning, because these domains are producing the vast majority of the `big-data' that is difficult to partition using traditional methods.
 
-We also speculate (but have no proof) that the `random' structure of scale-free networks better suits the random quality of streaming graph partitioning, whereas a spatially-oriented graph would be poorly suited (for instance, in a grid, a streaming partitioner would create many local pockets for one particular partition, whereas a spatial partitioner would recognize that the graph could be geometrically bisected).
+% We also speculate (but have no proof) that the `random' structure of scale-free networks better suits the random quality of streaming graph partitioning, whereas a spatially-oriented graph would be poorly suited (for instance, in a grid, a streaming partitioner would create many local pockets for one particular partition, whereas a spatial partitioner would recognize that the graph could be geometrically bisected).
 
-In Figure~\ref{table:big} we show the main properties of graphs in the SNAP database, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
+In Figure~\ref{table:big} we show some properties of our test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
 
 \begin{figure*}
 \caption{Basic properties of graphs in SNAP data set~\cite{Leskovec-data}, and $\lambda$ for one pass. $\lambda_{r,2}=0.5,\lambda_{r,8}=0.87$}
@@ -66,76 +71,86 @@ wiki-Talk & 2394385 & 5021410 & no & yes &0.411&0.752\\
 }
 \end{figure*}
 
-As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. This shows a decent deal of scalability.
+As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. 
+This suggests good scalability.
 
-We also note Figure~\ref{fig:4}, which illustrates the result of the streaming algorithm on a more spacial network (roadNet-CA). The `local' nonzeros are those points in the 8 diagonal blocks, while the `remote' edges are those outside. While a good partitioner would concentrate the vast majority of elements along the diagonal (which is possible because the graph has very high diameter), the streaming partitioner fails to recognize this quality, and each partition has vertices distributed somewhat randomly through the network. Nonetheless, the partition is decent (only 18 percent of edges are cut).
+% We also note Figure~\ref{fig:4}, which illustrates the result of the streaming algorithm on a more spacial network (roadNet-CA). The `local' nonzeros are those points in the 8 diagonal blocks, while the `remote' edges are those outside. While a good partitioner would concentrate the vast majority of elements along the diagonal (which is possible because the graph has very high diameter), the streaming partitioner fails to recognize this quality, and each partition has vertices distributed somewhat randomly through the network. Nonetheless, the partition is decent (only 18 percent of edges are cut).
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.8\columnwidth] {figures/roadNet-CA8.png}
-\caption[Caption for]{Spy plot of roadNet-CA 8-partition ($\lambda=0.177$). This illustrates how a streaming algorithm cannot take into account the spatial/planar properties of a graph.}
-\label{fig:4}
-\end{figure}
+% \begin{figure}[h!]
+% \centering
+% \includegraphics[width=0.8\columnwidth] {figures/roadNet-CA8.png}
+% \caption[Caption for]{Spy plot of roadNet-CA 8-partition ($\lambda=0.177$). This illustrates how a streaming algorithm cannot take into account the spatial/planar properties of a graph.}
+% \label{fig:4}
+% \end{figure}
 
 \subsubsection{Synthetic Graphs}
-To generate synthetic graphs we used the Stanford Network Analysis Platform (SNAP) random graph generator.
+To generate the test graphs we used the Graph500 Kronecker-Graph generator.
+We chose Kronecker because it is commonly used in HPC graph benchmarks and testing. 
+In Figure~\ref{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
+We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}. 
+\ourmethod is able to achieve a good balance between quality and speed.
 
 \begin{figure}[h!]
 \centering
-  \includegraphics[width=0.8\columnwidth]{figures/lambda_ER.png}
-  \caption{Partition quality of ER graphs with same $p$-value}
-  \label{fig:lambdaer}
+  \includegraphics[width=0.8\columnwidth]{figures/kronecker_quality_tests.pdf}
+  \caption{Partition quality of various Kronecker graphs.}
+  \label{fig:kronqual}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
-  \includegraphics[width=0.8\columnwidth]{figures/varied_er_p.png}
-  \caption{Partition quality of an ER graph with varying $p$-value, $k=2$}
-  \label{fig:lambdap}
+  \includegraphics[width=0.8\columnwidth]{figures/kronecker_speed_tests.pdf}
+  \caption{Partition speed of various Kronecker graphs.}
+  \label{fig:kronspeed}
 \end{figure}
 
 
 
-In Figure~\ref{fig:lambdaer} we investigated the streaming graph partitioner on Erdos-Renyi graphs with a widely varying number of nodes, but the same probability $p$. From our small sample set, there appears to be little change in partition quality.
+% In Figure~\ref{fig:kronspeed} however, we increase the $p$-value on a single ER graph. We see that the partition quality significantly decreases. 
+% This is to be expected of all partitioners in general. In fact, for E-R graphs, the critical $p$-value for which the optimal edge cut is equal to the expected average random partition is relatively simple to identify~\cite{journals/cj/GanleyH94}
 
-In Figure~\ref{fig:lambdap} however, we increase the $p$-value on a single ER graph. We see that the partition quality significantly decreases. This is to be expected of all partitioners in general. In fact, for E-R graphs, the critical $p$-value for which the optimal edge cut is equal to the expected average random partition is relatively simple to identify~\cite{journals/cj/GanleyH94}
+\paragraph{Restreaming \& Additional Passes}
+A key facet of \ourmethod is performing additional passes of partitioning on a pre-partitioned graph. 
+The partitioner is fast enough that it may be faster to do $n$ streaming passes than use a slower mainstream graph partitioner.
+To explore this idea, we perform a number of passes on the SNAP data set, and observe the effects of various graphs. 
 
-\section{Additional Passes}
-Another operation we explored was performing additional passes of partitioning on a pre-partitioned graph. The reasoning is that the partitioner is fast enough that it may be faster to do $n$ passes than use a slower mainstream graph partitioner, for some value of $n$. To explore this idea, we perform a number of passes on the SNAP data set, and observe qualitatively which graphs benefit the most.
+The algorithm is simple: once we have computed the first partition, we retain the original partition mapping. 
+Then, as we make another pass, we compute the new objective function using the partition mapping that has already been filled in. 
+Vertices may be switched to new partitions. 
+This mitigates poor partitioning decisions that sometimes occur at the beginning of the algorithm, when there was not as much information.
 
-The algorithm is simple: once we have computed the first partition, we retain the original partition mapping. Then, as we make another pass, we compute the new objective function using the partition mapping that has already been filled in. Vertices may then be switched to new partitions. This mitigates poor partitioning decisions that may have been made at the beginning of the algorithm, when there was not as much information.
+Figures~\ref{fig:01},\ref{fig:02},\ref{fig:03},\ref{fig:04} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
+Significant improvements are made for the vast majority of data sets.
 
-Figures~\ref{fig:01},\ref{fig:02},\ref{fig:03},\ref{fig:04} show the improvement of $\lambda$ as we continue to make passes over selected networks. Significant improvements are made for the vast majority of data sets.
-
-We hope to contrast this performance to that of METIS in the future. (We have implemented a METIS partitioner for comparison but it currently encounters a segmentation faults with some frequency).
+% We hope to contrast this performance to that of METIS in the future. (We have implemented a METIS partitioner for comparison but it currently encounters a segmentation faults with some frequency).
 
 
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\columnwidth] {figures/2partlambda}
-\caption[Caption for]{Improvement in $\lambda$ over 5 WDG passes, $k=2$.}
+\caption[Caption for]{Improvement in the edges cut ($\lambda$) over 5 passes for bi-partitions of each graph. Because there are only two partitions, the algorithm is able to quickly fix mistakes it made in the initial partitioning. Many of the errors made in the first pass are fixed in the second iteration, with diminishing improvement thereafter.}
 \label{fig:01}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\columnwidth] {figures/16partlambda}
-\caption[Caption for]{Improvement in $\lambda$ over 5 WDG passes, $k=16$.}
+\caption[Caption for]{Improvement in edges cut ($\lambda$) over 5 passes for $k=16$-partitions of each graph. Dividing the graph into 16 partitions makes the minimum edge cut problem much more challenging. Similar to the bi-partition results, we experience the best gain in the second pass and less in subsequent passes.}
 \label{fig:02}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\columnwidth] {figures/2partfrac}
-\caption[Caption for]{Fraction Improvement in $\lambda$ after 5 WDG passes, $k=2$.}
+\caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for bi-partitions of each graph.}
 \label{fig:03}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\columnwidth] {figures/16partfrac}
-\caption[Caption for]{Fraction Improvement in $\lambda$ after 5 WDG passes, $k=16$.}
+\caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for 16-partitions of each graph.}
 \label{fig:04}
 \end{figure}
 
@@ -146,21 +161,26 @@ We hope to contrast this performance to that of METIS in the future. (We have im
 \end{figure}
 
 
-\section{Analysis}
+\subsection{Analysis}
 
 One set of outlying (poorly-performing) data points we noticed was the Gnutella networks.
-While Gnutella networks exhibit power-law-like topology, elements of their algorithm truncate nodes from ever becoming extremely large. This does not match other social network topologies.
-The data sets also have extremely low clustering coefficient and a very small number of closed triangles. \cite{Ripeanu:2002:MGN:613352.613670}. This makes the Gnutella data set an anomaly compared to the others.
+While Gnutella networks exhibit power-law-like topology, elements of their algorithm truncate nodes from ever becoming extremely large. 
+This does not match other social network topologies.
+The data sets also have extremely low clustering coefficient and a very small number of closed triangles. \cite{Ripeanu:2002:MGN:613352.613670}. 
+This makes the Gnutella data set an anomaly compared to the others.
 
 Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
-However, the encouraging side to this is that every partition was unexpectedly good.
-While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, one-pass algorithm is capable of significantly reducing communication in their parallel computation, and that several further passes can further reduce edge cut by up to a factor of 3. Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
+The encouraging side to this is that even despite their complexity, \ourmethod creates excellent partitions.
+While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, one-pass algorithm is capable of significantly reducing communication in their parallel computation, and that several additional passes can further reduce edges cut (by up to a factor of 3). Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
 This makes streaming partitioning a valid alternative to be integrated within distributed-memory, on-the-fly algorithms for big-data.
 
 One interesting fact of note is that when we ran multiple passes on the graphs, one partition would become populated by very high-degree vertices.
-We see this in Figure~\ref{fig:dense}. We attribute this to the notion that scale-free graphs have a ``dense core'' surrounded by a less-dense periphery.
-This is qualitatively noticed when scale-free graphs are embedded in a spectral space~\cite{Lang04findinggood}.
-This dense partition tends to strongly emerge as we continue to make further passes of the streaming algorithm, and is what we attribute to the improvement in overall partition quality.
+We see this in Figure~\ref{fig:dense}. 
+We attribute this to the notion that scale-free graphs have a ``dense core'' surrounded by a less-dense periphery.
+This can be observed qualitatively when scale-free graphs are embedded in a spectral space~\cite{Lang04findinggood}.
+
+This dense partition tends to strongly emerge as we continue to make further passes of the streaming algorithm.
+In order to overcome this we used the tempered parameter technique described in our methodology section. 
 
 \begin{figure}[h!]
 \centering

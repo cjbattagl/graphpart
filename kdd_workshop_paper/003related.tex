@@ -15,7 +15,6 @@ Some recent approaches have been designed specifically to address small-world ne
 Streaming graph partitioning has gained traction in the last few years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}.
 Typically these streaming partitioners use a heuristic to determine the formation of the partitions.
 
-\paragraph{Streaming Heuristics}
 A heuristic makes a partition decision given a stream of vertices, a vertex $v$, and a capacity constraint $C$ (where $C$ is generally $\approx \frac{(\epsilon+|V|)}{n}$ )
 Stanton presents the following heuristics, roughly in order from most naive to most complex~\cite{Stanton:2012:SGP:2339530.2339722}: (only the un-buffered heuristics are presented)
 
@@ -30,7 +29,6 @@ Stanton presents the following heuristics, roughly in order from most naive to m
 \end{enumerate}
 
 Of note is that many major graph-processing toolkits such as GraphLab~\cite{Low:2012:DGF:2212351.2212354} use the hashed (random) partitioning method, which essentially produces a worst-case edgecut of size $\frac{k-1}{k}|E|$, but which has the benefit that $H(v)$ can be called at any time to return the compute node that owns $v$.
-
 
 In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG performed far better than any other partitioner.
 FENNEL~\cite{tsourakakis2012fennel} is a heuristic that generalizes the WDG partitioner for any weight function, and provides a somewhat more rigorous theoretical framework.
