@@ -215,6 +215,8 @@ void partition_graph_data_structure() {
   }
 
   memset(parts, -1, n * sizeof(PART_TYPE));
+
+
   for (l=0; l<nparts; ++l) {
     partsize[l] = 0;
     old_partsize[l] = 0;
@@ -230,6 +232,11 @@ void partition_graph_data_structure() {
   
   //fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);
   int repeat_run;
+  int node_owner;
+  int node_local_idx;
+  int parts_idx;
+  double allgpartstime = 0;
+  double comptime = 0;
   //int run;
   genRandPerm(vorder, n_local);
   for (repeat_run = 0; repeat_run < NUM_STREAMS; repeat_run++) {
@@ -251,14 +258,16 @@ void partition_graph_data_structure() {
           }
         }
         else {    //Additional runs: run FENNEL algorithm. todo: tempering
+          double compstart= MPI_Wtime();
           alpha *= ALPHA_EXP_RATE;
           for (i = 0; i < n_local; ++i) {
-            for (l = 0; l < nparts; l++) {
-              partscore[l] = 0;
-              partcost[l] = 0;
-            }
+            //for (l = 0; l < nparts; l++) {
+            //  partscore[l] = 0;
+            //  partcost[l] = 0;
+            //}
+            memset(partscore, 0, nparts * sizeof(int));
+            memset(partcost, 0, nparts * sizeof(int));
             vert = (size_t)vorder[i];
-            //int global_vert_idx = VERTEX_TO_GLOBAL(rank, vert);
             int local_idx = offset + vert; //VERTEX_LOCAL(global_vert_idx);
             row = &rowptr[vert];
             nnz_row = *(row+1) - *row;
@@ -266,9 +275,9 @@ void partition_graph_data_structure() {
             if(nnz_row > 0) {
               for (k = *row; k < ((*row)+nnz_row); ++k) {
                 node = colidx[k]; 
-                int node_owner = VERTEX_OWNER(node);
-                int node_local_idx = VERTEX_LOCAL(node);
-                int parts_idx = node_owner*g.nlocalverts + node_local_idx;
+                node_owner = VERTEX_OWNER(node);
+                node_local_idx = VERTEX_LOCAL(node);
+                parts_idx = node_owner*g.nlocalverts + node_local_idx;
                 PART_TYPE node_part = parts[parts_idx]; /////
                 if (node_part >= 0 && node_part < nparts) { partscore[node_part]++; }
               }
@@ -294,7 +303,7 @@ void partition_graph_data_structure() {
                 if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
               }
             }
-            if (i % (n_local / 16) == 0) {
+            if (i % (n_local / 10) == 0) {
               //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
               for (l=0; l<nparts; ++l) { 
                 partsize_update[l] = partsize[l] - old_partsize[l];
@@ -306,9 +315,11 @@ void partition_graph_data_structure() {
               }
             }
           }
+          double compend= MPI_Wtime();
+          comptime += compend - compstart;
         }
       //}
-      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
+      //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
       //double allgstart= MPI_Wtime();
       //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
       //double allgstop = MPI_Wtime();
@@ -328,9 +339,10 @@ void partition_graph_data_structure() {
         partnnz[l] = old_partnnz[l];
       }
 
-      //double allgstart= MPI_Wtime();
+      double allgstart= MPI_Wtime();
       MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
-      //double allgstop = MPI_Wtime();
+      double allgstop = MPI_Wtime();
+      allgpartstime += allgstop - allgstart;
       //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
 
     //sanity check: manually compute partsizes
@@ -370,16 +382,18 @@ void partition_graph_data_structure() {
 
   // Okay this is absurd but for now, randomly assign the large vertices to a permutation
   // To prevent overly large partitions
+#if 0
   for (i=offset; i<offset+n_local; ++i) {
     if (parts[i] == nparts) {
       if (HI_RAND) { parts[i] = irand(nparts); }
       else { parts[i] = nparts; }
     }
   }
+#endif
   MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
   //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
-  MPI_Barrier(MPI_COMM_WORLD);
-
+  //MPI_Barrier(MPI_COMM_WORLD);
+#if 0
   if (MAT_OUT &&(rank == 0)) {  // Print Parts
     FILE *PartFile;
     PartFile = fopen("parts.mat", "w");
@@ -395,6 +409,10 @@ void partition_graph_data_structure() {
       assert(parts[i]<nparts);
     }
   }
+#endif
+  if (rank == 0) { fprintf(stderr, "allgather parts time:               %f s\n", allgpartstime); }
+  if (rank == 0) { fprintf(stderr, "comp  time:               %f s\n", comptime); }
+
 }
 
 // Random permutation generator. Move to another file.
