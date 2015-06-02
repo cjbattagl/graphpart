@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
 
   ////////// 4. PERMUTE TUPLE GRAPH BASED ON COMPUTED PERMUTATION  /////////////////
   double graph_perm_start = MPI_Wtime();
-  permute_tuple_graph(&tg);
+  //permute_tuple_graph(&tg);
   double graph_perm_stop = MPI_Wtime();
   if (rank == 0) { 
     fprintf(stderr, "graph perm time:               %f s\n", graph_perm_stop - graph_perm_start);

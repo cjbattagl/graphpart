@@ -294,7 +294,7 @@ void partition_graph_data_structure() {
                 if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
               }
             }
-            if (i % (n/100) == 0) {
+            if (i % (n_local / 8) == 0) {
               MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
               for (l=0; l<nparts; ++l) { 
                 partsize_update[l] = partsize[l] - old_partsize[l];
