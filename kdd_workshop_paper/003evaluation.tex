@@ -87,6 +87,7 @@ This suggests good scalability.
 To generate the test graphs we used the Graph500 Kronecker-Graph generator.
 We chose Kronecker because it is commonly used in HPC graph benchmarks and testing. 
 In Figure~\ref{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
+We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}. 
 \ourmethod is able to achieve a good balance between quality and speed.
 
 \begin{figure}[h!]
@@ -128,28 +129,28 @@ Significant improvements are made for the vast majority of data sets.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\columnwidth] {figures/2partlambda}
-\caption[Caption for]{Improvement in $\lambda$ over 5 WDG passes, $k=2$.}
+\caption[Caption for]{Improvement in the edges cut ($\lambda$) over 5 passes for bi-partitions of each graph. Because there are only two partitions, the algorithm is able to quickly fix mistakes it made in the initial partitioning. Many of the errors made in the first pass are fixed in the second iteration, with diminishing improvement thereafter.}
 \label{fig:01}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\columnwidth] {figures/16partlambda}
-\caption[Caption for]{Improvement in $\lambda$ over 5 WDG passes, $k=16$.}
+\caption[Caption for]{Improvement in edges cut ($\lambda$) over 5 passes for $k=16$-partitions of each graph. Dividing the graph into 16 partitions makes the minimum edge cut problem much more challenging. Similar to the bi-partition results, we experience the best gain in the second pass and less in subsequent passes.}
 \label{fig:02}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\columnwidth] {figures/2partfrac}
-\caption[Caption for]{Fraction Improvement in $\lambda$ after 5 WDG passes, $k=2$.}
+\caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for bi-partitions of each graph.}
 \label{fig:03}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.8\columnwidth] {figures/16partfrac}
-\caption[Caption for]{Fraction Improvement in $\lambda$ after 5 WDG passes, $k=16$.}
+\caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for 16-partitions of each graph.}
 \label{fig:04}
 \end{figure}
 
