@@ -297,7 +297,13 @@ int main(int argc, char** argv) {
   double graph_perm_start = MPI_Wtime();
   permute_tuple_graph(&tg);
   double graph_perm_stop = MPI_Wtime();
-  if (rank == 0) { fprintf(stderr, "graph perm time:               %f s\n", graph_perm_stop - graph_perm_start); }
+  if (rank == 0) { 
+    fprintf(stderr, "graph perm time:               %f s\n", graph_perm_stop - graph_perm_start);
+    fprintf(stdout, "SCALE:                          %d\n", SCALE);
+    fprintf(stdout, "edgefactor:                     %d\n", edgefactor);
+    fprintf(stdout, "NBFS:                           %d\n", num_bfs_roots); 
+    fprintf(stdout, "num_mpi_processes:              %d\n", size);
+  }
 
   cleanup_globals();
   MPI_Finalize();
