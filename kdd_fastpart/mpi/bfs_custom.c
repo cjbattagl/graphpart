@@ -239,16 +239,12 @@ void partition_graph_data_structure() {
             row = &rowptr[vert];
             nnz_row = *(row+1) - *row;
             int local_idx = offset + vert; 
-
-            if (nnz_row >= cutoff) { parts[local_idx] = nparts; num_hi_deg_verts++; }
-            else {
-              //fprintf(stdout," %d ",local_idx);
-              randidx = irand(nparts);
-              //oldpart = parts[local_idx];
-              parts[local_idx] = randidx;
-              partsize[randidx]++;
-              partnnz[randidx] += nnz_row;
-            }
+            //fprintf(stdout," %d ",local_idx);
+            randidx = irand(nparts);
+            //oldpart = parts[local_idx];
+            parts[local_idx] = randidx;
+            partsize[randidx]++;
+            partnnz[randidx] += nnz_row;
           }
         }
         else {    //Additional runs: run FENNEL algorithm. todo: tempering
@@ -264,8 +260,7 @@ void partition_graph_data_structure() {
             row = &rowptr[vert];
             nnz_row = *(row+1) - *row;
             oldpart = -1;
-            if (nnz_row >= cutoff) { parts[local_idx] = nparts; }
-            else if(nnz_row > 0) {
+            if(nnz_row > 0) {
               for (k = *row; k < ((*row)+nnz_row); ++k) {
                 node = colidx[k]; 
                 int node_owner = VERTEX_OWNER(node);
@@ -274,26 +269,19 @@ void partition_graph_data_structure() {
                 int node_part = parts[parts_idx]; /////
                 if (node_part >= 0 && node_part < nparts) { partscore[node_part]++; }
               }
-              for (s = 0; s < nparts; ++s) { 
-                //float dc = calc_dc(alpha,gamma,partsize[s]); 
-                //int normscore = partscore[s] - (int)nnz_row;
-                //partcost[s] = normscore - dc; 
-
-                partcost[s] = partscore[s] - alpha*(gamma/2)*pow(partsize[s],gamma-1);
-              }
+              for (s = 0; s < nparts; ++s) { partcost[s] = partscore[s] - alpha*(gamma/2)*pow(partsize[s],gamma-1); }
               best_part = 0;
               best_score = partcost[0];
               for (s = 1; s < nparts; ++s) { 
                 curr_score = partcost[s]; 
-                if (curr_score > best_score) {
-                  best_score = curr_score;  best_part = s;
-                }
+                if (curr_score > best_score) { best_score = curr_score;  best_part = s; }
               }
               oldpart = parts[local_idx];
               parts[local_idx] = best_part;
               partsize[best_part]++; partnnz[best_part]+=nnz_row;
               if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
-            } else { // empty vertex, assign randomly
+            } 
+            else { // empty vertex, assign randomly
               if (parts[local_idx]==-1) {
                 emptyverts++;
                 randidx = irand(nparts);
@@ -303,8 +291,7 @@ void partition_graph_data_structure() {
                 if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
               }
             }
-            if (i % 512 == 0) { //(isPowerOfTwo(i)) {
-              //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+            if (i % (n/100) == 0) {
               MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
               for (l=0; l<nparts; ++l) { 
                 partsize_update[l] = partsize[l] - old_partsize[l];
@@ -318,9 +305,9 @@ void partition_graph_data_structure() {
           }
         }
       //}
-      //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       //double allgstart= MPI_Wtime();
-      //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       //double allgstop = MPI_Wtime();
       //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
       for (l=0; l<nparts; ++l) { 

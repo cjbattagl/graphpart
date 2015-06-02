@@ -32,12 +32,13 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 #define VERBY 0
 #define NUM_ROOTS 12
 
+#define ALPHA_EXP_RATE 1.2
+
 #define F_DELTA 100
 #define NNZ_WEIGHT 0
 #define F_GAMMA 2
 #define F_CUTOFF 100000000
-#define ALPHA_EXP_RATE 1.1
-#define NUM_STREAMS 10
+#define NUM_STREAMS 14
 #define SANITY 1
 #define HI_RAND 1
 #define VALIDATE 0
