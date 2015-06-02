@@ -305,7 +305,7 @@ void partition_graph_data_structure() {
           }
         }
       //}
-      MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       //double allgstart= MPI_Wtime();
       MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
       //double allgstop = MPI_Wtime();
