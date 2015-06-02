@@ -294,8 +294,8 @@ void partition_graph_data_structure() {
                 if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
               }
             }
-            if (i % (n_local / 8) == 0) {
-              MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
+            if (i % (n_local / 16) == 0) {
+              //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
               for (l=0; l<nparts; ++l) { 
                 partsize_update[l] = partsize[l] - old_partsize[l];
               }            
@@ -310,7 +310,7 @@ void partition_graph_data_structure() {
       //}
       MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
       //double allgstart= MPI_Wtime();
-      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
+      //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
       //double allgstop = MPI_Wtime();
       //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
       for (l=0; l<nparts; ++l) { 
