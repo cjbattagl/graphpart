@@ -32,16 +32,18 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 #define VERBY 0
 #define NUM_ROOTS 12
 
-#define ALPHA_EXP_RATE 1.2
+#define ALPHA_EXP_RATE 1.3
 
 #define F_DELTA 100
-#define NNZ_WEIGHT 0
 #define F_GAMMA 2
 #define F_CUTOFF 100000000
-#define NUM_STREAMS 14
+#define NUM_STREAMS 10
 #define SANITY 1
 #define HI_RAND 1
 #define VALIDATE 0
+
+#define PART_TYPE int
+#define MPI_PART_TYPE MPI_INT
 
 /* Distribute edges by their endpoints (make two directed copies of each input
  * undirected edge); distribution is 1-d and cyclic. */
@@ -186,10 +188,10 @@ void print_graph();
 void permute_tuple_graph(tuple_graph* tg);
 
 void apply_permutation_mpi(MPI_Comm comm, const int64_t local_perm_size, const int64_t* const local_vertex_perm, const int64_t N, const int64_t nedges, int64_t* result);
-int print_parts(FILE* out, int* parts, int n, int n_local);
+int print_parts(FILE* out, PART_TYPE* parts, int n, int n_local);
 int print_graph_tuple(FILE* out, tuple_graph* tg, int rank);
 int print_graph_csr(FILE* out, size_t *rowptr, int64_t *colidx, int n_local);
-int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff);
+int mpi_compute_cut(size_t *rowptr, int64_t *colidx, PART_TYPE *parts, int nparts, int n_local, int offset, int cutoff);
 int* genRandPerm(int* orderList, int size);
 void shuffle_int(int *list, int len);
 int irand(int n);

@@ -17,8 +17,11 @@
 //#define TO_NEW_IDX(x) g_perm[x]
 //#define NEW_PART_OF_IDX(x) parts[TO_NEW_IDX(x)]
 ///////////////////
+
+
+
 static int* g_perm;
-static int* parts;
+static PART_TYPE* parts;
 static oned_csr_graph g;
 static int64_t* g_oldq;
 static int64_t* g_newq;
@@ -109,7 +112,7 @@ void permute_tuple_graph(tuple_graph* tg) {
       int node_owner = VERTEX_OWNER(node);
       int node_local_idx = VERTEX_LOCAL(node);
       int parts_idx = node_owner*g.nlocalverts + node_local_idx;
-      int v_part = parts[parts_idx];
+      PART_TYPE v_part = parts[parts_idx];
       perms[i] = v_part;
     }
 
@@ -165,12 +168,12 @@ void permute_tuple_graph(tuple_graph* tg) {
 }
 
 void partition_graph_data_structure() { 
-  int n = g.nglobalverts;
-  int n_local = g.nlocalverts;
-  int offset = g.nlocalverts * rank; //!//Does this work?
+  size_t n = g.nglobalverts;
+  size_t n_local = g.nlocalverts;
+  size_t offset = g.nlocalverts * rank; //!//Does this work?
   int nparts = size;
   int tot_nnz = 0;
-  parts = (int*)malloc(n * sizeof(int));
+  parts = (PART_TYPE*)malloc(n * sizeof(PART_TYPE));
   int *partsize_update = (int*)malloc(nparts * sizeof(int));
   int *old_partsize = (int*)malloc(nparts * sizeof(int));
   int *partsize = (int*)malloc(nparts * sizeof(int));
@@ -183,10 +186,10 @@ void partition_graph_data_structure() {
   int *partcost = (int*)malloc(nparts * sizeof(int));
   int *vorder = (int*)malloc(n_local * sizeof(int)); 
 
-  int oldpart;
+  PART_TYPE oldpart;
   int emptyverts = 0;
   num_hi_deg_verts = 0;
-  int randidx;
+  PART_TYPE randidx;
   int cutoff = F_CUTOFF;
   size_t *row;
   size_t vert;
@@ -196,7 +199,7 @@ void partition_graph_data_structure() {
   size_t *rowptr = g.rowstarts;
   float curr_score, best_score;
   float gamma = F_GAMMA;
-  int i, s, l; //,j;
+  size_t i, s, l; //,j;
 
   g_perm = (int*)malloc(n * sizeof(int));
  
@@ -211,7 +214,7 @@ void partition_graph_data_structure() {
     fclose(GraphFile);
   }
 
-  memset(parts, -1, n * sizeof(int));
+  memset(parts, -1, n * sizeof(PART_TYPE));
   for (l=0; l<nparts; ++l) {
     partsize[l] = 0;
     old_partsize[l] = 0;
@@ -240,7 +243,7 @@ void partition_graph_data_structure() {
             nnz_row = *(row+1) - *row;
             int local_idx = offset + vert; 
             //fprintf(stdout," %d ",local_idx);
-            randidx = irand(nparts);
+            randidx = (PART_TYPE)irand(nparts);
             //oldpart = parts[local_idx];
             parts[local_idx] = randidx;
             partsize[randidx]++;
@@ -266,7 +269,7 @@ void partition_graph_data_structure() {
                 int node_owner = VERTEX_OWNER(node);
                 int node_local_idx = VERTEX_LOCAL(node);
                 int parts_idx = node_owner*g.nlocalverts + node_local_idx;
-                int node_part = parts[parts_idx]; /////
+                PART_TYPE node_part = parts[parts_idx]; /////
                 if (node_part >= 0 && node_part < nparts) { partscore[node_part]++; }
               }
               for (s = 0; s < nparts; ++s) { partcost[s] = partscore[s] - alpha*(gamma/2)*pow(partsize[s],gamma-1); }
@@ -284,7 +287,7 @@ void partition_graph_data_structure() {
             else { // empty vertex, assign randomly
               if (parts[local_idx]==-1) {
                 emptyverts++;
-                randidx = irand(nparts);
+                randidx = (PART_TYPE)irand(nparts);
                 oldpart = parts[local_idx];
                 parts[local_idx] = randidx;
                 partsize[randidx]++;
@@ -292,7 +295,7 @@ void partition_graph_data_structure() {
               }
             }
             if (i % (n/100) == 0) {
-              MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+              MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
               for (l=0; l<nparts; ++l) { 
                 partsize_update[l] = partsize[l] - old_partsize[l];
               }            
@@ -305,9 +308,9 @@ void partition_graph_data_structure() {
           }
         }
       //}
-      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
       //double allgstart= MPI_Wtime();
-      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
       //double allgstop = MPI_Wtime();
       //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
       for (l=0; l<nparts; ++l) { 
@@ -326,7 +329,7 @@ void partition_graph_data_structure() {
       }
 
       //double allgstart= MPI_Wtime();
-      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+      MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
       //double allgstop = MPI_Wtime();
       //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
 
@@ -347,7 +350,7 @@ void partition_graph_data_structure() {
         check_partsize[mypart]++;
       }
       for (l=0; l<nparts; ++l) { 
-        if (rank==l && VERBY) { fprintf(stdout,"partsize[%d] on rank %d is %d. check_partsize is %d\n", l, rank, partsize[l], check_partsize[l]); }
+        if (rank==l && VERBY) { fprintf(stdout,"partsize[%d] on rank %d is %d. check_partsize is %d\n", (int)l, (int)rank, (int)partsize[l], (int)check_partsize[l]); }
         assert(check_partsize[l] == partsize[l]); 
         if (check_partsize[l] > max_partsize) { max_partsize = check_partsize[l]; }
         if (check_partsize[l] < min_partsize) { min_partsize = check_partsize[l]; }
@@ -373,7 +376,7 @@ void partition_graph_data_structure() {
       else { parts[i] = nparts; }
     }
   }
-  MPI_Allgather(MPI_IN_PLACE, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
+  MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
   //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
   MPI_Barrier(MPI_COMM_WORLD);
 
@@ -429,7 +432,7 @@ float calc_dc(float alpha, float gamma, int len) {
   return (alpha*pow(len + F_DELTA ,gamma)) - (alpha*pow(len,gamma));
 }
 
-int mpi_compute_cut(size_t *rowptr, int64_t *colidx, int *parts, int nparts, int n_local, int offset, int cutoff) {
+int mpi_compute_cut(size_t *rowptr, int64_t *colidx, PART_TYPE* parts, int nparts, int n_local, int offset, int cutoff) {
   size_t vert;
   int nnz_row;
   int v_part;
@@ -504,7 +507,7 @@ int print_graph_csr(FILE* out, size_t *rowptr, int64_t *colidx, int n_local) {
   return 1;
 }
 
-int print_parts(FILE* out, int* parts, int n, int n_local) {
+int print_parts(FILE* out, PART_TYPE* parts, int n, int n_local) {
   int i;
   for (i=0; i<n; ++i) {
     int node = i;
