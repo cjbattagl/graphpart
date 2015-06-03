@@ -42,8 +42,8 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 #define HI_RAND 1
 #define VALIDATE 0
 
-#define PART_TYPE short
-#define MPI_PART_TYPE MPI_SHORT
+#define PART_TYPE unsigned short
+#define MPI_PART_TYPE MPI_UNSIGNED_SHORT
 
 /* Distribute edges by their endpoints (make two directed copies of each input
  * undirected edge); distribution is 1-d and cyclic. */
