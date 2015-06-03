@@ -1,19 +1,9 @@
 %!TEX root=kdd15_workshop_main.tex
-
-Distributed, irregular algorithms such as large-scale graph mining nearly always encounter bottlenecks in network communication and load imbalance~\cite{challenglums}. A common preprocessing step is thus mapping this data to processes in a way that alleviates these issues. Graph partitioning is the general problem of dividing a graph into separate components with desired properties; in distributed computing the desired objective is generally equally-sized partitions (to favor load balance) and the minimization of inter-partition edges (to minimize communication).
-
-Formally, we wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges crossing partition boundaries is minimized. Partitioning with these two requirements can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete. Thus, computing an optimal mapping is generally computationally infeasible, and heuristic approaches are taken. 
-
 \section{Introduction}
 \subsection{Graph Partitioning}
-Distributed algorithms that operate on sparse data, such as large-scale graph mining, often encounter load-balance and network communication as their bottleneck. 
-Graph partitioning is the problem of dividing a graph into separate components with particular properties. 
-In parallel computing, the objective is generally equally-sized partitions (to improve load-balance) and the minimization of inter-partition edges (to minimize communication).
+Distributed, irregular algorithms such as large-scale graph mining nearly always encounter bottlenecks in network communication and load imbalance~\cite{challenglums}. A common preprocessing step is thus mapping data to processes in a way that alleviates these issues. Graph partitioning is the general problem of dividing a graph into separate components with desired properties; in distributed computing the desired objective is generally the minimization of inter-partition edges (to minimize communication) subject to balanced partition size (to favor load balance).
 
-Formally, we wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges crossing partition boundaries is minimized. 
-Partitioning with these two requirements can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete. 
-For this reason it is computationally infeasible to expect an optimal solution for even modest-sized graphs.
-Approximation techniques are essential to scaling up partitioning.
+Formally, we wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges crossing partition boundaries is minimized. Partitioning with these two requirements can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete. Thus, computing an optimal mapping is generally computationally infeasible, and heuristic approaches are taken. 
 
 \begin{figure}[ht]
 \centering
@@ -29,13 +19,10 @@ A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducin
 
 Offline graph partitioning algorithms have existed for decades. They work by storing the graph in memory with complete information about the edges. Many variants of these algorithms exist~\cite{gpsurvey} and range from spatial methods~\cite{Gilbert95geometricmesh} to spectral methods~\cite{arora2009expander}. Some of the most effective offline graph partitioners are multi-level partitioners, which recursively contract the graph to a small number of vertices, and then heuristically optimize the partitioning while expanding back to the original graph~\cite{karypis1998multilevel}. Parallel multi-level partitioners will serve as the baseline comparison for our implementation. 
 
-Because the problem is computationally expensive and graphs have grown so large, many distributed approaches have been proposed to scale.
- 
+\paragraph{Streaming Partitioning}
+Streaming partitioning is the process of partitioning a graph in a single sweep, reading vertices and edges only once. Thus we incur require $O(|V| + |E|)$ memory access, storage, and run time. Offline graph partitioners require the whole graph to be represented in memory, whereas streaming graph partitioning can process vertices as they arrive. This fits a model where input data arrive sequentially from a generating source (such as a web-crawler).
 
-\paragraph{Why Use Streaming Partitioning?}
-The most salient property of streaming partitioning is its speed: it can partition the graph in a single sweep, with $O(|V| + |E|)$ memory access, storage, and run time. Existing graph partitioners require the whole graph to be represented in memory, whereas streaming graph partitioning can process vertices as they arrive. This fits a model where input data arrive sequentially from a generating source (such as a web-crawler).
-
-For example, partitioning a 26GB Twitter graph has been shown to take 8 hours using the fastest offline algorithms, and only 40 minutes with the FENNEL partitioner, with similar partition quality~\cite{tsourakakis2012fennel}. This also suggests that we could do multiple, iterative passes of a streaming partitioner, all in a fraction of the time that an offline partitioner would take to terminate~\cite{nishimura2013restream}.
+Partitioning a 26GB Twitter graph has been shown to take 8 hours using the fastest offline algorithms, and only 40 minutes with the FENNEL streaming partitioner, with similar partition quality~\cite{tsourakakis2012fennel}. This also suggests that we could do multiple, iterative passes of a streaming partitioner, all in a fraction of the time that an offline partitioner would take to terminate. This technique and its convergence properties have been explored by Nishimura and Ugander~\cite{nishimura2013restream}.
 
 \begin{figure}[h]
 \centering

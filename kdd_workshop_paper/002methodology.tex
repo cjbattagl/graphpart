@@ -1,9 +1,19 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Methodology}
+Our algorithmic approach follows the methodology of `restreaming' partitioning'~\cite{nishimura2013restream}, which generalizes the single-pass algorithms of FENNEL and WDG~\cite{tsourakakis2012fennel,Stanton:2012:SGP:2339530.2339722} to a convergent multi-pass approach with several benefits:
+
+\begin{enumerate}
+\item Partition data is only communicated between streams, yielding high parallelism.
+\item Parameters can be `tempered' to achieve higher-quality, balanced results.
+\end{enumerate}
+
+The main contribution of this paper is the demonstration of an efficient HPC implementation of this algorithm. 
 
 \todo{Coverage of distributed approach.}\\
+The input to \ourmethod is a distributed graph $G$, the number of partitions $p$ (assumed to be equal to the number of processes), the number of streams $n_s$, and the `tempering' parameter $t_\alpha$. \ourmethod then performs $n_s$ iterative passes over the graph, exponentially tempering the balance parameter
 
 \todo{Brief math for WDG}\\
+
 
 \todo{pseudocode for iterative WDG}\\
 
