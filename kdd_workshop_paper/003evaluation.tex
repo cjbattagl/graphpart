@@ -1,7 +1,9 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Evaluation}
 \todo{We measure (1) the quality of \ourmethod and (2) the scalability of our implementation.}\\
-We ran our distributed experiments on \todo{machine stats here}.
+
+We ran our distributed experiments on NERSC Edison CRAY .
+
 
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}
@@ -33,10 +35,10 @@ In Figure~\ref{table:big} we show some properties of our test-graphs, as well as
 { \begin{tabular}{ *7l }    \toprule
 \label{table:big}
 \emph{Data Set} & $N$ & $nnz$ & \emph{sym} & \emph{power-law?} & $\lambda, k=2$ & $\lambda, k=8$ \\\midrule
-% amazon0302 & 262111 & 1234877 & no & yes & 0.202&0.37\\
+amazon0302 & 262111 & 1234877 & no & yes & 0.202&0.37\\
 % amazon0312 & 400727 & 3200440 & no & yes & 0.212&0.38\\
 % amazon0505 & 410236 & 3356824 & no & yes & 0.206&0.37\\
-amazon0601 & 403394 & 3387388 & no & yes & 0.203&0.36\\
+% amazon0601 & 403394 & 3387388 & no & yes & 0.203&0.36\\
 % as-735 & 7716 & 26467 & yes & yes & 0.207&0.44\\
 as-Skitter & 1696415 & 22190596 & yes & yes & 0.166&0.324\\
 ca-AstroPh & 18772 & 396160 & yes & yes & 0.232&0.413\\
@@ -49,12 +51,12 @@ cit-HepPh & 34546 & 421578 & no & yes & 0.343&0.646\\
 cit-Patents & 3774768 & 16518948 & no & yes & 0.402&0.726\\
 % email-Enron & 36692 & 367662 & yes & yes & 0.132&0.407\\
 email-EuAll & 265214 & 420045 & no & yes & 0.280&0.538\\
-% Oregon-1 & 11492 & 46818 & yes & yes & 0.224&0.406\\
+Oregon-1 & 11492 & 46818 & yes & yes & 0.224&0.406\\
 % Oregon-2 & 11806 & 65460 & no & yes & 0.185&0.429\\
 p2p-Gnutella04 & 10879 & 39994 & no & yes & 0.415&0.747\\
-% roadNet-CA & 1971281 & 5533214 & yes & no & 0.186&0.36\\
+roadNet-CA & 1971281 & 5533214 & yes & no & 0.186&0.36\\
 % roadNet-PA & 1090920 & 3083796 & yes & no & 0.188&0.36\\
-roadNet-TX & 1393383 & 3843320 & yes & no & 0.185&0.358\\
+% roadNet-TX & 1393383 & 3843320 & yes & no & 0.185&0.358\\
 % soc-Epinions1 & 75888 & 508837 & no & yes & 0.173&0.34\\
 soc-LiveJournal1 & 4847571 & 68993773 & no & yes &0.234& 0.463\\
 % soc-sign-epinions & 131828 & 841372 & no & yes &0.173&0.34\\
@@ -128,35 +130,35 @@ Significant improvements are made for the vast majority of data sets.
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.8\columnwidth] {figures/2partlambda}
+\includegraphics[width=0.9\columnwidth] {figures/real_k2_lambda}
 \caption[Caption for]{Improvement in the edges cut ($\lambda$) over 5 passes for bi-partitions of each graph. Because there are only two partitions, the algorithm is able to quickly fix mistakes it made in the initial partitioning. Many of the errors made in the first pass are fixed in the second iteration, with diminishing improvement thereafter.}
 \label{fig:01}
 \end{figure}
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.8\columnwidth] {figures/16partlambda}
+\includegraphics[width=0.9\columnwidth] {figures/real_k16_lambda}
 \caption[Caption for]{Improvement in edges cut ($\lambda$) over 5 passes for $k=16$-partitions of each graph. Dividing the graph into 16 partitions makes the minimum edge cut problem much more challenging. Similar to the bi-partition results, we experience the best gain in the second pass and less in subsequent passes.}
 \label{fig:02}
 \end{figure}
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.8\columnwidth] {figures/2partfrac}
-\caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for bi-partitions of each graph.}
-\label{fig:03}
-\end{figure}
+% \begin{figure}[h!]
+% \centering
+% \includegraphics[width=0.8\columnwidth] {figures/2partfrac}
+% \caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for bi-partitions of each graph. After 5 passes all partitions had significantly improved in edge-cut quality.}
+% \label{fig:03}
+% \end{figure}
+
+% \begin{figure}[h!]
+% \centering
+% \includegraphics[width=0.8\columnwidth] {figures/16partfrac}
+% \caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for 16-partitions of each graph.}
+% \label{fig:04}
+% \end{figure}
 
 \begin{figure}[h!]
 \centering
-\includegraphics[width=0.8\columnwidth] {figures/16partfrac}
-\caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for 16-partitions of each graph.}
-\label{fig:04}
-\end{figure}
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.8\columnwidth] {figures/cutvsdens}
+\includegraphics[width=0.98\columnwidth] {figures/cutvsdensity}
 \caption[Caption for]{Cut quality vs nonzero density for each of the graphs in Figure~\ref{table:big}. The graph shows no noticeable correlation.}
 \end{figure}
 
