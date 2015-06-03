@@ -26,6 +26,7 @@ Many networks in the collection are power-law and scale-free representatives of 
 
 % We also speculate (but have no proof) that the `random' structure of scale-free networks better suits the random quality of streaming graph partitioning, whereas a spatially-oriented graph would be poorly suited (for instance, in a grid, a streaming partitioner would create many local pockets for one particular partition, whereas a spatial partitioner would recognize that the graph could be geometrically bisected).
 
+\subsection{Quality}
 In Figure~\ref{table:big} we show some properties of our test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
 
 \begin{figure*}
@@ -88,24 +89,6 @@ This suggests good scalability.
 \subsubsection{Synthetic Graphs}
 To generate the test graphs we used the Graph500 Kronecker-Graph generator.
 We chose Kronecker because it is commonly used in HPC graph benchmarks and testing. 
-In Figure~\ref{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
-We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}. 
-\ourmethod is able to achieve a good balance between quality and speed.
-
-\begin{figure}[h!]
-\centering
-  \includegraphics[width=0.8\columnwidth]{figures/kronecker_quality_tests.pdf}
-  \caption{Partition quality of various Kronecker graphs.}
-  \label{fig:kronqual}
-\end{figure}
-
-\begin{figure}[h!]
-\centering
-  \includegraphics[width=0.8\columnwidth]{figures/kronecker_speed_tests.pdf}
-  \caption{Partition speed of various Kronecker graphs.}
-  \label{fig:kronspeed}
-\end{figure}
-
 
 
 % In Figure~\ref{fig:kronspeed} however, we increase the $p$-value on a single ER graph. We see that the partition quality significantly decreases. 
@@ -121,7 +104,7 @@ Then, as we make another pass, we compute the new objective function using the p
 Vertices may be switched to new partitions. 
 This mitigates poor partitioning decisions that sometimes occur at the beginning of the algorithm, when there was not as much information.
 
-Figures~\ref{fig:01},\ref{fig:02},\ref{fig:03},\ref{fig:04} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
+Figures~\ref{fig:01} and \ref{fig:02} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
 Significant improvements are made for the vast majority of data sets.
 
 % We hope to contrast this performance to that of METIS in the future. (We have implemented a METIS partitioner for comparison but it currently encounters a segmentation faults with some frequency).
@@ -159,7 +142,28 @@ Significant improvements are made for the vast majority of data sets.
 \begin{figure}[h!]
 \centering
 \includegraphics[width=0.98\columnwidth] {figures/cutvsdensity}
-\caption[Caption for]{Cut quality vs nonzero density for each of the graphs in Figure~\ref{table:big}. The graph shows no noticeable correlation.}
+\caption[Caption for]{Cut quality vs nonzero density for the real SNAP networks. The graph shows little noticeable correlation.}
+\end{figure}
+
+\subsection{Scalability}
+In order to test the scalability of \ourmethod we used a series of Kronecker graphs running on a state-of-the-art system.
+In Figure~\ref{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
+We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}. 
+\ourmethod is able to achieve a good balance between quality at incredible speeds.
+
+
+\begin{figure}[h!]
+\centering
+  \includegraphics[width=0.8\columnwidth]{figures/kronecker_quality_tests.pdf}
+  \caption{Partition quality of various Kronecker graphs.}
+  \label{fig:kronqual}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+  \includegraphics[width=0.8\columnwidth]{figures/kronecker_speed_tests.pdf}
+  \caption{Partition speed of various Kronecker graphs.}
+  \label{fig:kronspeed}
 \end{figure}
 
 
