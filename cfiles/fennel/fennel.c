@@ -61,7 +61,7 @@
 #include <bebop/util/timer.h>
 #include <bebop/util/util.h>
 
-#include <metis.h>
+//#include <metis.h>
 
 #include "fennel.h"
 #include "fennel_kernel.h"
@@ -217,10 +217,10 @@ int main (int argc, char *argv[]) {
     fprintf (stdout, "\t%d\t",q);
     run_fennel(repr, parts, 1.9, q); //todo: nparts, gamma as inputs
   }
-  for (q=20; q<200; q+=5) {
-    fprintf (stdout, "\t%d\t",q);
-    run_fennel(repr, parts, 1.9, q); //todo: nparts, gamma as inputs
-  }
+  // for (q=20; q<200; q+=5) {
+  //   fprintf (stdout, "\t%d\t",q);
+  //   run_fennel(repr, parts, 1.0, q); //todo: nparts, gamma as inputs
+  // }
 
   // *************************************************************
   //errcode = save_sparse_matrix ("out.mtx", A, MATRIX_MARKET);

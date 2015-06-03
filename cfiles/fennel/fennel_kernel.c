@@ -25,7 +25,7 @@
 #include <bebop/smc/interface.h>
 #include <bebop/smc/sparse_matrix_ops.h>
 
-#include <metis.h>
+//#include <metis.h>
 
 #include "fennel_kernel.h"
 #include "randperm.h"
@@ -379,29 +379,29 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
 
   //////////////////////////////////
   //////// METIS RUN ///////////////
-  //////////////////////////////////
+  // //////////////////////////////////
 
-  idx_t *xadj, *adjncy, *vwgt, *adjwgt, *part, *perm, *iperm, *sep;
-  idx_t options[METIS_NOPTIONS] = {0}, edgecut, sepsize;
+  // idx_t *xadj, *adjncy, *vwgt, *adjwgt, *part, *perm, *iperm, *sep;
+  // idx_t options[METIS_NOPTIONS] = {0}, edgecut, sepsize;
   
-  struct parameter_data params = {
-    0, // wgtflag = 0
-    0, // adjwgt = 0
-    NULL, // vsize = NULL
-  };
+  // struct parameter_data params = {
+  //   0, // wgtflag = 0
+  //   0, // adjwgt = 0
+  //   NULL, // vsize = NULL
+  // };
     
-  double *optarray, *partpr, *permpr, *ipermpr, *seppr;
-  METIS_SetDefaultOptions(options);
-  //csr_to_metis (n, nnz, rowptr, colidx, &xadj, &adjncy, &vwgt, &adjwgt);
+  // double *optarray, *partpr, *permpr, *ipermpr, *seppr;
+  // METIS_SetDefaultOptions(options);
+  // //csr_to_metis (n, nnz, rowptr, colidx, &xadj, &adjncy, &vwgt, &adjwgt);
 
-  // Allocate vsize
-  params.vsize = (idx_t*)malloc(sizeof(idx_t)*n);
+  // // Allocate vsize
+  // params.vsize = (idx_t*)malloc(sizeof(idx_t)*n);
 
-  // Set which METIS function to do here, or take in command line
-  const char* funcname = "PartGraphRecursive";
+  // // Set which METIS function to do here, or take in command line
+  // const char* funcname = "PartGraphRecursive";
 
-  if (strcasecmp(funcname,"PartGraphRecursive")==0 ||
-    strcasecmp(funcname,"PartGraphKway")==0 ) {
+  // if (strcasecmp(funcname,"PartGraphRecursive")==0 ||
+  //   strcasecmp(funcname,"PartGraphKway")==0 ) {
 
 /*  // Figure out addl options:
     parseOptions(opt, options, &params);
@@ -444,36 +444,36 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma, int cutoff
     seconds = get_seconds() - seconds;
     fprintf (stdout, "\n===== METIS Complete in %g seconds =====\n", seconds);
     fprintf (stdout, "\tMETIS edges cut = %d / %d = %1.3f\n",(int)edgecut,nnz,(float)edgecut/nnz);*/
-  }
+  // }
 }
 
-static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj, idx_t **adjncy, idx_t **vwgt, idx_t **adjwgt) {
-    int i, j, jbar;
-    /* Allocate room for METIS's structure */
-    *xadj = (idx_t*) malloc (n+1 * sizeof(idx_t));
-    *adjncy = (idx_t*) malloc (nnz * sizeof(idx_t));
-    *vwgt = (idx_t*) malloc (n * sizeof(idx_t));
-    *adjwgt = (idx_t*) malloc (nnz * sizeof(idx_t));
+// static void csr_to_metis (int n, int nnz, int *rowptr, int *colidx, idx_t **xadj, idx_t **adjncy, idx_t **vwgt, idx_t **adjwgt) {
+//     int i, j, jbar;
+//     /* Allocate room for METIS's structure */
+//     *xadj = (idx_t*) malloc (n+1 * sizeof(idx_t));
+//     *adjncy = (idx_t*) malloc (nnz * sizeof(idx_t));
+//     *vwgt = (idx_t*) malloc (n * sizeof(idx_t));
+//     *adjwgt = (idx_t*) malloc (nnz * sizeof(idx_t));
 
-    (*xadj)[0] = 0;
-    jbar = 0;
-    int nnz_row;
-    for (i = 1; i <= n; i++) {
-        nnz_row = rowptr[i] - rowptr[i-1];
+//     (*xadj)[0] = 0;
+//     jbar = 0;
+//     int nnz_row;
+//     for (i = 1; i <= n; i++) {
+//         nnz_row = rowptr[i] - rowptr[i-1];
 
-        for (j = rowptr[i-1]; j < rowptr[i]; j++) {
-            if (colidx[j] != i-1) {
-                //fprintf(stdout,"%d ",jbar);
-                (*adjncy)[jbar] = colidx[j];
-                (*adjwgt)[jbar] = 1;
-                jbar++;
-            } else {
-                (*vwgt)[i-1] = 1;
-            }
-        }
-        (*xadj)[i] = jbar;
-    }
-}
+//         for (j = rowptr[i-1]; j < rowptr[i]; j++) {
+//             if (colidx[j] != i-1) {
+//                 //fprintf(stdout,"%d ",jbar);
+//                 (*adjncy)[jbar] = colidx[j];
+//                 (*adjwgt)[jbar] = 1;
+//                 jbar++;
+//             } else {
+//                 (*vwgt)[i-1] = 1;
+//             }
+//         }
+//         (*xadj)[i] = jbar;
+//     }
+// }
   
 // Compute number of edges cut by a given partitioning
 static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx, bool **parts, int nparts, int n, FILE *out, int cutoff) {
