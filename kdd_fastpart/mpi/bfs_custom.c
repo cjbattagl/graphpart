@@ -211,7 +211,7 @@ void partition_graph_data_structure() {
     fclose(GraphFile);
   }
 
-  memset(parts, -1, n * sizeof(PART_TYPE));
+  //memset(parts, -1, n * sizeof(PART_TYPE));
 
   for (l=0; l<nparts; ++l) {
     partsize[l] = 0;
@@ -277,6 +277,7 @@ void partition_graph_data_structure() {
           partsize[best_part]++; partnnz[best_part]+=nnz_row;
           if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
         } 
+#if 0
         else { // empty vertex, assign randomly
           if (parts[local_idx]==-1) {
             emptyverts++;
@@ -286,6 +287,7 @@ void partition_graph_data_structure() {
             if (oldpart >= 0 && oldpart < nparts) { partsize[oldpart]--; partnnz[oldpart]-=nnz_row; }
           }
         }
+#endif
         if (i % (n_local / 20) == 0) {
           for (l=0; l<nparts; ++l) { partsize_update[l] = partsize[l] - old_partsize[l]; }            
           MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
