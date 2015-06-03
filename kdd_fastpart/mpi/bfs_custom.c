@@ -18,9 +18,7 @@
 //#define NEW_PART_OF_IDX(x) parts[TO_NEW_IDX(x)]
 ///////////////////
 
-
-
-static int* g_perm;
+static int64_t* g_perm;
 static PART_TYPE* parts;
 static oned_csr_graph g;
 static int64_t* g_oldq;
@@ -33,7 +31,7 @@ static MPI_Request* g_outgoing_reqs;
 static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
 
-static int num_hi_deg_verts;
+static int64_t num_hi_deg_verts;
 
 void free_graph_data_structure(void) {
   /*free(g_oldq);
@@ -172,22 +170,22 @@ void partition_graph_data_structure() {
   size_t n_local = g.nlocalverts;
   size_t offset = g.nlocalverts * rank; //!//Does this work?
   int nparts = size;
-  int tot_nnz = 0;
+  int64_t tot_nnz = 0;
   parts = (PART_TYPE*)malloc(n * sizeof(PART_TYPE));
-  int *partsize_update = (int*)malloc(nparts * sizeof(int));
-  int *old_partsize = (int*)malloc(nparts * sizeof(int));
-  int *partsize = (int*)malloc(nparts * sizeof(int));
+  int64_t *partsize_update = (int64_t*)malloc(nparts * sizeof(int64_t));
+  int64_t *old_partsize = (int64_t*)malloc(nparts * sizeof(int64_t));
+  int64_t *partsize = (int64_t*)malloc(nparts * sizeof(int64_t));
 
-  int *partnnz_update = (int*)malloc(nparts * sizeof(int));
-  int *old_partnnz = (int*)malloc(nparts * sizeof(int));
-  int *partnnz = (int*)malloc(nparts * sizeof(int));
+  int64_t *partnnz_update = (int64_t*)malloc(nparts * sizeof(int64_t));
+  int64_t *old_partnnz = (int64_t*)malloc(nparts * sizeof(int64_t));
+  int64_t *partnnz = (int64_t*)malloc(nparts * sizeof(int64_t));
 
-  int *partscore = (int*)malloc(nparts * sizeof(int));
-  int *partcost = (int*)malloc(nparts * sizeof(int));
-  int *vorder = (int*)malloc(n_local * sizeof(int)); 
+  int64_t *partscore = (int64_t*)malloc(nparts * sizeof(int64_t));
+  int64_t *partcost = (int64_t*)malloc(nparts * sizeof(int64_t));
+  int64_t *vorder = (int64_t*)malloc(n_local * sizeof(int64_t)); 
 
   PART_TYPE oldpart;
-  int emptyverts = 0;
+  int64_t emptyverts = 0;
   num_hi_deg_verts = 0;
   PART_TYPE randidx;
   int cutoff = F_CUTOFF;
@@ -201,7 +199,7 @@ void partition_graph_data_structure() {
   float gamma = F_GAMMA;
   size_t i, s, l; //,j;
 
-  g_perm = (int*)malloc(n * sizeof(int));
+  //g_perm = (int64_t*)malloc(n * sizeof(int64_t));
  
   if(MAT_OUT) { // Print graph
     char filename[256];
@@ -216,7 +214,6 @@ void partition_graph_data_structure() {
 
   memset(parts, -1, n * sizeof(PART_TYPE));
 
-
   for (l=0; l<nparts; ++l) {
     partsize[l] = 0;
     old_partsize[l] = 0;
@@ -226,15 +223,16 @@ void partition_graph_data_structure() {
     partnnz_update[l] = 0;
   }
 
-  int localedges = (int)g.nlocaledges;
-  MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  int64_t localedges = (int64_t)g.nlocaledges;
+  MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
   float alpha = sqrt(2) * (tot_nnz/pow(n,gamma));
   
   //fprintf(stdout,"n = %d, n_local = %d, local nnz = %d, total nnz = %d\n",n,n_local,localedges,tot_nnz);
-  int repeat_run;
-  int node_owner;
-  int node_local_idx;
-  int parts_idx;
+  int64_t repeat_run;
+  int64_t node_owner;
+  int64_t node_local_idx;
+  int64_t parts_idx;
+  int64_t local_idx;
   double allgpartstime = 0;
   double comptime = 0;
   //int run;
@@ -248,7 +246,7 @@ void partition_graph_data_structure() {
             vert = (size_t)vorder[i];
             row = &rowptr[vert];
             nnz_row = *(row+1) - *row;
-            int local_idx = offset + vert; 
+            local_idx = offset + vert; 
             //fprintf(stdout," %d ",local_idx);
             randidx = (PART_TYPE)irand(nparts);
             //oldpart = parts[local_idx];
@@ -265,10 +263,10 @@ void partition_graph_data_structure() {
             //  partscore[l] = 0;
             //  partcost[l] = 0;
             //}
-            memset(partscore, 0, nparts * sizeof(int));
-            memset(partcost, 0, nparts * sizeof(int));
+            memset(partscore, 0, nparts * sizeof(int64_t));
+            memset(partcost, 0, nparts * sizeof(int64_t));
             vert = (size_t)vorder[i];
-            int local_idx = offset + vert; //VERTEX_LOCAL(global_vert_idx);
+            local_idx = offset + vert; //VERTEX_LOCAL(global_vert_idx);
             row = &rowptr[vert];
             nnz_row = *(row+1) - *row;
             oldpart = -1;
@@ -308,7 +306,7 @@ void partition_graph_data_structure() {
               for (l=0; l<nparts; ++l) { 
                 partsize_update[l] = partsize[l] - old_partsize[l];
               }            
-              MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+              MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
               for (l=0; l<nparts; ++l) { 
                 old_partsize[l] += partsize_update[l]; 
                 partsize[l] = old_partsize[l];
@@ -329,8 +327,8 @@ void partition_graph_data_structure() {
         partnnz_update[l] = partnnz[l] - old_partnnz[l];
         //fprintf(stdout,"partsize[%d] on rank %d is %d. partsizeupdate is %d. oldsize is %d\n", l, rank, partsize[l], partsize_update[l], old_partsize[l]);
       }
-      MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      MPI_Allreduce(MPI_IN_PLACE, partnnz_update, nparts, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
+      MPI_Allreduce(MPI_IN_PLACE, partnnz_update, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
 
       for (l=0; l<nparts; ++l) { 
         old_partsize[l] += partsize_update[l]; 
@@ -346,23 +344,23 @@ void partition_graph_data_structure() {
       //if (rank == 0) { fprintf(stderr, "allgather time:               %f s\n", allgstop - allgstart); }
 
     //sanity check: manually compute partsizes
-    if (SANITY) {
-      int max_partsize = 0;
-      int min_partsize = n;
-      int *check_partsize = (int*)malloc((nparts+1)*sizeof(int));
-      int max_partnnz = 0;
-      int min_partnnz = tot_nnz;
+    if (1 || SANITY) {
+      int64_t max_partsize = 0;
+      int64_t min_partsize = n;
+      int64_t *check_partsize = (int64_t*)malloc((nparts+1)*sizeof(int64_t));
+      int64_t max_partnnz = 0;
+      int64_t min_partnnz = tot_nnz;
       for (l=0; l<=nparts; ++l) { 
         check_partsize[l] = 0; 
       }
       for (i=0; i<n; ++i) {
-        int mypart = parts[i];
+        PART_TYPE mypart = parts[i];
         if (mypart == -1) { fprintf(stderr, "-1 :("); }
         assert(mypart>=0 && mypart<=nparts);
         check_partsize[mypart]++;
       }
       for (l=0; l<nparts; ++l) { 
-        if (rank==l && VERBY) { fprintf(stdout,"partsize[%d] on rank %d is %d. check_partsize is %d\n", (int)l, (int)rank, (int)partsize[l], (int)check_partsize[l]); }
+        if (rank==l && VERBY) { fprintf(stdout,"partsize[%d] on rank %d is %" PRId64 ". check_partsize is %" PRId64 "\n", (int)l, (int)rank, partsize[l], check_partsize[l]); }
         assert(check_partsize[l] == partsize[l]); 
         if (check_partsize[l] > max_partsize) { max_partsize = check_partsize[l]; }
         if (check_partsize[l] < min_partsize) { min_partsize = check_partsize[l]; }
@@ -416,7 +414,7 @@ void partition_graph_data_structure() {
 }
 
 // Random permutation generator. Move to another file.
-int* genRandPerm(int* orderList, int size) {
+int64_t* genRandPerm(int64_t* orderList, int64_t size) {
   assert(orderList);
   srand(time(NULL));
   // Generate 'identity' permutation
@@ -426,9 +424,9 @@ int* genRandPerm(int* orderList, int size) {
   return orderList;
 }
 
-void shuffle_int(int *list, int len) {
+void shuffle_int(int64_t *list, int len) {
   int j;
-  int tmp;
+  int64_t tmp;
   while(len) {
       j = irand(len);
       if (j != len - 1) {
@@ -446,26 +444,26 @@ int irand(int n) {
   return r / (rand_max / n);
 }
 
-float calc_dc(float alpha, float gamma, int len) {
+float calc_dc(float alpha, float gamma, int64_t len) {
   return (alpha*pow(len + F_DELTA ,gamma)) - (alpha*pow(len,gamma));
 }
 
-int mpi_compute_cut(size_t *rowptr, int64_t *colidx, PART_TYPE* parts, int nparts, int n_local, int offset, int cutoff) {
+int64_t mpi_compute_cut(size_t *rowptr, int64_t *colidx, PART_TYPE* parts, int nparts, int64_t n_local, int64_t offset, int cutoff) {
   size_t vert;
-  int nnz_row;
-  int v_part;
-  int cutedges = 0;
-  int mytotedges = 0;
-  int mytotlodegedges = 0;
+  int64_t nnz_row;
+  int64_t v_part;
+  int64_t cutedges = 0;
+  int64_t mytotedges = 0;
+  int64_t mytotlodegedges = 0;
   size_t *row;
-  int i;
+  int64_t i;
   size_t k;
-  int emptyparts = 0;
+  int64_t emptyparts = 0;
   mytotedges = rowptr[n_local];
   for (i = 0; i < n_local; i++) {
     vert = i;
     row = &rowptr[vert];
-    nnz_row = (int)(*(row+1) - *(row)); //nnz in row
+    nnz_row = (int64_t)(*(row+1) - *(row)); //nnz in row
     if (nnz_row < cutoff) { 
       v_part = parts[vert+offset];
       if (v_part == -1) {
@@ -474,21 +472,21 @@ int mpi_compute_cut(size_t *rowptr, int64_t *colidx, PART_TYPE* parts, int npart
       }
       // count edges to other partitions
       for (k = *row; k < ((*row)+nnz_row); ++k) {
-        int node = colidx[k];
-        int node_owner = VERTEX_OWNER(node);
-        int node_local_idx = VERTEX_LOCAL(node);
-        int parts_idx = node_owner*g.nlocalverts + node_local_idx;
+        int64_t node = colidx[k];
+        int64_t node_owner = VERTEX_OWNER(node);
+        int64_t node_local_idx = VERTEX_LOCAL(node);
+        int64_t parts_idx = node_owner*g.nlocalverts + node_local_idx;
         if (parts[parts_idx] < nparts) { mytotlodegedges++; } //count low degree edges
         if (parts[parts_idx] != v_part && parts[parts_idx] < nparts) { cutedges++; } //count low degree cut edges
       }
     }
   }
-  int tot_cutedges;
-  int tot_lodegedges;
-  MPI_Allreduce(&cutedges, &tot_cutedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&mytotlodegedges, &tot_lodegedges, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  int64_t tot_cutedges;
+  int64_t tot_lodegedges;
+  MPI_Allreduce(&cutedges, &tot_cutedges, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&mytotlodegedges, &tot_lodegedges, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
   //fprintf(stdout,"offset: %d emptyparts = %d cutedges = %d totcutedges = %d tot edges=%d mylodegedges=%d totlodegedges=%d\n",offset, emptyparts,cutedges,tot_cutedges,mytotedges,mytotlodegedges,tot_lodegedges);
-  if (rank == 0) {   fprintf(stdout,"total cutedges = %d, pct of total:%f pct of worstcase:%f \n", tot_cutedges, (float)tot_cutedges/tot_lodegedges, ((float)tot_cutedges/tot_lodegedges)/((float)(nparts-1)/nparts)); }
+  if (rank == 0) {   fprintf(stdout,"total cutedges = %" PRId64 ", pct of total:%f pct of worstcase:%f \n", tot_cutedges, (float)tot_cutedges/tot_lodegedges, ((float)tot_cutedges/tot_lodegedges)/((float)(nparts-1)/nparts)); }
   return tot_cutedges;
 }
 
