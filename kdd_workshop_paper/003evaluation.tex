@@ -2,7 +2,7 @@
 \section{Evaluation}
 \todo{We measure (1) the quality of \ourmethod and (2) the scalability of our implementation.}\\
 
-We ran our distributed experiments on the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node, and a Cray Aries interconnect. For scalability experiments we generated undirected Kronecker graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{}. 
+We ran our distributed experiments on the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node, and a Cray Aries interconnect. For scalability experiments we generated undirected Kronecker graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. 
 
 
 We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
@@ -20,7 +20,7 @@ Real networks demonstrate \ourmethod's potential for use on real domain problems
 We also selected synthetic graphs, because they allow better experimental control over size and structure.
 \subsubsection{Real-world Graphs}
 \todo{We need to select a subset of these graphs to show, otherwise the plots are utterly impossible to read.}\\
-The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data}. 
+The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data, snapnets}. 
 Many networks in the collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be ideal targets for streaming partitioning, because these domains are producing the vast majority of the `big-data' that is difficult to partition using traditional methods.
 
 % We also speculate (but have no proof) that the `random' structure of scale-free networks better suits the random quality of streaming graph partitioning, whereas a spatially-oriented graph would be poorly suited (for instance, in a grid, a streaming partitioner would create many local pockets for one particular partition, whereas a spatial partitioner would recognize that the graph could be geometrically bisected).

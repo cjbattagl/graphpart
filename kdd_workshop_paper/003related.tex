@@ -4,6 +4,11 @@ Partitioning is an important step in many algorithms.
 In high performance computing cases, from simulation to web analytics, the quality of partitions can strongly affect the parallel performance of many algorithms.
 In the following section, we will cover a small sample of the vast work that has gone into approximating solutions to graph partitioning.
 
+
+\paragraph{Large-scale Data-mining}
+Shared-memory vs. Distributed argument: GraphCHI~\cite{graphchi}
+
+
 \paragraph{Partitioning}
 Spatial methods like \cite{Gilbert95geometricmesh} that leverage geometric data to supplement the partition formation process.
 Arora et al. proposed a fast approximation algorithm using spectral projection to perform sparse cuts, edge expansions, and separator balance \cite{arora2009expander}.
@@ -11,7 +16,24 @@ Some of the most successful partitioners use multilevel approaches \cite{karypis
 Which achieve a high level of concurrency while maintaining good partition quality.
 Some recent approaches have been designed specifically to address small-world networks \cite{slota2014pulp}.
 
+
+Adaptive partitioning for large-scale dynamic graphs~\cite{Vaquero:2013:APL:2523616.2525943}.
+
+Pregel~\cite{Malpregel}.
+
+Boman2D~\cite{Bomansc13}.
+
+Partition management~\cite{Yangpart}.
+
+Dynamic load balancing~\cite{khayyatmizan}.
+
+
+
+
+
 \paragraph{Streaming Partitioning}
+Xstream~\cite{xstream}.
+
 Streaming graph partitioning has gained traction in the last few years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}.
 Typically these streaming partitioners use a heuristic to determine the formation of the partitions.
 
