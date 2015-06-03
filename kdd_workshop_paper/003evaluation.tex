@@ -1,31 +1,33 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Evaluation}
-\todo{We measure (1) the quality of \ourmethod and (2) the scalability of our implementation.}\\
 
 We ran our distributed experiments on the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node, and a Cray Aries interconnect. For scalability experiments we generated undirected Kronecker graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. 
 
-We measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
+We also measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}
 The fraction of edges cut demonstrates the quality of the edge minimization aspect of partitioning the graph.
 
 As a baseline, we can compare this to the expected quality of a random $k-$partition:
 \begin{align}\lambda_r = \frac{k^2 - k}{k^2} = \frac{k-1}{k} \end{align}
 
-Any partitioner that produces a partition with $\lambda < \lambda_r$ has thus improved the parallel locality of the graph ordering, so we present $\lambda_{r,k}$ along with our results.
+Any partitioner that produces partitions with $\lambda < \lambda_r$ has improved the parallel locality of the partitions. 
+We present $\lambda_{r,k}$ along with our one-pass, real network results in Table \ref{table:big}.
 
 \subsection{Test Graphs}
-We chose to test on both real and synthetic networks.
+We tested \ourmethod on both real and synthetic networks.
 Real networks demonstrate \ourmethod's potential for use on real domain problems.
-We also selected synthetic graphs, because they allow better experimental control over size and structure.
+We also utilized synthetic graphs, because they allow better experimental control over size and structure.
 \subsubsection{Real-world Graphs}
-\todo{We need to select a subset of these graphs to show, otherwise the plots are utterly impossible to read.}\\
 The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data, snapnets}. 
 Many networks in the collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be ideal targets for streaming partitioning, because these domains are producing the vast majority of the `big-data' that is difficult to partition using traditional methods.
 
 % We also speculate (but have no proof) that the `random' structure of scale-free networks better suits the random quality of streaming graph partitioning, whereas a spatially-oriented graph would be poorly suited (for instance, in a grid, a streaming partitioner would create many local pockets for one particular partition, whereas a spatial partitioner would recognize that the graph could be geometrically bisected).
 
 \subsection{Quality}
-In Figure~\ref{table:big} we show some properties of our test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
+In Table~\ref{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
+% As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. 
+% This suggests good scalability.
+
 
 \begin{figure*}
 \caption{Basic properties of graphs in SNAP data set~\cite{Leskovec-data}, and $\lambda$ for one pass. $\lambda_{r,2}=0.5,\lambda_{r,8}=0.87$}
@@ -72,8 +74,7 @@ wiki-Talk & 2394385 & 5021410 & no & yes &0.411&0.752\\
 }
 \end{figure*}
 
-As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. 
-This suggests good scalability.
+
 
 % We also note Figure~\ref{fig:4}, which illustrates the result of the streaming algorithm on a more spacial network (roadNet-CA). The `local' nonzeros are those points in the 8 diagonal blocks, while the `remote' edges are those outside. While a good partitioner would concentrate the vast majority of elements along the diagonal (which is possible because the graph has very high diameter), the streaming partitioner fails to recognize this quality, and each partition has vertices distributed somewhat randomly through the network. Nonetheless, the partition is decent (only 18 percent of edges are cut).
 
@@ -86,7 +87,7 @@ This suggests good scalability.
 
 \subsubsection{Synthetic Graphs}
 To generate the test graphs we used the Graph500 Kronecker-Graph generator.
-We chose Kronecker because it is commonly used in HPC graph benchmarks and testing. 
+Kronecker graphs are commonly used in HPC graph benchmarks and testing and can be scaled arbitrarily large for testing purposes. 
 
 
 % In Figure~\ref{fig:kronspeed} however, we increase the $p$-value on a single ER graph. We see that the partition quality significantly decreases. 
@@ -94,8 +95,8 @@ We chose Kronecker because it is commonly used in HPC graph benchmarks and testi
 
 \paragraph{Restreaming \& Additional Passes}
 A key facet of \ourmethod is performing additional passes of partitioning on a pre-partitioned graph. 
-The partitioner is fast enough that it may be faster to do $n$ streaming passes than use a slower mainstream graph partitioner.
-To explore this idea, we perform a number of passes on the SNAP data set, and observe the effects of various graphs. 
+The partitioner is fast enough that it is faster to do $n$ streaming passes than use a slower mainstream graph partitioner.
+To explore this idea, we perform a number of passes on the SNAP data set, and observe the effects of various graphs (see Figure~\ref{fig:01, fig:02}). 
 
 The algorithm is simple: once we have computed the first partition, we retain the original partition mapping. 
 Then, as we make another pass, we compute the new objective function using the partition mapping that has already been filled in. 
@@ -103,7 +104,9 @@ Vertices may be switched to new partitions.
 This mitigates poor partitioning decisions that sometimes occur at the beginning of the algorithm, when there was not as much information.
 
 Figures~\ref{fig:01} and \ref{fig:02} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
-Significant improvements are made for the vast majority of data sets.
+The second pass usually exhibits the best improvement, while subsequent passes offer diminishing returns.
+Making a low-cut 16-partitioning is considerably harder than the 2-partition case, explaining the difference in quality in Figure~\ref{fig:02}.
+
 
 % We hope to contrast this performance to that of METIS in the future. (We have implemented a METIS partitioner for comparison but it currently encounters a segmentation faults with some frequency).
 
@@ -178,9 +181,8 @@ The encouraging side to this is that even despite their complexity, \ourmethod c
 While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, one-pass algorithm is capable of significantly reducing communication in their parallel computation, and that several additional passes can further reduce edges cut (by up to a factor of 3). Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
 This makes streaming partitioning a valid alternative to be integrated within distributed-memory, on-the-fly algorithms for big-data.
 
-One interesting fact of note is that when we ran multiple passes on the graphs, one partition would become populated by very high-degree vertices.
-We see this in Figure~\ref{fig:dense}. 
-We attribute this to the notion that scale-free graphs have a ``dense core'' surrounded by a less-dense periphery.
+A danger of naively running multiple passes is that one partition often becomes populated by very high-degree vertices. 
+We attribute this to the ``dense core'' surrounded by a less-dense periphery that many scale-free graphs possess.
 This can be observed qualitatively when scale-free graphs are embedded in a spectral space~\cite{Lang04findinggood}.
 
 This dense partition tends to strongly emerge as we continue to make further passes of the streaming algorithm.

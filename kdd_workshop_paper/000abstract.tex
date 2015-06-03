@@ -1,6 +1,6 @@
 %!TEX root=kdd15_workshop_main.tex
 \begin{abstract}
-The size of real-world graph data sets continues to grow past the limits of commodity machines. In distributing large-scale graph mining approaches, a first step is often partitioning the data across machines in a way that reduces communication volume while simultaneously promoting load-balance. 
+The size of real-world graph data sets continues to grow past the limits of commodity machines. In distributing large-scale graph mining approaches, the first step is often partitioning the data across machines in a way that reduces communication volume while simultaneously promoting load-balance. 
 While graph partitioning is a mature field, recent work has shown that low-overhead streaming heuristics can perform competitively with heavyweight, offline graph partitioners for many real-world graphs. 
 
 In this work we investigate the process of partitioning a social graph using a \emph{distributed, streaming} partitioner, \ourmethod, which makes partition decisions as each vertex is read from memory, simulating an online algorithm that must process nodes as they arrive. 
