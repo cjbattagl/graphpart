@@ -6,6 +6,15 @@ Formally, we wish to partition the nodes of a graph into $k$ balanced components
 
 \section{Introduction}
 \subsection{Graph Partitioning}
+Distributed algorithms that operate on sparse data, such as large-scale graph mining, often encounter load-balance and network communication as their bottleneck. 
+Graph partitioning is the problem of dividing a graph into separate components with particular properties. 
+In parallel computing, the objective is generally equally-sized partitions (to improve load-balance) and the minimization of inter-partition edges (to minimize communication).
+
+Formally, we wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges crossing partition boundaries is minimized. 
+Partitioning with these two requirements can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete. 
+For this reason it is computationally infeasible to expect an optimal solution for even modest-sized graphs.
+Approximation techniques are essential to scaling up partitioning.
+
 \begin{figure}[ht]
 \centering
   \includegraphics[width=0.7\columnwidth]{figures/coverfig.pdf}
@@ -20,6 +29,9 @@ A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducin
 
 Offline graph partitioning algorithms have existed for decades. They work by storing the graph in memory with complete information about the edges. Many variants of these algorithms exist~\cite{gpsurvey} and range from spatial methods~\cite{Gilbert95geometricmesh} to spectral methods~\cite{arora2009expander}. Some of the most effective offline graph partitioners are multi-level partitioners, which recursively contract the graph to a small number of vertices, and then heuristically optimize the partitioning while expanding back to the original graph~\cite{karypis1998multilevel}. Parallel multi-level partitioners will serve as the baseline comparison for our implementation. 
 
+Because the problem is computationally expensive and graphs have grown so large, many distributed approaches have been proposed to scale.
+ 
+
 \paragraph{Why Use Streaming Partitioning?}
 The most salient property of streaming partitioning is its speed: it can partition the graph in a single sweep, with $O(|V| + |E|)$ memory access, storage, and run time. Existing graph partitioners require the whole graph to be represented in memory, whereas streaming graph partitioning can process vertices as they arrive. This fits a model where input data arrive sequentially from a generating source (such as a web-crawler).
 
@@ -27,7 +39,7 @@ For example, partitioning a 26GB Twitter graph has been shown to take 8 hours us
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.85\columnwidth] {figures/graphpart1.png}
+\includegraphics[width=0.85\columnwidth] {figures/graphpart1.pdf}
 \caption[Caption for]{Graph 4-partition shown with corresponding adjacency matrix}
 \label{fig:0}
 \end{figure}
@@ -39,8 +51,8 @@ It works by restreaming the graph with tempered partition parameters to achieve 
 We make the following contributions:
 \begin{itemize}
 \item A \textbf{scalable} distributed partitioner implementation using MPI.
-\item Support for \textbf{streaming} partitioning regardless of stream order.
-\item An \textbf{iterative} approach that creates quality partitions.
+\item Support for \textbf{streaming} and restreaming partitioning regardless of stream order.
+\item A robust method for automatically tuning \ourmethod parameters 
 \end{itemize}
 
 
