@@ -178,11 +178,12 @@ We also demonstrate in Figures~\ref{fig:1, fig:2} that additional passes can fur
 In Figure~\ref{fig:metis}, \ourmethod performs comparably with parMETIS.  
 Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
 
-One set of outlying (poorly-performing) data points we noticed was the Gnutella networks.
-While Gnutella networks exhibit power-law-like topology, elements of their algorithm truncate nodes from ever becoming extremely large. 
-This does not match other social network topologies.
-The data sets also have extremely low clustering coefficient and a very small number of closed triangles \cite{Ripeanu:2002:MGN:613352.613670}. 
-This makes the Gnutella data set an anomaly compared to the others.
+One set of outlying (poorly-performing) data points are the Gnutella networks.
+While Gnutella networks exhibit power-law-like topologies, elements of their algorithm truncate nodes from ever becoming extremely large. 
+This heavy-clipping sets the Gnutella networks apart from many of the other social network topologies in our experiments.
+The data set also has extremely low clustering coefficients and a very small number of closed triangles \cite{Ripeanu:2002:MGN:613352.613670}. 
+Low clustering coefficients decrease the chance that neighbors of the current node-under-consideration share a partition. 
+With more neighbors distributed across the partitions, many partitions will have roughly the same score, making optimal partition choices much harder.
 
 A danger of naively running multiple passes is that one partition often becomes populated by very high-degree vertices. 
 We attribute this to the ``dense core'' surrounded by a less-dense periphery that many scale-free graphs possess.
