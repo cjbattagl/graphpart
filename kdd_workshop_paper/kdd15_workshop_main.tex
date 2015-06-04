@@ -29,19 +29,25 @@
 
 \documentclass{sig-alternate}
 
+\usepackage{vuduc-stdpkgs}
+\usepackage{vuduc-typography}
 
 \usepackage{xspace}
 \usepackage{url}
-\usepackage{color}
+%\usepackage{color}
 \usepackage{algorithm2e}
 \usepackage{amsmath}
-
-\usepackage[table]{xcolor}
-\usepackage{booktabs}
 
 % Pienta's defines:
 \newcommand{\REM}[1]{}
 \DeclareMathOperator*{\argmax}{\arg\!\max}
+
+
+\newcommand{\MakeAcronym}[3]{
+  \acrodef{#2}[{\scshape #2}]{#3}
+  \newcommand{#1}{\ac{#2}\xspace}
+}
+\MakeAcronym{\ourmethod}{GraSP}{Graph Streaming Partitioner}
 
 \newcommand{\todo}[1]{\textcolor{red}{[#1]}}
 \newcommand{\robert}[1]{\textcolor{OliveGreen}{[#1 -R]}}
@@ -51,7 +57,7 @@
 
 \newcommand{\xourname}{Grasp}
 \newcommand{\name}{\textsc{\xourname}\xspace}
-\newcommand{\ourmethod}{\name}
+%\newcommand{\ourmethod}{\name}
 \newcommand{\ourmethodtitle}{Grasp\xspace}
 
 \newcommand{\expparm}{$t_\alpha$\xspace}
