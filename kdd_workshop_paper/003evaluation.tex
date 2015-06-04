@@ -126,25 +126,6 @@ Making a low-cut 16-partitioning is considerably harder than the 2-partition cas
 \label{fig:02}
 \end{figure}
 
-% \begin{figure}[h!]
-% \centering
-% \includegraphics[width=0.8\columnwidth] {figures/2partfrac}
-% \caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for bi-partitions of each graph. After 5 passes all partitions had significantly improved in edge-cut quality.}
-% \label{fig:03}
-% \end{figure}
-
-% \begin{figure}[h!]
-% \centering
-% \includegraphics[width=0.8\columnwidth] {figures/16partfrac}
-% \caption[Caption for]{Improvement in $\lambda_{initial}/\lambda_{5}$ after running 5 passes for 16-partitions of each graph.}
-% \label{fig:04}
-% \end{figure}
-
-\begin{figure}[h!]
-\centering
-\includegraphics[width=0.98\columnwidth] {figures/cutvsdensity}
-\caption[Caption for]{Cut quality vs nonzero density for the real SNAP networks. The graph shows little noticeable correlation.}
-\end{figure}
 
 \subsection{Scalability}
 In order to test the scalability of \ourmethod we used a series of Kronecker graphs running on a state-of-the-art system.
@@ -191,12 +172,4 @@ This can be observed qualitatively when scale-free graphs are embedded in a spec
 
 This dense partition tends to strongly emerge as we continue to make further passes of the streaming algorithm.
 In order to overcome this we used the tempered parameter technique described in our methodology section. 
-
-\begin{figure}[h!]
-\centering
-  \includegraphics[width=0.8\columnwidth]{figures/astroPh8.png}
-  \caption{Spy plot of ca-AstroPh 8-partition ($\lambda=0.253$). Note the denser, high-degree subgraph.}
-  \label{fig:dense}
-\end{figure}
-
 
