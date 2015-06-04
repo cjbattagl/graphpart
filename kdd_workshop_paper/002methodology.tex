@@ -10,7 +10,17 @@ Our algorithmic approach follows the methodology of `restreaming' partitioning'~
 The main contribution of this paper is the demonstration of an efficient HPC implementation of this algorithm. 
 
 \todo{Coverage of distributed approach.}\\
-The input to \ourmethod is a distributed graph $G$, the number of partitions $p$ (assumed to be equal to the number of processes), the number of streams $n_s$, and the `tempering' parameter $t_\alpha$. \ourmethod then performs $n_s$ iterative passes over the graph, exponentially tempering the balance parameter
+The input to \ourmethod is a distributed graph $G$, the number of partitions $p$ (assumed to be equal to the number of processes), the number of streams $n_s$, and the `tempering' parameter $t_\alpha$. \ourmethod then performs $n_s$ iterative passes over the graph, exponentially tempering the balance parameter with each pass. This promotes a high-quality partition early on, while promoting balance with subsequent passes. 
+
+In between each pass, the partition information is communicated across all processors using the MPI \textsc{AllGather} primitive. 
+
+\begin{figure}[ht]
+\centering
+  \includegraphics[width=1.0\columnwidth]{figures/restreamdiagram.pdf}
+  %\caption{Partition speed of various Kronecker graphs.}
+  \label{fig:coverfig}
+  \caption{Parallel streaming partitioning.}
+\end{figure}
 
 \todo{Brief math for WDG}\\
 
