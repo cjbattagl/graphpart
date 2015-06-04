@@ -33,11 +33,15 @@
 \usepackage{xspace}
 \usepackage{url}
 \usepackage{color}
+\usepackage{algorithm2e}
+\usepackage{amsmath}
 
 \usepackage[table]{xcolor}
 \usepackage{booktabs}
 
 % Pienta's defines:
+\DeclareMathOperator*{\argmax}{\arg\!\max}
+
 \newcommand{\todo}[1]{\textcolor{red}{[#1]}}
 \newcommand{\robert}[1]{\textcolor{OliveGreen}{[#1 -R]}}
 \newcommand{\acar}[1]{\textcolor{blue}{[#1 -A]}}
@@ -48,6 +52,11 @@
 \newcommand{\name}{\textsc{\xourname}\xspace}
 \newcommand{\ourmethod}{\name}
 \newcommand{\ourmethodtitle}{Grasp\xspace}
+
+\newcommand{\expparm}{$t_\alpha$\xspace}
+\newcommand{\numrestreamsparm}{n_s}
+\newcommand{\numprocsparm}{$p$\xspace}
+
 
 \newcommand{\largestgraphedges}{10000\xspace}
 \newcommand{\largestgraphtime}{100 seconds}
