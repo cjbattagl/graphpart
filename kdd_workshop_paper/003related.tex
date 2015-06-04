@@ -16,16 +16,22 @@ Some of the most successful partitioners use multilevel approaches \cite{karypis
 Which achieve a high level of concurrency while maintaining good partition quality.
 Some recent approaches have been designed specifically to address small-world networks \cite{slota2014pulp}.
 
+\todo{Tie this all together  better, lacks flow and callouts to own design coming from these successes. -R} \\
+In the case of dynamic graphs, iterative approaches can dynamically adjust the partitions to suite changing graph structure.
+Vaquero et al. propose a method for iteratively adjusting graph partitions to cope with changes in the graph, using only local information ~\cite{Vaquero:2013:APL:2523616.2525943}.
+This work demonstrated the power and scalability of leveraging local data to improve partition quality, especially to reduce the edges cut.
+Sedge or Self Evolving Distributed Graph Management Environment also takes advantage of dynamically managing and modifying partitions to reduce network communication and improve throughput~\cite{Yangpart}.
 
-Adaptive partitioning for large-scale dynamic graphs~\cite{Vaquero:2013:APL:2523616.2525943}.
-
-Pregel~\cite{Malpregel}.
+Frameworks like Pregel~\cite{Malpregel}, make use of hashing-based partition schemes.
+These allow constant-time lookup and prediction of partition location based on only the vertex ids.
+Khayyat et al. showed that a preprocessed partitioning of large-scale graphs is insufficient to truly minimize network communication~\cite{khayyatmizan}.
+They propose another dynamic partition approach that allows vertex migration during runtime to maintain balanced load.
+  
 
 Boman2D~\cite{Bomansc13}.
 
-Partition management~\cite{Yangpart}.
 
-Dynamic load balancing~\cite{khayyatmizan}.
+
 
 
 
