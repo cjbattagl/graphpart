@@ -50,7 +50,6 @@ In between each pass, the partition information is communicated across all proce
 
 This method is illustrated graphically in Fig.~\ref{fig:restream}.
 
-
 \begin{figure}[ht]
 \centering
   \includegraphics[width=1.0\columnwidth]{figures/restreamdiagram.pdf}
@@ -59,19 +58,4 @@ This method is illustrated graphically in Fig.~\ref{fig:restream}.
   \caption{Two parallel restreaming steps on four processes.}
 \end{figure}
 
-
-\todo{pseudocode for iterative WDG}\\
-
-
-% \subsection{Features}
-% Our implementation can read graphs in three formats (Harwell-Boeing, Matlab, and Matrix-Market Formats).
-% This allows us to read in the entire SNAP graph archive~\cite{Leskovec-data}.
-% It can read in symmetric (undirected) and unsymmetric (directed) graphs.
-% Once the graph is read in, we convert it from unordered triplet format to Compressed Sparse Row format, which allows us to iterate through the neighbor list of any node in linear time, as well as compute the degree of any node in constant time.
-
-% Once we have our graph stored as a matrix in CSR form, we can perform a simulation of streaming $k-$partitioning.
-% First we generate the traversal order of the graph (a random vertex order, which we generate using a Knuth Shuffle).
-% We maintain a data structure that contains the assignment of every assigned vertex to its partition.
-% Thus, for a given vertex, we can compute the number of edges from that vertex to each partition by iterating over each edge incident to the vertex.
-% We also maintain a running total of vertices in each partition.
-This process lets us compute the FENNEL algorithm in $O(|E|)=O(nnz(A))$ time.
+Each process computes $O(\numrestreamsparm \cdot \frac{|E|+|V|}{p})$ work, and the network incurs a time of $\numrestreamsparm \cdot T_{allgather}(|V(G)|)$. 

@@ -8,10 +8,8 @@ With billions of online interactions, social networks (like e-commerce or the Tw
 Spreading these large graphs across multiple systems for analysis often takes complex algorithms with long computation times.
 Modern data analytics moves fast, and the partitioning of massive graphs should too.
 
-
-Distributed, irregular algorithms, like large-scale graph mining, often encounter bottlenecks in network communication and load imbalance~\cite{challenglums}. 
-A common preprocessing step is mapping the data to be processed in a way that alleviates these issues.
-Namely to both cut down of network chatter and carefully balance the load.
+Distributed, irregular algorithms such as large-scale graph mining often encounter bottlenecks in network communication and load imbalance~\cite{challenglums}. 
+A common preprocessing step is mapping the data to be processed in a way that alleviates these two issues.
 Graph partitioning is the general problem of dividing a graph into separate components with desired properties; in distributed computing the desired objective is generally the minimization of inter-partition edges (to minimize communication) subject to balanced partition size (to favor load balance).
 
 Formally, we wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges crossing partition boundaries is minimized. Partitioning with these two requirements can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete. 
