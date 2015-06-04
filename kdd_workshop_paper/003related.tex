@@ -36,10 +36,7 @@ Boman2D~\cite{Bomansc13}.
 
 
 
-
 \paragraph{Streaming Partitioning}
-Xstream~\cite{xstream}.
-
 Streaming graph partitioning has gained traction in the last few years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}.
 Typically these streaming partitioners use a heuristic to determine the formation of the partitions.
 
@@ -62,3 +59,6 @@ In Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG p
 FENNEL~\cite{tsourakakis2012fennel} is a heuristic that generalizes the WDG partitioner for any weight function, and provides a somewhat more rigorous theoretical framework.
 Nishimura et al. investigated the properies of streaming and then re-streaming a graph to overcome the downfalls of single-pass streams \cite{nishimura2013restream}.
 Restreaming success lead us to investigate a multi-pass streaming approach when developing \ourmethod.
+
+Streaming partitioning has also been successfully adapted for edge-centric partitioning schemes like X-Stream~\cite{xstream}.
+
