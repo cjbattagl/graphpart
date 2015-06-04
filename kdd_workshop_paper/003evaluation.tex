@@ -23,6 +23,12 @@ Many networks in the collection are power-law and scale-free representatives of 
 
 % We also speculate (but have no proof) that the `random' structure of scale-free networks better suits the random quality of streaming graph partitioning, whereas a spatially-oriented graph would be poorly suited (for instance, in a grid, a streaming partitioner would create many local pockets for one particular partition, whereas a spatial partitioner would recognize that the graph could be geometrically bisected).
 
+\subsubsection{Synthetic Graphs}
+To generate the test graphs we used the Graph500 Kronecker-Graph generator.
+Kronecker graphs are commonly used in HPC graph benchmarks and testing and can be scaled arbitrarily large for testing purposes. 
+
+
+
 \subsection{Quality}
 In Table~\ref{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
 % As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. 
@@ -93,10 +99,6 @@ p2p-Gnutella04 & 10,879 & 39,994  & 0.415&0.747\\
 % \label{fig:4}
 % \end{figure}
 
-\subsubsection{Synthetic Graphs}
-To generate the test graphs we used the Graph500 Kronecker-Graph generator.
-Kronecker graphs are commonly used in HPC graph benchmarks and testing and can be scaled arbitrarily large for testing purposes. 
-
 
 % In Figure~\ref{fig:kronspeed} however, we increase the $p$-value on a single ER graph. We see that the partition quality significantly decreases. 
 % This is to be expected of all partitioners in general. In fact, for E-R graphs, the critical $p$-value for which the optimal edge cut is equal to the expected average random partition is relatively simple to identify~\cite{journals/cj/GanleyH94}
@@ -104,34 +106,34 @@ Kronecker graphs are commonly used in HPC graph benchmarks and testing and can b
 \paragraph{Restreaming \& Additional Passes}
 A key facet of \ourmethod is performing additional passes of partitioning on a pre-partitioned graph. 
 The partitioner is fast enough that it is faster to do $n$ streaming passes than use a slower mainstream graph partitioner.
-To explore this idea, we perform a number of passes on the SNAP data set, and observe the effects of various graphs (see Figure~\ref{fig:01, fig:02}). 
+To explore this idea, we perform a number of passes on the SNAP data set, and observe the effects of various graphs (see Figure~\ref{fig:k2_lambda, fig:k16_lambda}). 
 
 The algorithm is simple: once we have computed the first partition, we retain the original partition mapping. 
 Then, as we make another pass, we compute the new objective function using the partition mapping that has already been filled in. 
 Vertices may be switched to new partitions. 
 This mitigates poor partitioning decisions that sometimes occur at the beginning of the algorithm, when there was not as much information.
 
-Figures~\ref{fig:01} and \ref{fig:02} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
+Figures~\ref{fig:k2_lambda} and \ref{fig:k16_lambda} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
 The second pass usually exhibits the best improvement, while subsequent passes offer diminishing returns.
-Making a low-cut 16-partitioning is considerably harder than the 2-partition case, explaining the difference in quality in Figure~\ref{fig:02}.
+Making a low-cut 16-partitioning is considerably harder than the 2-partition case, explaining the difference in quality in Figure~\ref{fig:k16_lambda}.
 
 
 % We hope to contrast this performance to that of METIS in the future. (We have implemented a METIS partitioner for comparison but it currently encounters a segmentation faults with some frequency).
 
 
 
-\begin{figure}[h!]
+\begin{figure}[t!]
 \centering
 \includegraphics[width=0.9\columnwidth] {figures/real_k2_lambda.pdf}
 \caption[Caption for]{Improvement in the edges cut ($\lambda$) over 5 passes for bi-partitions of each graph. Because there are only two partitions, the algorithm is able to quickly fix mistakes it made in the initial partitioning. Many of the errors made in the first pass are fixed in the second iteration, with diminishing improvement thereafter.}
-\label{fig:01}
+\label{fig:k2_lambda}
 \end{figure}
 
-\begin{figure}[h!]
+\begin{figure}[t!]
 \centering
 \includegraphics[width=0.9\columnwidth] {figures/real_k16_lambda.pdf}
 \caption[Caption for]{Improvement in edges cut ($\lambda$) over 5 passes for $k=16$-partitions of each graph. Dividing the graph into 16 partitions makes the minimum edge cut problem much more challenging. Similar to the bi-partition results, we experience the best gain in the second pass and less in subsequent passes.}
-\label{fig:02}
+\label{fig:k16_lambda}
 \end{figure}
 
 
@@ -161,7 +163,7 @@ We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}.
 % Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
 Despite the complexity of many of the real graphs, \ourmethod creates well-balanced partitions.
 While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, algorithm is capable of significantly reducing communication in their parallel computation. 
-We also demonstrate in Figures~\ref{fig:1, fig:2} that additional passes can further reduce edges cut (by up to a factor of 3). 
+We also demonstrate in Figures~\ref{fig:k2_lambda, fig:k16_lambda} that additional passes can further reduce edges cut (by up to a factor of 3). 
 
 % Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
 In Figure~\ref{fig:metis}, \ourmethod performs comparably with parMETIS.  

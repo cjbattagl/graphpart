@@ -33,7 +33,7 @@ Streaming partitioning is the process of partitioning a graph in a single sweep,
 
 Partitioning a 26GB Twitter graph has been shown to take 8 hours using the fastest offline algorithms, and only 40 minutes with the FENNEL streaming partitioner, with similar partition quality~\cite{tsourakakis2012fennel}. This also suggests that we could do multiple, iterative passes of a streaming partitioner, all in a fraction of the time that an offline partitioner would take to terminate. This technique and its convergence properties have been explored by Nishimura and Ugander~\cite{nishimura2013restream}. In this paper we demonstrate empirically that distributing this streaming partitioning process can reduce the run-time for problem of this magnitude to a matter of \emph{seconds}. 
 
-\todo{In the figure: Differentiate the cut-edges and their associated non-zeroes from the internal edges, to emphasize that they are undersirable.}
+% \todo{In the figure: Differentiate the cut-edges and their associated non-zeroes from the internal edges, to emphasize that they are undersirable.}
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.85\columnwidth] {figures/graphpart1.pdf}
