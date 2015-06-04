@@ -30,7 +30,7 @@ Kronecker graphs are commonly used in HPC graph benchmarks and testing and can b
 
 
 \subsection{Quality}
-In Table~\ref{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
+In \RefTable{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
 % As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. 
 % This suggests good scalability.
 
@@ -105,16 +105,16 @@ p2p-Gnutella04 & 10,879 & 39,994  & 0.415&0.747\\
 \paragraph{Restreaming \& Additional Passes}
 A key facet of \ourmethod is performing additional passes of partitioning on a pre-partitioned graph. 
 The partitioner is fast enough that it is faster to do $n$ streaming passes than use a slower mainstream graph partitioner.
-To explore this idea, we perform a number of passes on the SNAP data set, and observe the effects of various graphs (see Figure~\ref{fig:k2_lambda, fig:k16_lambda}). 
+To explore this idea, we perform a number of passes on the SNAP data set, and observe the effects of various graphs (see~\RefFigure{fig:k2_lambda, fig:k16_lambda}). 
 
 The algorithm is simple: once we have computed the first partition, we retain the original partition mapping. 
 Then, as we make another pass, we compute the new objective function using the partition mapping that has already been filled in. 
 Vertices may be switched to new partitions. 
 This mitigates poor partitioning decisions that sometimes occur at the beginning of the algorithm, when there was not as much information.
 
-Figures~\ref{fig:k2_lambda} and \ref{fig:k16_lambda} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
+\RefFigurePair{fig:k2_lambda, fig:k16_lambda} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
 The second pass usually exhibits the best improvement, while subsequent passes offer diminishing returns.
-Making a low-cut 16-partitioning is considerably harder than the 2-partition case, explaining the difference in quality in Figure~\ref{fig:k16_lambda}.
+Making a low-cut 16-partitioning is considerably harder than the 2-partition case, explaining the difference in quality in~\RefFigure{fig:k16_lambda}.
 }
 
 
@@ -139,8 +139,8 @@ Making a low-cut 16-partitioning is considerably harder than the 2-partition cas
 
 \subsection{Scalability}
 In order to test the scalability of \ourmethod we used a series of Kronecker graphs running on a state-of-the-art system.
-In Figure~\ref{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
-We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}. 
+In~\reffig{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
+We show the Kronecker graphs performance in~\reffig{fig:kronspeed}. 
 \ourmethod is able to achieve a good balance between quality at incredible speeds.
 
 \subsubsection{Partition Quality}
@@ -176,10 +176,10 @@ In stron-scaling, the size of the data is fixed while the number of processes in
 % Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
 Despite the complexity of many of the real graphs, \ourmethod creates well-balanced partitions.
 While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, algorithm is capable of significantly reducing communication in their parallel computation. 
-We also demonstrate in Figures~\ref{fig:k2_lambda, fig:k16_lambda} that additional passes can further reduce edges cut (by up to a factor of 3). 
+We also demonstrate in~\RefFigurePair{fig:k2_lambda, fig:k16_lambda} that additional passes can further reduce edges cut (by up to a factor of 3). 
 
 % Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
-In Figure~\ref{fig:metis}, \ourmethod performs comparably with parMETIS.  
+In~\RefFigure{fig:metis}, \ourmethod performs comparably with parMETIS.  
 Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
 
 One set of outlying (poorly-performing) data points are the Gnutella networks.
