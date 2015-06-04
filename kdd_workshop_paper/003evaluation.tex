@@ -29,51 +29,59 @@ In Table~\ref{table:big} we show some properties of our real test-graphs, as wel
 % This suggests good scalability.
 
 
-\begin{figure*}
+\begin{figure}
 \caption{Basic properties of graphs in SNAP data set~\cite{Leskovec-data}, and $\lambda$ for one pass. $\lambda_{r,2}=0.5,\lambda_{r,8}=0.87$}
 \rowcolors{2}{blue!05}{blue!15}
 \centering
-{ \begin{tabular}{ *7l }    \toprule
+\small
+{ \begin{tabular}{ *5r }    \toprule
 \label{table:big}
-\emph{Data Set} & $N$ & $nnz$ & \emph{sym} & \emph{power-law?} & $\lambda, k=2$ & $\lambda, k=8$ \\\midrule
-amazon0302 & 262111 & 1234877 & no & yes & 0.202&0.37\\
-% amazon0312 & 400727 & 3200440 & no & yes & 0.212&0.38\\
-% amazon0505 & 410236 & 3356824 & no & yes & 0.206&0.37\\
-% amazon0601 & 403394 & 3387388 & no & yes & 0.203&0.36\\
-% as-735 & 7716 & 26467 & yes & yes & 0.207&0.44\\
-as-Skitter & 1696415 & 22190596 & yes & yes & 0.166&0.324\\
-ca-AstroPh & 18772 & 396160 & yes & yes & 0.232&0.413\\
-% ca-CondMat & 23133 & 186936 & yes & yes & 0.214&0.398\\
-% ca-GrQc & 5242 & 28980 & yes & yes & 0.128&0.241\\
-% ca-HepPh & 12008 & 237010 & yes & yes & 0.082&0.192\\
-% ca-HepTh & 9877 & 51971 & yes & yes & 0.202&0.378\\
-cit-HepPh & 34546 & 421578 & no & yes & 0.343&0.646\\
-% cit-HepTh & 27770 & 352807 & no & yes & 0.360&0.605\\
-cit-Patents & 3774768 & 16518948 & no & yes & 0.402&0.726\\
-% email-Enron & 36692 & 367662 & yes & yes & 0.132&0.407\\
-email-EuAll & 265214 & 420045 & no & yes & 0.280&0.538\\
-Oregon-1 & 11492 & 46818 & yes & yes & 0.224&0.406\\
-% Oregon-2 & 11806 & 65460 & no & yes & 0.185&0.429\\
-p2p-Gnutella04 & 10879 & 39994 & no & yes & 0.415&0.747\\
-roadNet-CA & 1971281 & 5533214 & yes & no & 0.186&0.36\\
-% roadNet-PA & 1090920 & 3083796 & yes & no & 0.188&0.36\\
-% roadNet-TX & 1393383 & 3843320 & yes & no & 0.185&0.358\\
-% soc-Epinions1 & 75888 & 508837 & no & yes & 0.173&0.34\\
-soc-LiveJournal1 & 4847571 & 68993773 & no & yes &0.234& 0.463\\
-% soc-sign-epinions & 131828 & 841372 & no & yes &0.173&0.34\\
-% soc-Slashdot0811 & 77360 & 905468 & no & yes &0.179&0.417\\
-soc-Slashdot0902 & 82168 & 948464 & no & yes &0.236&0.382\\
-% web-BerkStan & 685230 & 7600595 & no & yes &0.187&0.301\\
-web-Google & 916428 & 5105039 & no & yes &0.189&0.336\\
-% web-NotreDame & 325729 & 1497134 & no & yes &0.204&0.345\\
-% web-Stanford & 281903 & 2312497 & no & yes &0.154&0.34\\
-wiki-Talk & 2394385 & 5021410 & no & yes &0.411&0.752\\
-% wiki-Vote  & 8297 & 103689 & no & yes &0.409&0.688\\
+\emph{Data Set} & $N$ & $nnz$  & $\lambda_{k=2}$ & $\lambda_{k=8}$ \\\midrule
+soc-LiveJournal & 4,847,571 & 68,993,773  &0.234& 0.463\\
+as-Skitter & 1,696,415 & 22,190,596  & 0.166&0.324\\
+cit-Patents & 3,774,768 & 16,518,948  & 0.402&0.726\\
+roadNet-CA & 1,971,281 & 5,533,214  & 0.186&0.360\\
+web-Google & 916,428 & 5,105,039  &0.189&0.336\\
+wiki-Talk & 2,394,385 & 5,021,410 &0.411&0.752\\
+amazon0302 & 262,111 & 1,234,877 & 0.202&0.370\\
+soc-Slashdot0902 & 82,168 & 948,464  &0.236&0.382\\
+ca-AstroPh & 18,772 & 396,160 & 0.232&0.413\\
+cit-HepPh & 34,546 & 421,578 & 0.343&0.646\\
+email-EuAll & 265,214 & 420,045 & 0.280&0.538\\
+Oregon-1 & 11,492 & 46,818  & 0.224&0.406\\
+p2p-Gnutella04 & 10,879 & 39,994  & 0.415&0.747\\
+
+
  \hline
 \end{tabular}\par
 }
-\end{figure*}
+\end{figure}
 
+
+%\begin{figure}
+%\caption{Basic properties of graphs in SNAP data set~\cite{Leskovec-data}, and $\lambda$ for one pass. $\lambda_{r,2}=0.5,\lambda_{r,8}=0.87$}
+%\rowcolors{2}{blue!05}{blue!15}
+%\centering
+%{ \begin{tabular}{ *5r }    \toprule
+%\label{table:big}
+%\emph{Data Set} & $N$ & $nnz$  & $\lambda, k=2$ & $\lambda, k=8$ \\\midrule
+%amazon0302 & 262111 & 1234877 & 0.202&0.370\\
+%as-Skitter & 1696415 & 22190596  & 0.166&0.324\\
+%ca-AstroPh & 18772 & 396160 & 0.232&0.413\\
+%cit-HepPh & 34546 & 421578 & 0.343&0.646\\
+%cit-Patents & 3774768 & 16518948  & 0.402&0.726\\
+%email-EuAll & 265214 & 420045 & 0.280&0.538\\
+%Oregon-1 & 11492 & 46818  & 0.224&0.406\\
+%p2p-Gnutella04 & 10879 & 39994  & 0.415&0.747\\
+%roadNet-CA & 1971281 & 5533214  & 0.186&0.360\\
+%soc-LiveJournal & 4847571 & 68993773  &0.234& 0.463\\
+%soc-Slashdot0902 & 82168 & 948464  &0.236&0.382\\
+%web-Google & 916428 & 5105039  &0.189&0.336\\
+%wiki-Talk & 2394385 & 5021410 &0.411&0.752\\
+% \hline
+%\end{tabular}\par
+%}
+%\end{figure}
 
 
 % We also note Figure~\ref{fig:4}, which illustrates the result of the streaming algorithm on a more spacial network (roadNet-CA). The `local' nonzeros are those points in the 8 diagonal blocks, while the `remote' edges are those outside. While a good partitioner would concentrate the vast majority of elements along the diagonal (which is possible because the graph has very high diameter), the streaming partitioner fails to recognize this quality, and each partition has vertices distributed somewhat randomly through the network. Nonetheless, the partition is decent (only 18 percent of edges are cut).
