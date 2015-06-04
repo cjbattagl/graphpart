@@ -36,9 +36,7 @@ In between each pass, the partition information is communicated across all proce
 \For{$run \gets \{ 1 \dots \numrestreamsparm \}$} {
 	\ForPar{each process $p$}{
 		\ForEach{$v \in vorder$}{
-			$j \gets part(v)$\;
 			$k \gets \displaystyle \argmax_{i\in\{1,\dots,p\}}|P_{i,p}^t \cap N(u)| - \alpha \frac{\gamma}{2}|P_{i,p}^t|^{\gamma-1}$\;
-			Remove $v$ from set $P_{j,p}^{t}$\;
 			Add $v$ to set $P_{k,p}^{t+1}$\;
 		}
 	}
@@ -48,7 +46,7 @@ In between each pass, the partition information is communicated across all proce
  \label{alg:grasp}
 \end{algorithm}
 
-This method is illustrated graphically in Fig.~\ref{fig:restream}.
+This method is illustrated graphically in Fig.~\ref{fig:restream}. In practice, we store the partitioning in a single compressed array, updating partition assignments in-place while storing a running count of the partition sizes. To increase accuracy we occasionally recompute global partition sizes using the \textsc{MPI\_AllReduce} primitive. 
 
 \begin{figure}[ht]
 \centering

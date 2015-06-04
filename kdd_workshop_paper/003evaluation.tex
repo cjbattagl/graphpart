@@ -1,22 +1,22 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Evaluation}
+We ran our distributed experiments on the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. For scalability experiments we generated undirected power-law Kronecker (RMAT) graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. 
 
-We ran our distributed experiments on the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node, and a Cray Aries interconnect. For scalability experiments we generated undirected Kronecker graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. 
-
-We also measured the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
+We measure the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}
 The fraction of edges cut demonstrates the quality of the edge minimization aspect of partitioning the graph.
 
 As a baseline, we can compare this to the expected quality of a random $k-$partition:
 \begin{align}\lambda_r = \frac{k^2 - k}{k^2} = \frac{k-1}{k} \end{align}
-
 Any partitioner that produces partitions with $\lambda < \lambda_r$ has improved the parallel locality of the partitions. 
 We present $\lambda_{r,k}$ along with our one-pass, real network results in Table \ref{table:big}.
+
+\todo{Discuss balance.}
 
 \subsection{Test Graphs}
 We tested \ourmethod on both real and synthetic networks.
 Real networks demonstrate \ourmethod's potential for use on real domain problems.
-We also utilized synthetic graphs, because they allow better experimental control over size and structure.
+For scalability tests we utilize , because they allow better experimental control over size and structure.
 \subsubsection{Real-world Graphs}
 The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data, snapnets}. 
 Many networks in the collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be ideal targets for streaming partitioning, because these domains are producing the vast majority of the `big-data' that is difficult to partition using traditional methods.
@@ -50,8 +50,6 @@ cit-HepPh & 34,546 & 421,578 & 0.343&0.646\\
 email-EuAll & 265,214 & 420,045 & 0.280&0.538\\
 Oregon-1 & 11,492 & 46,818  & 0.224&0.406\\
 p2p-Gnutella04 & 10,879 & 39,994  & 0.415&0.747\\
-
-
  \hline
 \end{tabular}\par
 }
@@ -101,6 +99,7 @@ Kronecker graphs are commonly used in HPC graph benchmarks and testing and can b
 % In Figure~\ref{fig:kronspeed} however, we increase the $p$-value on a single ER graph. We see that the partition quality significantly decreases. 
 % This is to be expected of all partitioners in general. In fact, for E-R graphs, the critical $p$-value for which the optimal edge cut is equal to the expected average random partition is relatively simple to identify~\cite{journals/cj/GanleyH94}
 
+\REM{
 \paragraph{Restreaming \& Additional Passes}
 A key facet of \ourmethod is performing additional passes of partitioning on a pre-partitioned graph. 
 The partitioner is fast enough that it is faster to do $n$ streaming passes than use a slower mainstream graph partitioner.
@@ -114,7 +113,7 @@ This mitigates poor partitioning decisions that sometimes occur at the beginning
 Figures~\ref{fig:01} and \ref{fig:02} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
 The second pass usually exhibits the best improvement, while subsequent passes offer diminishing returns.
 Making a low-cut 16-partitioning is considerably harder than the 2-partition case, explaining the difference in quality in Figure~\ref{fig:02}.
-
+}
 
 % We hope to contrast this performance to that of METIS in the future. (We have implemented a METIS partitioner for comparison but it currently encounters a segmentation faults with some frequency).
 
@@ -141,7 +140,7 @@ In Figure~\ref{fig:kronqual} we illustrate the streaming graph partitioner on Kr
 We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}. 
 \ourmethod is able to achieve a good balance between quality at incredible speeds.
 
-
+\subsubsection{Partition Quality}
 \begin{figure}[h!]
 \centering
   \includegraphics[width=0.8\columnwidth]{figures/kronecker_quality_tests.pdf}
@@ -149,10 +148,23 @@ We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}.
   \label{fig:kronqual}
 \end{figure}
 
+
+\subsubsection{Weak Scaling}
+In weak-scaling, the size of data scales at the same rate as the number of processes. In our experimental set up we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator by 1. This provides the per-stream timing experiments below:
 \begin{figure}[h!]
 \centering
   \includegraphics[width=0.8\columnwidth]{figures/kronecker_speed_tests.pdf}
-  \caption{Partition speed of various Kronecker graphs.}
+  \caption{Per-stream times of \ourmethod in a weak-scaling experiment.}
+  \label{fig:kronspeed}
+\end{figure}
+
+\subsubsection{Strong Scaling}
+In stron-scaling, the size of the data is fixed while the number of processes inreases. Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law), but \ourmethod is essentially embarassingly parallel, so we expect excellent performance in strong scaling. 
+
+\begin{figure}[h!]
+\centering
+  \includegraphics[width=0.8\columnwidth]{figures/kronecker_speed_tests.pdf}
+  \caption{Per-stream times of \ourmethod for various strong-scaling data sizes.}
   \label{fig:kronspeed}
 \end{figure}
 
