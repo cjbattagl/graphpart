@@ -1,9 +1,21 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Introduction}
 \subsection{Graph Partitioning}
-Distributed, irregular algorithms such as large-scale graph mining nearly always encounter bottlenecks in network communication and load imbalance~\cite{challenglums}. A common preprocessing step is thus mapping data to processes in a way that alleviates these issues. Graph partitioning is the general problem of dividing a graph into separate components with desired properties; in distributed computing the desired objective is generally the minimization of inter-partition edges (to minimize communication) subject to balanced partition size (to favor load balance).
+%motivation
+From fraud detection to bioinformatics, large-scale graph mining and analytics provide access and deeper insight into the rich patterns in our data.
+The availability and granularity of our network data is growing at an impressive pace.
+With billions of online interactions, social networks (like e-commerce or the Twittersphere) have grown so immense and rich with data that they cannot easily be analyzed on a single machine.
+Spreading these large graphs across multiple systems for analysis often takes complex algorithms with long computation times.
+Modern data analytics moves fast, and the partitioning of massive graphs should too.
 
-Formally, we wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges crossing partition boundaries is minimized. Partitioning with these two requirements can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete. Thus, computing an optimal mapping is generally computationally infeasible, and heuristic approaches are taken. 
+
+Distributed, irregular algorithms, like large-scale graph mining, often encounter bottlenecks in network communication and load imbalance~\cite{challenglums}. 
+A common preprocessing step is mapping the data to be processed in a way that alleviates these issues.
+Namely to both cut down of network chatter and carefully balance the load.
+Graph partitioning is the general problem of dividing a graph into separate components with desired properties; in distributed computing the desired objective is generally the minimization of inter-partition edges (to minimize communication) subject to balanced partition size (to favor load balance).
+
+Formally, we wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges crossing partition boundaries is minimized. Partitioning with these two requirements can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete. 
+Thus, computing an optimal mapping is generally computationally infeasible, and heuristic approaches are taken. 
 
 \begin{figure}[ht]
 \centering
