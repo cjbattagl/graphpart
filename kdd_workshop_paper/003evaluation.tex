@@ -169,17 +169,20 @@ We show the Kronecker graphs performance in Figure!\ref{fig:kronspeed}.
 
 
 \subsection{Analysis}
+% Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
+Despite the complexity of many of the real graphs, \ourmethod creates well-balanced partitions.
+While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, algorithm is capable of significantly reducing communication in their parallel computation. 
+We also demonstrate in Figures~\ref{fig:1, fig:2} that additional passes can further reduce edges cut (by up to a factor of 3). 
+
+% Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
+In Figure~\ref{fig:metis}, \ourmethod performs comparably with parMETIS.  
+Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
 
 One set of outlying (poorly-performing) data points we noticed was the Gnutella networks.
 While Gnutella networks exhibit power-law-like topology, elements of their algorithm truncate nodes from ever becoming extremely large. 
 This does not match other social network topologies.
 The data sets also have extremely low clustering coefficient and a very small number of closed triangles \cite{Ripeanu:2002:MGN:613352.613670}. 
 This makes the Gnutella data set an anomaly compared to the others.
-
-Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
-The encouraging side to this is that even despite their complexity, \ourmethod creates excellent partitions.
-While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, one-pass algorithm is capable of significantly reducing communication in their parallel computation, and that several additional passes can further reduce edges cut (by up to a factor of 3). Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
-This makes streaming partitioning a valid alternative to be integrated within distributed-memory, on-the-fly algorithms for big-data.
 
 A danger of naively running multiple passes is that one partition often becomes populated by very high-degree vertices. 
 We attribute this to the ``dense core'' surrounded by a less-dense periphery that many scale-free graphs possess.
