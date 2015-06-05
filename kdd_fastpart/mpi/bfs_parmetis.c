@@ -137,6 +137,8 @@ void partition_graph_data_structure() {
   int64_t localedges = (int64_t)g.nlocaledges;
   MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
   
+  fprintf(stdout, " %d ", (int)sizeof(idx_t));
+
   double streamstart= MPI_Wtime();
   idx_t vtxdist[size];// = new idx_t[size];
 // For AdaptiveRepart
@@ -175,14 +177,14 @@ void partition_graph_data_structure() {
     fprintf(stdout,"parmetis initialized.\n");
   }
  
-//result = ParMETIS_V3_PartKway( vtxdist, xadj, adjncy, vwgt, adjwgt, 
-//                                 &wgtflag, &numflag, &ncon, 
-//                                 &nparts, tpwgts, &ubvec, options, 
-//                                 &edgecut, part, &comm );  
-result = ParMETIS_V3_AdaptiveRepart( vtxdist, xadj, adjncy, vwgt, vsize, 
+result = ParMETIS_V3_PartKway( vtxdist, xadj, adjncy, vwgt, adjwgt, 
+                                 &wgtflag, &numflag, &ncon, 
+                                 &nparts, tpwgts, &ubvec, options, 
+                                 &edgecut, part, &comm );  
+/*result = ParMETIS_V3_AdaptiveRepart( vtxdist, xadj, adjncy, vwgt, vsize, 
                                  adjwgt, &wgtflag, &numflag, &ncon, 
                                  &nparts, tpwgts, &ubvec, &itr, options, 
-                                 &edgecut, part, &comm );  
+                                 &edgecut, part, &comm );  */
 
 
   double streamstop = MPI_Wtime();
