@@ -36,8 +36,8 @@ Between each pass, the partition information is communicated across all processo
 \For{$run \gets \{ 1 \dots \numrestreamsparm \}$} {
 	\ForPar{each process $p$}{
 		\ForEach{$v \in vorder$}{
-			$k \gets \displaystyle \argmax_{i\in\{1,\dots,p\}}|P_{i,p}^t \cap N(u)| - \alpha \frac{\gamma}{2}|P_{i,p}^t|^{\gamma-1}$\;
-			Add $v$ to set $P_{k,p}^{t+1}$\;
+			$j \gets \displaystyle \argmax_{i\in\{1,\dots,p\}}|P_{i,p}^t \cap N(u)| - \alpha \frac{\gamma}{2}|P_{i,p}^t|^{\gamma-1}$\;
+			Add $v$ to set $P_{j,p}^{t+1}$\;
 		}
 	}
 	\textsc{MPI\_AllGather} global partition assignments\;

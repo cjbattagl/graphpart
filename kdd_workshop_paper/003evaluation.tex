@@ -2,9 +2,7 @@
 \section{Evaluation}
 We ran our distributed experiments on a subset of the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. 
 
-We evaluate \ourmethod by its runtime as well as the quality of the partition that it produces. 
-
-We measure the partition quality by the \textit{fraction of cut edges} $\lambda$.
+We evaluate \ourmethod by its runtime as well as the quality of the partition that it produces, which we measure with \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align} where lower numbers represent a higher degree of locality. We can compare this to our baseline, the expected quality of a random $k-$partition, $\lambda_r = \frac{k-1}{k}$. Any partitioner that produces partitions with $\lambda < \lambda_r$ has improved the parallel locality of the partitions.
 
 \todo{Discuss balance.}
@@ -71,6 +69,21 @@ Weak-scaling holds the amount of data per process constant as we increase the nu
   \label{fig:kronspeed_weak}
 \end{figure}
 
+\begin{table}
+\caption{Weak scaling results for ParMETIS on RMAT graphs, with $2^{18}$ vertices per compute node.}
+\rowcolors{2}{blue!05}{blue!15}
+\centering
+\small
+{ \begin{tabular}{ l | c | c | c | c | c }    \toprule
+\label{table:rmat}
+\#procs & 8 & 16 & 32 & 64 & 128 \\ \midrule
+Time (s) & 5.01 & 10.2 & 25.0 & 64.0 & 167.0 \\
+\hline
+\end{tabular}\par
+}
+\label{tab:rmatpmweak}
+\end{table}
+
 \subsubsection{Strong Scaling}
 In strong-scaling, the size of the data is fixed while the number of processes inreases. 
 Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law). \ourmethod exhibits a high degree of parallelism, illustrated in~\RefFigure{fig:kronspeed_strong}. 
@@ -81,6 +94,26 @@ Strong-scaling is heavily penalized by serial portions of code (as dictated by A
   \caption{Per-stream times of \ourmethod for various strong-scaling data sizes. For instance, we can perform a single partitioning pass over a 34 billion edge, 2.1 billion node network in just 15 seconds.}
   \label{fig:kronspeed_strong}
 \end{figure}
+
+In~\RefTable{tab:rmatpmstrong} we show strong scaling times for two RMAT scales using ParMETIS. Increasing the number of processes causes a reduction in partition quality, with a mild sublinear speedup. We did not 
+
+\begin{table}
+\caption{Strong scaling results for ParMETIS on RMAT graphs.}
+\rowcolors{2}{blue!05}{blue!15}
+\centering
+\small
+{ \begin{tabular}{ l | c | c | c | c | c }    \toprule
+\label{table:rmat}
+\#procs & 8 & 16 & 32 & 64 & 128 \\ \midrule
+Scale 20 time (s) & 34.8 & 30.4 & 25.0 & 24.0 & 24.3 \\%& 68.7B \\
+Scale 20 $\lambda$ & 0.36 & 0.38 & 0.40 & 0.42 & 0.45 \\%& 68.7B \\
+Scale 22 time (s) & 307.8 & 221.9 & 194.9 & 173.8 & 167.0 \\
+Scale 22 $\lambda$ & 0.36 & 0.39 & 0.41 & 0.43 & 0.45 \\
+\hline
+\end{tabular}\par
+}
+\label{tab:rmatpmstrong}
+\end{table}
 
 \subsection{Quality}
 In \RefTable{tab:rw} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$. 

@@ -37,7 +37,7 @@ In an initial study, partitioning a \SI{26}{\giga\byte} Twitter graph has been s
 We have developed \ourmethod, a fast, iterative, distributed streaming graph partitioner.
 It works by restreaming the distributed graph with tempered partition parameters to achieve a fast, parallel \textit{k}-partitioning. When applied to scale-free graphs, \ourmethod attains an edgecut competitive with more sophisticated algorithms, but can operate on graphs multiple orders of magnitude larger within the same run-time. 
 
-For instance, ParMETIS takes at least \SI{1}{\minute} to partition a scale-21 RMAT graph on any number of compute nodes in our experiment, with run-time ballooning for larger scale graphs. \ourmethod performs a partition of a scale-31 RMAT graph (with 1024 as many vertices and edges) on the same setup in under 20 seconds.
+For instance, ParMETIS takes at least \SI{1}{\minute} to partition a scale-21 RMAT graph on any number of compute nodes in our experiment, with run-time ballooning for larger scale graphs. \ourmethod performs a partitioning stream of a scale-31 RMAT graph (with 1024 as many vertices and edges) on the same setup in under 20 seconds, with comparable edge-cut after 5-10 restreams.
 
 \ourmethod operates on a distributed CSR graph representation, the same data structure used by ParMETIS, and can therefore be easily substituted in high-performance codes. 
 
