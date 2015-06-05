@@ -110,7 +110,7 @@ void partition_graph_data_structure() {
   //MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
   int64_t *colidx = g.column;
   size_t *rowptr = g.rowstarts;
-  size_t k, i, s, l; //,j;
+  size_t i;
 
   // need to convert colidx, rowptr to 32-bit ints.
   idx_t* colidx_32 = (idx_t*)malloc(localedges*sizeof(idx_t));
