@@ -135,41 +135,42 @@ Making a low-cut 16-partitioning is considerably harder than the 2-partition cas
 
 \subsection{Scalability}
 In order to test the scalability of \ourmethod we used a series of Kronecker graphs running on a state-of-the-art system.
-In~\reffig{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
-We show the Kronecker graphs performance in~\reffig{fig:kronspeed}. 
+In~\RefFigure{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
+We show the Kronecker graphs performance in~\RefFigure{fig:kronspeed_weak} and~\RefFigure{fig:kronspeed_strong} 
 \ourmethod is able to achieve a good balance between quality at incredible speeds.
 
 
 \subsubsection{Weak Scaling}
-In weak-scaling, the size of data scales at the same rate as the number of processes. In our experimental set up we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator by 1. This provides the per-stream timing experiments below:
+In weak-scaling, the size of data scales at the same rate as the number of processes. In our experimental set up we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator by 1. This provides the per-stream timing experiments in~\RefFigure{fig:kronspeed_weak}:
 \begin{figure}[t!]
 \centering
   \includegraphics[width=0.9\columnwidth]{figures/weak_scaling.pdf}
-  \caption{Per-stream times of \ourmethod in a weak-scaling experiment.}
-  \label{fig:kronspeed}
+  \caption{Per-stream times of \ourmethod in a weak-scaling experiment. }
+  \label{fig:kronspeed_weak}
 \end{figure}
 
 \subsubsection{Strong Scaling}
-In stron-scaling, the size of the data is fixed while the number of processes inreases. Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law), but \ourmethod is essentially embarassingly parallel, so we expect excellent performance in strong scaling. 
+In strong-scaling, the size of the data is fixed while the number of processes inreases. 
+Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law), but \ourmethod is highly parallel, show in~\RefFigure{fig:kronspeed_strong} so we demonstrate excellent performance in strong scaling. 
 
 \begin{figure}[b!]
 \centering
   \includegraphics[width=0.9\columnwidth]{figures/strong_scaling.pdf}
-  \caption{Per-stream times of \ourmethod for various strong-scaling data sizes.}
-  \label{fig:kronspeed}
+  \caption{Per-stream times of \ourmethod for various strong-scaling data sizes.  We can perform a single partitioning pass over a 34 billion edge, 2.1 billion node network in just 15 seconds.}
+  \label{fig:kronspeed_strong}
 \end{figure}
 
 
 \subsection{Quality}
 In \RefTable{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
-
-In~\RefFigure{fig:metis}, \ourmethod performs comparably with parMETIS.  
+We also compare our partition quality with ParMETIS.
+In~\RefFigure{fig:kronqual}, \ourmethod performs comparably with parMETIS.  
 Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
 
 \begin{figure}[h!]
 \centering
   \includegraphics[width=0.8\columnwidth]{figures/kronecker_quality_tests.pdf}
-  \caption{Partition quality of various Kronecker graphs.}
+  \caption{Partition quality of various Kronecker graphs using \ourmethod compared to ParMETIS. We achieve comparable edges cut.}
   \label{fig:kronqual}
 \end{figure}
 
@@ -188,10 +189,13 @@ Streaming partitioning is a valid alternative to conventional offline approaches
 \end{figure}
 
 \subsection{Analysis}
+Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than our comptetitors.
+A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds.
+
 % Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
 Despite the complexity of many of the real graphs, \ourmethod creates well-balanced partitions.
 While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, algorithm is capable of significantly reducing communication in their parallel computation. 
-We also demonstrate in~\RefFigurePair{fig:k2_lambda, fig:k16_lambda} that additional passes can further reduce edges cut (by up to a factor of 3). 
+We also demonstrate in~\RefFigure{fig:k2_lambda} and \RefFigure{fig:k16_lambda} that additional passes can further reduce edges cut (by up to a factor of 3). 
 
 % Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
 
