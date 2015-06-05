@@ -42,9 +42,6 @@ Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
 }
 \end{figure}
 
-
-\subsection{Quality}
-In \RefTable{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
 % As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. 
 % This suggests good scalability.
 
@@ -136,6 +133,46 @@ Making a low-cut 16-partitioning is considerably harder than the 2-partition cas
 
 
 
+\subsection{Scalability}
+In order to test the scalability of \ourmethod we used a series of Kronecker graphs running on a state-of-the-art system.
+In~\reffig{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
+We show the Kronecker graphs performance in~\reffig{fig:kronspeed}. 
+\ourmethod is able to achieve a good balance between quality at incredible speeds.
+
+
+\subsubsection{Weak Scaling}
+In weak-scaling, the size of data scales at the same rate as the number of processes. In our experimental set up we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator by 1. This provides the per-stream timing experiments below:
+\begin{figure}[t!]
+\centering
+  \includegraphics[width=0.9\columnwidth]{figures/weak_scaling.pdf}
+  \caption{Per-stream times of \ourmethod in a weak-scaling experiment.}
+  \label{fig:kronspeed}
+\end{figure}
+
+\subsubsection{Strong Scaling}
+In stron-scaling, the size of the data is fixed while the number of processes inreases. Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law), but \ourmethod is essentially embarassingly parallel, so we expect excellent performance in strong scaling. 
+
+\begin{figure}[b!]
+\centering
+  \includegraphics[width=0.9\columnwidth]{figures/strong_scaling.pdf}
+  \caption{Per-stream times of \ourmethod for various strong-scaling data sizes.}
+  \label{fig:kronspeed}
+\end{figure}
+
+
+\subsection{Quality}
+In \RefTable{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
+
+In~\RefFigure{fig:metis}, \ourmethod performs comparably with parMETIS.  
+Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
+
+\begin{figure}[h!]
+\centering
+  \includegraphics[width=0.8\columnwidth]{figures/kronecker_quality_tests.pdf}
+  \caption{Partition quality of various Kronecker graphs.}
+  \label{fig:kronqual}
+\end{figure}
+
 \begin{figure}[t!]
 \centering
 \includegraphics[width=0.9\columnwidth] {figures/real_k2_lambda.pdf}
@@ -150,42 +187,6 @@ Making a low-cut 16-partitioning is considerably harder than the 2-partition cas
 \label{fig:k16_lambda}
 \end{figure}
 
-
-\subsection{Scalability}
-In order to test the scalability of \ourmethod we used a series of Kronecker graphs running on a state-of-the-art system.
-In~\reffig{fig:kronqual} we illustrate the streaming graph partitioner on Kronecker graphs with a widely varying number of nodes.
-We show the Kronecker graphs performance in~\reffig{fig:kronspeed}. 
-\ourmethod is able to achieve a good balance between quality at incredible speeds.
-
-\subsubsection{Partition Quality}
-\begin{figure}[h!]
-\centering
-  \includegraphics[width=0.8\columnwidth]{figures/kronecker_quality_tests.pdf}
-  \caption{Partition quality of various Kronecker graphs.}
-  \label{fig:kronqual}
-\end{figure}
-
-
-\subsubsection{Weak Scaling}
-In weak-scaling, the size of data scales at the same rate as the number of processes. In our experimental set up we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator by 1. This provides the per-stream timing experiments below:
-\begin{figure}[h!]
-\centering
-  \includegraphics[width=0.8\columnwidth]{figures/kronecker_speed_tests.pdf}
-  \caption{Per-stream times of \ourmethod in a weak-scaling experiment.}
-  \label{fig:kronspeed}
-\end{figure}
-
-\subsubsection{Strong Scaling}
-In stron-scaling, the size of the data is fixed while the number of processes inreases. Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law), but \ourmethod is essentially embarassingly parallel, so we expect excellent performance in strong scaling. 
-
-\begin{figure}[h!]
-\centering
-  \includegraphics[width=0.8\columnwidth]{figures/kronecker_speed_tests.pdf}
-  \caption{Per-stream times of \ourmethod for various strong-scaling data sizes.}
-  \label{fig:kronspeed}
-\end{figure}
-
-
 \subsection{Analysis}
 % Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
 Despite the complexity of many of the real graphs, \ourmethod creates well-balanced partitions.
@@ -193,8 +194,6 @@ While Power-Law graphs are overwhelmingly considered to be difficult to partitio
 We also demonstrate in~\RefFigurePair{fig:k2_lambda, fig:k16_lambda} that additional passes can further reduce edges cut (by up to a factor of 3). 
 
 % Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
-In~\RefFigure{fig:metis}, \ourmethod performs comparably with parMETIS.  
-Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
 
 One set of outlying (poorly-performing) data points are the Gnutella networks.
 While Gnutella networks exhibit power-law-like topologies, elements of their algorithm truncate nodes from ever becoming extremely large. 

@@ -3,15 +3,58 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
+def weak_scaling():
+  data = [
+  # 64    128     256     512     1024    2048
+  [2.81,  3.71,   3.76,   5.85,   8.89, 15.46],
+  [6.15,  7.63,   7.78,   10.95,  17.75],
+  [13,    15.02,  15.25,  22.59],
+  [19.28, 23.04, 32.41]
+  ]
+
+  x_domain = [64, 128, 256, 512, 1024, 2048]
+  legend_labels = ['', '', '']
+
+  f, ax = plt.subplots(1, 1)
+  ax.plot(x_domain, data[0], '.-', linewidth=2.0, ms=10, label='142MB/proc')
+  ax.plot(x_domain[:-1], data[1], '.-', linewidth=2.0, ms=10, label='258MB/proc')
+  ax.plot(x_domain[:-2], data[2], '.-', linewidth=2.0, ms=10, label='570MB/proc')
+  ax.plot(x_domain[:-3], data[3], '.-', linewidth=2.0, ms=10, label='1.14GB/proc')
+  
+  # ax.set_title('Stong Scaling')
+  # ax.set_xticks([0,1,2,3,4])
+  ax.set_ylim([0, 40])
+  
+  handles, labels = ax.get_legend_handles_labels()
+  labels.reverse()
+  handles.reverse()
+  # sort both labels and handles by labels
+  ax.legend(handles, labels)
+  # ax.legend(handles, labels, bbox_to_anchor=(0., 1.02, 1., .102), ncol=4, mode='expand', loc=3, borderaxespad=0.)
+  # ax.legend(handles, labels, bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
+  ax.set_title('Weak Scaling')
+  ax.set_xlim([58, 2300])
+  ax.set_xscale('log')
+  ax.set_ylabel('Time Per Stream (s)')
+  ax.set_xlabel('# MPI Processes')
+  ax.set_xticks(x_domain)
+  ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+
+  f.set_size_inches(9,5)
+  plt.savefig('weak_scaling.pdf')
+  # plt.show()
+
+
+
 def strong_scaling():
   data = [
   # 64    128     256     512     1024    2048
-  [2.81,  1.76,   1.08,   0.91,   1.01,    6.7],
-  [6.15,  3.71,   2.01,   1.67,   1.33,    7.7],
-  [13.00, 7.63,   3.76,   2.91,   2.58,    8.7],
-  [       15.02,  7.78,   5.85,   4.53,    1.2],
-  [               15.25,  10.95,  8.89,   10.6],
-  [                       22.59,  17.77,   10.5],
+  [2.81,  1.76,   1.08,   0.91,   1.01,    1.03],
+  [6.15,  3.71,   2.01,   1.67,   1.33,    1.45],
+  [13.00, 7.63,   3.76,   2.91,   2.58,    2.44],
+  [       15.02,  7.78,   5.85,   4.53,    4.21],
+  [               15.25,  10.95,  8.89,    8.31],
+  [                       22.59,  17.77,   15.46],
   ]
 
   x_domain = [64, 128, 256, 512, 1024, 2048]
@@ -24,23 +67,26 @@ def strong_scaling():
   ax.plot(x_domain[1:], data[3], '.-', linewidth=2.0, ms=10, label='Scale 29')
   ax.plot(x_domain[2:], data[4], '.-', linewidth=2.0, ms=10, label='Scale 30')
   ax.plot(x_domain[3:], data[5], '.-', linewidth=2.0, ms=10, label='Scale 31')
-  ax.set_title('Stong Scaling')
+  # ax.set_title('Stong Scaling')
   # ax.set_xticks([0,1,2,3,4])
   ax.set_ylim([0, 23])
   
   handles, labels = ax.get_legend_handles_labels()
   # sort both labels and handles by labels
   labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0], reverse=True))
-  ax.legend(handles, labels, bbox_to_anchor=(1.01, 1), loc=2, borderaxespad=0.)
+  ax.legend(handles, labels, bbox_to_anchor=(0., 1.02, 1., .102), ncol=3, mode='expand', loc=3, borderaxespad=0.)
+  # ax.legend(handles, labels, bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
 
   ax.set_xlim([58, 2300])
   ax.set_xscale('log')
   ax.set_ylabel('Time Per Stream (s)')
-  ax.set_xlabel('# MPI Processes (log)')
+  ax.set_xlabel('# MPI Processes')
   ax.set_xticks(x_domain)
   ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
-  plt.show()
+  f.set_size_inches(9,8)
+  plt.savefig('strong_scaling.pdf')
+  # plt.show()
 
 def bipartite():
   biz_trans = {
@@ -245,3 +291,4 @@ if __name__ == '__main__':
   # second_plot()
   # scattar()
   strong_scaling()
+  weak_scaling()
