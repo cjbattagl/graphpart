@@ -1,6 +1,8 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Related Work} \label{sec:rel}
-Partitioning is an important step in many algorithms. In HPC applications ranging from simulation to web analytics, the quality of partitions can strongly affect the parallel performance of many algorithms. Partitioning can also be used to identify community structure. We mention here a small sample of contemporary work in graph partitioning:
+Partitioning is an important step in many algorithms. In HPC applications ranging from simulation to web analytics, the quality of partitions can strongly affect the parallel performance of many algorithms. Partitioning can also be used to identify community structure. We mention here a small sample of contemporary work in graph partitioning.
+
+Streaming partitioning for a variety of heuristics was first presented by Stanton and Kliot~\cite{Stanton:2012:SGP:2339530.2339722}, the Weighted Deterministic Greedy approach generalized by Tsourakakis, et. al~\cite{tsourakakis2012fennel}, and the benefits of restreaming for convergence and parallelism determined by Nishimura and Ugander~\cite{nishimura2013restream}, although large-scale parallel experiments and benchmarks were not performed. Our implementation is the first parallel HPC-oriented study that we are aware of. 
 
 \paragraph{Large-scale Data-mining}
 Shared-memory vs. Distributed argument: GraphCHI~\cite{graphchi}
