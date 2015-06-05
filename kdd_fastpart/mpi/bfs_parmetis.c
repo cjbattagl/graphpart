@@ -104,109 +104,68 @@ size_t get_nlocalverts_for_pred(void) { return g.nlocalverts; }
 void permute_tuple_graph(tuple_graph* tg) { }
 
 void partition_graph_data_structure() { 
-  //fprintf(stdout, " %d ", (int)sizeof(idx_t));
-  size_t n = g.nglobalverts;
-  size_t n_local = g.nlocalverts;
-  int64_t localedges = (int64_t)g.nlocaledges;
-
-  size_t offset = g.nlocalverts * rank; //!//Does this work?
-  int64_t tot_nnz = 0;
-  //parts = (PART_TYPE*)malloc(n * sizeof(PART_TYPE));
-
-  size_t k,  nnz_row, best_part;
+  size_t n = g.nglobalverts;  size_t n_local = g.nlocalverts;  int64_t localedges = (int64_t)g.nlocaledges;
+  fprintf(stdout,"rank:%d, global verts:%d, local verts:%d, local edges:%d\n",rank,(int)n,(int)n_local,(int)localedges);
+  //int64_t tot_nnz = 0;
+  //MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
   int64_t *colidx = g.column;
   size_t *rowptr = g.rowstarts;
-  size_t i, s, l; //,j;
+  size_t k, i, s, l; //,j;
 
   // need to convert colidx, rowptr to 32-bit ints.
   idx_t* colidx_32 = (idx_t*)malloc(localedges*sizeof(idx_t));
   idx_t* rowptr_32 = (idx_t*)malloc((n_local+1)*sizeof(idx_t));
-  for (i=0; i<localedges; ++i) { colidx_32[i] = (idx_t)colidx[i]; }
-  for (i=0; i<=n_local; ++i) { rowptr_32[i] = (idx_t)rowptr[i]; }
+  for (i=0; i<localedges; ++i) { colidx_32[i] = (idx_t)colidx[i]; assert(colidx_32[i] < n); }
+  for (i=0; i<=n_local; ++i) { rowptr_32[i] = (idx_t)rowptr[i]; assert(rowptr_32[i] <= localedges); }
 
   int result;
-// Needed by parmetis
- 
-  //idx_t *vtxdist=NULL;
-  idx_t *xadj=NULL;
-  idx_t *adjncy=NULL;
+
+  idx_t vtxdist[size+1]; idx_t vert_so_far = 0;
+  for (i=0; i<=size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
+  idx_t *xadj=rowptr_32;
+  idx_t *adjncy=colidx_32;
   idx_t *vwgt=NULL, *adjwgt=NULL;
   idx_t wgtflag=0;
   idx_t numflag=0;
   idx_t ncon=1;
   idx_t nparts=size;
-  //real_t *tpwgts=NULL, 
 
-  real_t ubvec;
+  real_t tpwgts[size];
+  for (i=0; i<size; ++i) { tpwgts[i] = 1.0/(float)size; }
+
+  real_t ubvec = 1.05;
   idx_t options[4], edgecut;
-  idx_t part[n_local];
-  MPI_Comm comm;
 
+  idx_t part[n_local];
+  for (i=0; i<n_local; ++i) { part[i] = rank; }
+
+  MPI_Comm comm;
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 
-  MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
-
-  //fprintf(stdout, " %d ", (int)sizeof(idx_t));
-
-  double streamstart= MPI_Wtime();
-  idx_t vtxdist[size+1];// = new idx_t[size];
-// For AdaptiveRepart
   float itr = 1000.0;
   idx_t *vsize=NULL;
-  idx_t vert_so_far = 0;
-  for (i=0; i<=size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
-
-  for (i=0; i<size; ++i) { fprintf(stdout, " %d ", (int)vtxdist[i]);}
-    fprintf(stdout,"\n");
-  //MPI_Allgather(MPI_IN_PLACE, 1, MPI_INT64_T, vtxdist, 1, MPI_INT64_T, MPI_COMM_WORLD);
-
-  /*
-  vtxdist[0] = 0;
-  vtxdist[1] = 5;
-  vtxdist[2] = 10;
-  vtxdist[3] = 15;
-*/
-  ubvec = 1.05;
-
   options[0] = 1;
   options[1] = 1;
   options[2] = 0;
   options[3] = 0;
 
-  real_t tpwgts[size];
-
-  for (i=0; i<n_local; ++i) { part[i] = rank; }
-  for (i=0; i<size; ++i) { tpwgts[i] = 1.0/(float)size; }
-  xadj = rowptr_32;
-  adjncy = colidx_32;
-  //xadj = new idx_t[6];
-  //adjncy = new idx_t[13];
-
-  if ( rank == 0 ){
-    fprintf(stdout,"parmetis initialized.\n");
-  }
+  if ( rank == 0 ){ fprintf(stdout,"parmetis initialized.\n"); }
  
-result = ParMETIS_V3_PartKway( vtxdist, xadj, adjncy, vwgt, adjwgt, 
+  double streamstart= MPI_Wtime();
+  result = ParMETIS_V3_PartKway( vtxdist, xadj, adjncy, vwgt, adjwgt, 
                                  &wgtflag, &numflag, &ncon, 
                                  &nparts, tpwgts, &ubvec, options, 
                                  &edgecut, part, &comm );  
-/*result = ParMETIS_V3_AdaptiveRepart( vtxdist, xadj, adjncy, vwgt, vsize, 
+  /*result = ParMETIS_V3_AdaptiveRepart( vtxdist, xadj, adjncy, vwgt, vsize, 
                                  adjwgt, &wgtflag, &numflag, &ncon, 
                                  &nparts, tpwgts, &ubvec, &itr, options, 
                                  &edgecut, part, &comm );  */
-
-
   double streamstop = MPI_Wtime();
   double streamtime = streamstop - streamstart;
   if (rank == 0) { fprintf(stderr, "stream time: %f,  per-stream time: %f \n", streamtime, streamtime/NUM_STREAMS); }
-  for (i=0;i<size;++i) {
-  MPI_Barrier(MPI_COMM_WORLD);
-    if ( rank == i ){
-      fprintf(stderr,"%d edgecut: %d\n", rank, edgecut);// MPI_PROC_ID << " edgecut " << edgecut << '\n';
-    }
+  fprintf(stdout,"%d edgecut: %d\n", rank, edgecut);// MPI_PROC_ID << " edgecut " << edgecut << '\n';
 }
-  //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
-}
+
 
 // Random permutation generator. Move to another file.
 int64_t* genRandPerm(int64_t* orderList, int64_t size) {

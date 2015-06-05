@@ -61,9 +61,6 @@ Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
 \label{tab:rmat}
 \end{table}
 
-\todo{Discuss the iterative stream figures.}
-\RefFigurePair{fig:k2_lambda, fig:k16_lambda} show the improvement of $\lambda$ as we continue to make passes over selected networks. 
-
 \subsection{Scalability}
 \subsubsection{Weak Scaling}
 Weak-scaling holds the amount of data per process constant as we increase the number of processes. In our experimental setup we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator. This yields the per-stream timing experiments in~\RefFigure{fig:kronspeed_weak}, where each line is labeled with the size of data per process:
@@ -86,13 +83,17 @@ Strong-scaling is heavily penalized by serial portions of code (as dictated by A
 \end{figure}
 
 \subsection{Quality}
-In \RefTable{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$. We also compare our partition quality with ParMETIS.
+In \RefTable{tab:rw} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$. 
+
+We show the validity of the restreaming approach in Figs.~\ref{fig:k2_lambda, fig:k16_lambda}.
+
+We also compare our partition quality with ParMETIS.
 In~\RefFigure{fig:kronqual}, \ourmethod performs comparably with parMETIS. Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
 
 \begin{figure}[h!]
 \centering
   \includegraphics[width=0.8\columnwidth]{figures/kronecker_quality_tests.pdf}
-  \caption{Partition quality of various Kronecker graphs using \ourmethod compared to ParMETIS. We achieve comparable edges cut.}
+  \caption{Partition quality of various Kronecker graphs using \ourmethod compared to ParMETIS. We achieve comparable edge cut.}
   \label{fig:kronqual}
 \end{figure}
 
@@ -111,12 +112,11 @@ In~\RefFigure{fig:kronqual}, \ourmethod performs comparably with parMETIS. Strea
 \end{figure}
 
 \subsection{Analysis}
-Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than our comptetitors. A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds.
+Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than more sophisticated algorithms. A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds.
 
 % Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
 Despite the complexity of many of the real graphs, \ourmethod creates well-balanced partitions.
-While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, algorithm is capable of significantly reducing communication in their parallel computation. 
-We also demonstrate in~\RefFigure{fig:k2_lambda} and \RefFigure{fig:k16_lambda} that additional passes can further reduce edges cut (by up to a factor of 3). 
+While Power-Law graphs are overwhelmingly considered to be difficult to partition~\cite{Abou-Rjeili:2006:MAP:1898953.1899055}, we have demonstrated that a very simple, fast, algorithm is capable of significantly reducing communication in their parallel computation. We also demonstrate in~\RefFigure{fig:k2_lambda} and \RefFigure{fig:k16_lambda} that additional passes can further reduce edges cut by up to a factor of 3. 
 
 % Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
 \REM{
