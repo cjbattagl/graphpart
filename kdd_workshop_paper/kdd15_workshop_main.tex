@@ -38,6 +38,13 @@
 \usepackage{algorithm2e}
 \usepackage{amsmath}
 
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+
+\usepackage[binary-units]{siunitx} % for nice SI units
+\DeclareSIUnit\hours{hours}
+\DeclareSIUnit\minutes{minutes}
+
 % Pienta's defines:
 \newcommand{\REM}[1]{}
 \DeclareMathOperator*{\argmax}{\arg\!\max}
@@ -67,6 +74,8 @@
 
 \newcommand{\largestgraphedges}{10000\xspace}
 \newcommand{\largestgraphtime}{100 seconds}
+
+\newcommand{\ignore}[1]{}
 
 
 \begin{document}
@@ -134,7 +143,7 @@
 % \alignauthor Guy Fieri\\
 \alignauthor Richard Vuduc\\
        \affaddr{Georgia Institute of Technology}\\
-       \email{richie@cc.gatech.edu}
+       \email{richie@gatech.edu}
 %
 }
 % There's nothing stopping you putting the seventh, eighth, etc.
