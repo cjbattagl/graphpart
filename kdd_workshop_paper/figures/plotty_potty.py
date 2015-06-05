@@ -2,6 +2,63 @@
 import matplotlib
 import matplotlib.pyplot as plt
 
+def tradeoff():
+  data = [
+    [1.03, 2.79, 16.61, 10.54, 8.28, 7.19, 5.01, 5.14, 4.98, 4.3, 3.43, 2.76, 2.35, 2.27, 2.21, 1.88, 1.6, 1.4, 1.29, 1.21, 1.15, 1.15],
+    [0.98, 0.98, 0.08, 0.09, 0.12, 0.15, 0.17, 0.17, 0.17, 0.2, 0.25, 0.3, 0.32, 0.33, 0.33, 0.39, 0.44, 0.48, 0.5, 0.51, 0.52, 0.53]
+  ]
+  f, ax = plt.subplots(1, 1)
+  ax.plot(data[0][4:], data[1][4:], '.-', linewidth=2.0, ms=10)
+  # ax.plot(x_domain, data[1], '.-', linewidth=2.0, ms=10, label='Quality')
+  
+  handles, labels = ax.get_legend_handles_labels()
+  labels.reverse()
+  handles.reverse()
+  ax.set_title('Balance vs. Quality Tradeoff', fontsize=22)
+  ax.set_ylabel('Edges Cut ( )', fontsize=20)
+  ax.set_xlabel('Balance', fontsize=20)
+  # plt.show()
+
+  f.set_size_inches(9,5)
+  plt.savefig('tradeoff_roc.pdf')
+  # ax.set_xlim([58, 2300])
+  plt.clf()
+
+  x_domain = range(1,23)
+  # f, ax = plt.subplots(1, 1)
+  # ax.plot(x_domain, data[0], '.-', linewidth=2.0, ms=10)
+  # ax.plot(x_domain, data[1], '.-', linewidth=2.0, ms=10)
+  # ax.plot(x_domain, data[1], '.-', linewidth=2.0, ms=10, label='Quality')
+  
+  f, ax1 = plt.subplots()
+  ax1.plot(x_domain, data[0], 'b.-', linewidth=2.0, ms=10)
+  ax1.set_xlabel('Iterations', fontsize=20)
+  # Make the y-axis label and tick labels match the line color.
+  ax1.set_ylabel('Balance', color='b', fontsize=20)
+  for tl in ax1.get_yticklabels():
+      tl.set_color('b')
+
+
+  ax2 = ax1.twinx()
+  ax2.plot(x_domain, data[1], 'r.-', linewidth=2.0, ms=10)
+  ax2.set_ylabel('Quality', color='r', fontsize=20)
+  for tl in ax2.get_yticklabels():
+      tl.set_color('r')
+  
+  ax1.set_xlim([0,24])
+  ax2.set_xlim([0,24])
+  # ax.set_title('Balance vs. Quality Tradeoff', fontsize=22)
+  # ax.set_ylabel('Edges Cut ( )', fontsize=20)
+  # ax.set_xlabel('Balance', fontsize=20)
+  # plt.show()
+  ax1.set_title('GraSP Tempering Process', fontsize=22)
+  f.set_size_inches(9,5)
+  plt.savefig('tradeoff_process_nu.pdf')
+
+
+
+
+
 
 def parmetisgiano_speed():
         #8 16 32 64 128
@@ -382,6 +439,7 @@ if __name__ == '__main__':
   # bipartite()
   # second_plot()
   # scattar()
-  strong_scaling()
-  weak_scaling()
+  # strong_scaling()
+  # weak_scaling()
   # parmetisgiano_speed()
+  tradeoff()
