@@ -1,5 +1,5 @@
 include ../make.inc
-MPICC ?= mpicc
+MPICC ?= cc
 
 CFLAGS += -O3
 BIN = graph500_mpi_simple graph500_mpi_one_sided graph500_part_test

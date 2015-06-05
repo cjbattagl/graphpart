@@ -4,7 +4,7 @@ CC = cc
 CFLAGS = -g -Wall -Drestrict=__restrict__ -O3 -DNDEBUG -ffast-math -DGRAPH_GENERATOR_MPI -DGRAPHGEN_DISTRIBUTED_MEMORY # -g -pg
 # CFLAGS = -g -Wall -Drestrict= -DGRAPH_GENERATOR_MPI -DGRAPHGEN_DISTRIBUTED_MEMORY # -g -pg
 LDFLAGS = -g # -g -pg
-MPICC = mpicc
+MPICC = cc
 
 all: libgraph_generator_mpi.a generator_test_mpi
 # all: generator_test_xmt
