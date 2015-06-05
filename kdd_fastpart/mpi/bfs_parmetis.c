@@ -139,12 +139,16 @@ void partition_graph_data_structure() {
 // For AdaptiveRepart
   float itr = 1000.0;
 
-  //TODO: FILL THIS IN
+  idx_t vert_so_far = 0;
+  for (i=0; i<size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
+  //MPI_Allgather(MPI_IN_PLACE, 1, MPI_INT64_T, vtxdist, 1, MPI_INT64_T, MPI_COMM_WORLD);
+
+  /*
   vtxdist[0] = 0;
   vtxdist[1] = 5;
   vtxdist[2] = 10;
   vtxdist[3] = 15;
-
+*/
   ubvec = 1.05;
 
   options[0] = 0;
@@ -169,11 +173,11 @@ void partition_graph_data_structure() {
 //                                 &wgtflag, &numflag, &ncon, 
 //                                 &nparts, tpwgts, &ubvec, options, 
 //                                 &edgecut, part, &comm );  
-/*result = ParMETIS_V3_AdaptiveRepart( vtxdist, xadj, adjncy, vwgt, vsize, 
+result = ParMETIS_V3_AdaptiveRepart( vtxdist, xadj, adjncy, vwgt, vsize, 
                                  adjwgt, &wgtflag, &numflag, &ncon, 
                                  &nparts, tpwgts, &ubvec, &itr, options, 
                                  &edgecut, part, &comm );  
-*/
+
 
   double streamstop = MPI_Wtime();
   double streamtime = streamstop - streamstart;
