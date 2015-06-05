@@ -23,7 +23,7 @@ def weak_scaling():
   
   # ax.set_title('Stong Scaling')
   # ax.set_xticks([0,1,2,3,4])
-  ax.set_ylim([0, 40])
+  
   
   handles, labels = ax.get_legend_handles_labels()
   labels.reverse()
@@ -35,11 +35,16 @@ def weak_scaling():
   ax.set_title('Weak Scaling', fontsize=22)
   ax.set_xlim([58, 2300])
   ax.set_xscale('log')
-  ax.set_ylabel('Time Per Stream (s)', fontsize=20)
   ax.set_xlabel('# MPI Processes', fontsize=20)
   ax.set_xticks(x_domain)
   ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
+  ax.set_ylim([2, 100])
+  ax.set_yscale('log')
+  ax.set_ylabel('Time Per Stream (s)', fontsize=20)
+  ax.set_yticks([2, 4, 8, 16, 32, 64])
+  ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+  
   f.set_size_inches(9,5)
   plt.savefig('weak_scaling_new.pdf')
   # plt.show()
@@ -69,22 +74,27 @@ def strong_scaling():
   ax.plot(x_domain[3:], data[5], '.-', linewidth=2.0, ms=10, label='Scale 31')
   # ax.set_title('Stong Scaling')
   # ax.set_xticks([0,1,2,3,4])
-  ax.set_ylim([0, 26])
+  
   
   handles, labels = ax.get_legend_handles_labels()
   # sort both labels and handles by labels
   labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0], reverse=True))
   # ax.legend(handles, labels, bbox_to_anchor=(0., 1.02, 1., .102), ncol=3, mode='expand', loc=3, borderaxespad=0.)
-  ax.legend(handles, labels, ncol=2, loc=0)
+  ax.legend(handles, labels, ncol=3, loc=0)
   # ax.legend(handles, labels, bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
 
   ax.set_xlim([58, 2300])
   ax.set_xscale('log')
-  ax.set_ylabel('Time Per Stream (s)', fontsize=20)
   ax.set_xlabel('# MPI Processes', fontsize=20)
   ax.set_title('Strong Scaling', fontsize=22)
   ax.set_xticks(x_domain)
   ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+
+  ax.set_ylim([0.8, 64])
+  ax.set_yscale('log')
+  ax.set_ylabel('Time Per Stream (s)', fontsize=20)
+  ax.set_yticks([1, 2, 4, 8, 16, 32])
+  ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
   f.set_size_inches(9,5)
   plt.savefig('strong_scaling_new.pdf')
@@ -292,5 +302,5 @@ if __name__ == '__main__':
   # bipartite()
   # second_plot()
   # scattar()
-  # strong_scaling()
+  strong_scaling()
   weak_scaling()
