@@ -100,21 +100,37 @@ Strong-scaling is heavily penalized by serial portions of code (as dictated by A
 \todo{In~\RefTable{tab:rmatpmstrong} we show strong scaling times for two RMAT scales using ParMETIS.}
 
 \begin{table}
-\caption{Strong scaling results for ParMETIS on RMAT graphs.}
+\caption{Comparison of run-time and partition quality between ParMETIS and \ourmethod for a Scale-22 RMAT graph.}
 \rowcolors{2}{blue!05}{blue!15}
 \centering
 \small
-{ \begin{tabular}{ l | c | c | c | c | c }    \toprule
-\#procs & 8 & 16 & 32 & 64 & 128 \\ \midrule
-Scale 20 time (s) & 34.8 & 30.4 & 25.0 & 24.0 & 24.3 \\%& 68.7B \\
-Scale 20 $\lambda$ & 0.36 & 0.38 & 0.40 & 0.42 & 0.45 \\%& 68.7B \\
-Scale 22 time (s) & 307.8 & 221.9 & 194.9 & 173.8 & 167.0 \\
-Scale 22 $\lambda$ & 0.36 & 0.39 & 0.41 & 0.43 & 0.45 \\
+{ \begin{tabular}{ c | c | c | c | c  }    \toprule
+\#procs & $\lambda_{metis}$ & $\lambda_{grasp}$ & $t_{metis}$(s) & $t_{grasp}(s)$ \\ \midrule
+8 & 0.36 & 0.29 & 307.8 & 0.72 \\
+16 & 0.38 & 0.41 & 221.9 & 0.45 \\
+32 & 0.40 & 0.54 & 194.9 & 0.31 \\
 \hline
 \end{tabular}\par
 }
 \label{tab:rmatpmstrong}
 \end{table}
+
+%\begin{table}
+%\caption{Strong scaling results for ParMETIS on RMAT graphs.}
+%\rowcolors{2}{blue!05}{blue!15}
+%\centering
+%\small
+%{ \begin{tabular}{ l | c | c | c | c | c }    \toprule
+%\#procs & 8 & 16 & 32 & 64 & 128 \\ \midrule
+%Scale 20 time (s) & 34.8 & 30.4 & 25.0 & 24.0 & 24.3 \\%& 68.7B \\
+%Scale 20 $\lambda$ & 0.36 & 0.38 & 0.40 & 0.42 & 0.45 \\%& 68.7B \\
+%Scale 22 time (s) & 307.8 & 221.9 & 194.9 & 173.8 & 167.0 \\
+%Scale 22 $\lambda$ & 0.36 & 0.39 & 0.41 & 0.43 & 0.45 \\
+%\hline
+%\end{tabular}\par
+%}
+%\label{tab:rmatpmstrong}
+%\end{table}
 
 Performance inevitably plateaus for \ourmethod as local problem sizes become small in the face of increasing network overhead. However, for smaller degrees of parallelism we demonstrate near-linear scaling. 
 
