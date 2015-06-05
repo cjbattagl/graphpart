@@ -66,7 +66,7 @@ Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
 
 \subsection{Scalability}
 \subsubsection{Weak Scaling}
-Weak-scaling holds the amount of data per process constant as we increase the number of processes. In our experimental setup we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator. This yields the per-stream timing experiments in~\RefFigure{fig:kronspeed_weak}:
+Weak-scaling holds the amount of data per process constant as we increase the number of processes. In our experimental setup we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator. This yields the per-stream timing experiments in~\RefFigure{fig:kronspeed_weak}, where each line is labeled with the size of data per process:
 \begin{figure}[t!]
 \centering
   \includegraphics[width=0.9\columnwidth]{figures/weak_scaling.pdf}
@@ -74,25 +74,20 @@ Weak-scaling holds the amount of data per process constant as we increase the nu
   \label{fig:kronspeed_weak}
 \end{figure}
 
-
-
 \subsubsection{Strong Scaling}
 In strong-scaling, the size of the data is fixed while the number of processes inreases. 
-Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law), but \ourmethod is highly parallel, show in~\RefFigure{fig:kronspeed_strong} so we demonstrate excellent performance in strong scaling. 
+Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law). \ourmethod exhibits a high degree of parallelism, illustrated in~\RefFigure{fig:kronspeed_strong}. 
 
 \begin{figure}[b!]
 \centering
   \includegraphics[width=0.9\columnwidth]{figures/strong_scaling.pdf}
-  \caption{Per-stream times of \ourmethod for various strong-scaling data sizes.  We can perform a single partitioning pass over a 34 billion edge, 2.1 billion node network in just 15 seconds.}
+  \caption{Per-stream times of \ourmethod for various strong-scaling data sizes. For instance, we can perform a single partitioning pass over a 34 billion edge, 2.1 billion node network in just 15 seconds.}
   \label{fig:kronspeed_strong}
 \end{figure}
 
-
 \subsection{Quality}
-In \RefTable{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$.
-We also compare our partition quality with ParMETIS.
-In~\RefFigure{fig:kronqual}, \ourmethod performs comparably with parMETIS.  
-Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
+In \RefTable{table:big} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$. We also compare our partition quality with ParMETIS.
+In~\RefFigure{fig:kronqual}, \ourmethod performs comparably with parMETIS. Streaming partitioning is a valid alternative to conventional offline approaches and can be integrated in distributed-memory, on-the-fly algorithms for big-data.
 
 \begin{figure}[h!]
 \centering

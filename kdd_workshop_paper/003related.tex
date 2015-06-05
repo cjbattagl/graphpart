@@ -1,24 +1,21 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Related Work}
-Partitioning is an important step in many algorithms.
-In high performance computing cases, from simulation to web analytics, the quality of partitions can strongly affect the parallel performance of many algorithms.
-In the following section, we will cover a small sample of the vast work that has gone into approximating solutions to graph partitioning.
-
+Partitioning is an important step in many algorithms. In HPC applications ranging from simulation to web analytics, the quality of partitions can strongly affect the parallel performance of many algorithms. Partitioning can also be used to identify community structure. We mention here a small sample of contemporary work in graph partitioning:
 
 \paragraph{Large-scale Data-mining}
 Shared-memory vs. Distributed argument: GraphCHI~\cite{graphchi}
 
-
 \paragraph{Partitioning}
-Spatial methods like \cite{Gilbert95geometricmesh} that leverage geometric data to supplement the partition formation process.
+\REM{Spatial methods like \cite{Gilbert95geometricmesh} that leverage geometric data to supplement the partition formation process.
 Arora et al. proposed a fast approximation algorithm using spectral projection to perform sparse cuts, edge expansions, and separator balance \cite{arora2009expander}.
 Some of the most successful partitioners use multilevel approaches \cite{karypis1998multilevel}.
 Which achieve a high level of concurrency while maintaining good partition quality.
-Some recent approaches have been designed specifically to address small-world networks \cite{slota2014pulp}.
+Some recent approaches have been designed specifically to address small-world networks \cite{slota2014pulp}.}
 
-For networks with dynamic structure, iterative approaches can dynamically adjust the partitions to suite changing graph structure.
+For networks with dynamic structure, iterative approaches can dynamically adjust the partitions to suit changing graph structure.
 Vaquero et al. propose a method for iteratively adjusting graph partitions to cope with changes in the graph, using only local information ~\cite{Vaquero:2013:APL:2523616.2525943}.
 This work demonstrated the power and scalability of leveraging local data to improve partition quality, especially to reduce the edges cut.
+
 Sedge or Self Evolving Distributed Graph Management Environment also takes advantage of dynamically managing and modifying partitions to reduce network communication and improve throughput~\cite{Yangpart}.
 
 Frameworks like Pregel~\cite{Malpregel}, make use of hashing-based partition schemes.
@@ -27,19 +24,7 @@ GraphLab~\cite{Low:2012:DGF:2212351.2212354} also uses a hashed, random partitio
 Khayyat et al. showed that a preprocessed partitioning of large-scale graphs is insufficient to truly minimize network communication~\cite{khayyatmizan}.
 They propose another dynamic partition approach that allows vertex migration during runtime to maintain balanced load.
 
-??>?>>>?>>?>>>>>Boman2D~\cite{Bomansc13}.
-
-\paragraph{Streaming Partitioning}
-Streaming graph partitioning has gained traction in the last few years~\cite{DBLP:journals/corr/abs-1212-1121,Stanton:2012:SGP:2339530.2339722,tsourakakis2012fennel}.
-Typically these streaming partitioners use a heuristic to determine the formation of the partitions.
-
-A heuristic makes a partition decision given a stream of vertices, a vertex $v$, and a capacity constraint $C$ (where $C$ is generally $\approx \frac{(\epsilon+|V|)}{n}$)
-There are numerous known heuristics for this problem, many of which are deeply analyzed in~\cite{Stanton:2012:SGP:2339530.2339722}.
-
-Of the heuristics in Stanton's experimental results~\cite{Stanton:2012:SGP:2339530.2339722}, WDG performed far better than any other partitioner.
-FENNEL~\cite{tsourakakis2012fennel} is a heuristic that generalizes the WDG partitioner for any weight function, and provides a more rigorous theoretical framework.
-Nishimura et al. investigated the properies of streaming and then re-streaming a graph to overcome the downfalls of single-pass streams \cite{nishimura2013restream}.
-Restreaming success lead us to investigate a multi-pass streaming approach when developing \ourmethod.
-
+Boman, et. al show how graph partitioning can be used to optimize distributed SpmV~\cite{Bomansc13}, but use more sophisticated partitioners. A streaming approach would be ideal in extending the scale of experiments such as this. 
+\todo{Stubs}
 Streaming partitioning has also been successfully adapted for edge-centric partitioning schemes like X-Stream~\cite{xstream}.
 
