@@ -66,7 +66,7 @@ Weak-scaling holds the amount of data per process constant as we increase the nu
 \begin{figure}[t!]
 \centering
   \includegraphics[width=0.9\columnwidth]{figures/weak_scaling.pdf}
-  \caption{Per-stream times of \ourmethod in a weak-scaling experiment. }
+  \caption{Per-stream times of \ourmethod in a weak-scaling experiment. This demonstrates that we can scale to very large problem sizes without network overhead dominating the runtime.}
   \label{fig:kronspeed_weak}
 \end{figure}
 
@@ -152,7 +152,7 @@ In~\RefFigure{tab:rmatpmstrong}, \ourmethod finds comparable partition quality t
 \begin{figure}[t!]
 \centering
 \includegraphics[width=0.9\columnwidth] {figures/real_k16_lambda.pdf}
-\caption[Caption for]{Improvement in edges cut ($\lambda$) over 5 passes for $k=16$-partitions of each graph. Dividing the graph into 16 partitions makes the minimum edge cut problem much more challenging. Similar to the bi-partition results, we experience the best gain in the second pass and less in subsequent passes.}
+\caption[Caption for]{Improvement in edges cut ($\lambda$) over 5 passes for 16-partitions of each graph. Dividing the graph into 16 partitions makes the minimum edge cut problem much more challenging. Similar to the bi-partition results, we experience the best gain in the second pass and less in subsequent passes.}
 \label{fig:k16_lambda}
 \end{figure}
 
@@ -164,7 +164,7 @@ Partitions of power-law graphs are known to involve such a tradeoff~\cite{Lang04
 \begin{figure}[t!]
 \centering
 \includegraphics[width=0.9\columnwidth] {figures/tradeoff_process.pdf}
-\caption[Caption for]{ Time-series of tempering process on a Scale-28 RMAT graph on 64 MPI processes, beginning from a random partition. }
+\caption[Caption for]{ Time-series of tempering process on a Scale-28 RMAT graph on 64 MPI processes, beginning from a random partition. Lower quality is better, while the optimal balance is 1. }
 \label{fig:process}
 \end{figure}
 
