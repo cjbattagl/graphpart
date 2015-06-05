@@ -33,7 +33,6 @@ Thus, computing an optimal mapping is generally computationally infeasible, and 
 \end{figure}
 
 To illustrate the role of partitioning on performance, consider a parallel Breadth-First Search (BFS) where a graph's vertices are partitioned between two machines in a `1D' distribution~\cite{Buluc2D}. During each BFS step, each process must communicate all newly explored target vertices to process that owns them. In Figure~\ref{fig:0}, if we have 4 processes, all 14 nonzeros in the non-diagonal blocks must be communicated at some point. A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducing communication.\footnote{Computing exact communication volume requires a hypergraph partitioner~\cite{hypergraph}.} 
->>>>>>> origin/rv
 
 % \todo{In the figure: Differentiate the cut-edges and their associated non-zeroes from the internal edges, to emphasize that they are undersirable.}
 \begin{figure}[h]

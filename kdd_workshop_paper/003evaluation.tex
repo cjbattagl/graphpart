@@ -27,6 +27,20 @@ Many networks in the collection are power-law and scale-free representatives of 
 To generate the test graphs we used the Graph500 Kronecker-Graph generator.
 Kronecker graphs are commonly used in HPC graph benchmarks and testing and can be scaled arbitrarily large for testing purposes. 
 
+\begin{figure}
+\caption{Edge and vertex counts for generated RMAT graphs of each scale.}
+\rowcolors{2}{blue!05}{blue!15}
+\centering
+\small
+{ \begin{tabular}{ l | c | c | c | c | c | c  }    \toprule
+\label{table:rmat}
+Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
+|V(G)| & 67M & 134M & 268M & 537M & 1.07B & 2.15B \\%& 4.29B \\
+|E(G)| & 1.07B & 2.14B & 4.29B & 8.58B & 17.1B & 34.3B \\%& 68.7B \\
+\hline
+\end{tabular}\par
+}
+\end{figure}
 
 
 \subsection{Quality}
