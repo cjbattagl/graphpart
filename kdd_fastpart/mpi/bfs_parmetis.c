@@ -118,7 +118,7 @@ void partition_graph_data_structure() {
   int result;
 // Needed by parmetis
  
-  idx_t *vtxdist=NULL;
+  //idx_t *vtxdist=NULL;
   idx_t *xadj=NULL;
   idx_t *adjncy=NULL;
   idx_t *vwgt=NULL, *adjwgt=NULL;
@@ -126,7 +126,8 @@ void partition_graph_data_structure() {
   idx_t numflag=0;
   idx_t ncon=1;
   idx_t nparts=size;
-  real_t *tpwgts=NULL, ubvec;
+  //real_t *tpwgts=NULL, 
+  real_t ubvec;
   idx_t options[4], edgecut;
   idx_t part[n_local];
 
@@ -136,7 +137,7 @@ void partition_graph_data_structure() {
   double streamstart= MPI_Wtime();
   idx_t vtxdist[size];// = new idx_t[size];
 // For AdaptiveRepart
-  itr = 1000.0;
+  float itr = 1000.0;
 
   //TODO: FILL THIS IN
   vtxdist[0] = 0;
@@ -151,10 +152,10 @@ void partition_graph_data_structure() {
   options[2] = 0;
   options[3] = 0;
   
-  float tpwgts[3];
+  real_t tpwgts[size];
 
   for (i=0; i<n_local; ++i) { part[i] = rank; }
-  for (i=0; i<size; ++i) { tpwgts[i] = 1.0/float(size); }
+  for (i=0; i<size; ++i) { tpwgts[i] = 1.0/(float)size; }
   xadj = rowptr;
   adjncy = colidx;
   //xadj = new idx_t[6];
