@@ -146,15 +146,15 @@ void partition_graph_data_structure() {
 
   MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
 
-  fprintf(stdout, " %d ", (int)sizeof(idx_t));
+  //fprintf(stdout, " %d ", (int)sizeof(idx_t));
 
   double streamstart= MPI_Wtime();
-  idx_t vtxdist[size];// = new idx_t[size];
+  idx_t vtxdist[size+1];// = new idx_t[size];
 // For AdaptiveRepart
   float itr = 1000.0;
   idx_t *vsize=NULL;
   idx_t vert_so_far = 0;
-  for (i=0; i<size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
+  for (i=0; i<=size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
 
   for (i=0; i<size; ++i) { fprintf(stdout, " %d ", (int)vtxdist[i]);}
     fprintf(stdout,"\n");
@@ -199,7 +199,12 @@ result = ParMETIS_V3_PartKway( vtxdist, xadj, adjncy, vwgt, adjwgt,
   double streamstop = MPI_Wtime();
   double streamtime = streamstop - streamstart;
   if (rank == 0) { fprintf(stderr, "stream time: %f,  per-stream time: %f \n", streamtime, streamtime/NUM_STREAMS); }
-
+  for (i=0;i<size;++i) {
+  MPI_Barrier(MPI_COMM_WORLD);
+    if ( rank == i ){
+      fprintf(stderr,"%d edgecut: %d\n", rank, edgecut);// MPI_PROC_ID << " edgecut " << edgecut << '\n';
+    }
+}
   //MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
 }
 
