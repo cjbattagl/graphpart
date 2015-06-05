@@ -2,7 +2,7 @@
 CFLAGS = -g -O3 -Drestrict=__restrict__ -Wall -ffast-math -DGRAPH_GENERATOR_MPI # -g -pg
 # CFLAGS = -g -Wall -Drestrict= -DGRAPH_GENERATOR_MPI
 LDFLAGS = -fopenmp -g # -g -pg
-MPICC = mpicc
+MPICC = cc
 
 all: graph500_mpi_simple graph500_part_test
 #all: graph500_mpi_simple graph500_part_test graph500_mpi_one_sided graph500_mpi_replicated graph500_mpi_replicated_csc graph500_mpi_custom

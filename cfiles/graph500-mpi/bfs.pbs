@@ -1,10 +1,8 @@
 #PBS -q debug
-#PBS -l mppwidth=4
-#PBS -l walltime=00:03:00
-module load tau
-export TAU_COMM_MATRIX=1
-export TAU_TRACE=1
+#PBS -l mppwidth=96
+#PBS -l walltime=00:04:00
 cd $PBS_O_WORKDIR
-#27
-aprun -n 4 ./graph500_mpi_simple 18 16
-#aprun -n 4 tau_exec -T mpi ./graph500_mpi_simple 18 16
+export OMP_NUM_THREADS=6
+
+#aprun -n 16 -N 4 -S 1 -d 6 -cc numa_node ./graph500_part_test 22 16
+aprun -n 16 -N 4 -S 1 -d 6 -cc numa_node ./graph500_mpi_simple 22 16

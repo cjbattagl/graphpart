@@ -4,7 +4,7 @@ CFLAGS =  $(CDEBFLAGS) -fopenmp -g -Drestrict=__restrict__ -DNDEBUG -ffast-math 
 # CFLAGS = -g -Wall -Drestrict= -DGRAPH_GENERATOR_MPI
 LDFLAGS = -fopenmp -g # -g -pg
 #MPICC = tau_cc.sh
-MPICC = mpicc
+MPICC = cc
 #MPICC = mpicc
 
 #all: graph500_mpi_simple graph500_mpi_one_sided graph500_mpi_replicated graph500_mpi_replicated_csc graph500_mpi_custom

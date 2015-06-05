@@ -340,7 +340,7 @@ void run_bfs(int64_t root, int64_t* pred) {
         }
       }
     }
-      //fprintf(stdout,"rank %d: flushing\n",rank);
+    // fprintf(stdout,"rank %d: flushing\n",rank);
 
     /* Flush any coalescing buffers that still have messages. */
     int offset;
