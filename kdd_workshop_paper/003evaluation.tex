@@ -143,12 +143,12 @@ In~\RefFigure{tab:rmatpmstrong}, \ourmethod finds comparable partition quality t
 \subsection{Analysis}
 Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than more sophisticated algorithms. A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds. Performing a constant number of restreams while tempering the balance parameter allows us to find a good tradeoff between partition balance and partition quality. 
 
-Partitions of power-law graphs are known to involve such a tradeoff~\cite{Lang04findinggood}. Continuously better cuts can be found as we relax our requirements for vertex balance. To illustrate this, we show the tempering process of \ourmethod computing on a Scale-28 RMAT graph on 64 processes. In~\RefFig{fig:process} we show how partition balance and $\lambda$ change as we continue to restream the graph. We begin with a random ordering (which tends towards perfect balance and worst-case quality $\lambda_r$). Balance immediately worsens, albeit with excellent partition quality, and then the tempering process increases balance at the expense of higher edge-cut. Eventually we reach a point within the balance tolerance and terminate. 
+Partitions of power-law graphs are known to involve such a tradeoff~\cite{Lang04findinggood}. Continuously better cuts can be found as we relax our requirements for vertex balance. To illustrate this, we show the tempering process of \ourmethod computing on a Scale-28 RMAT graph on 64 processes. In Fig.~\ref{fig:process} we show how partition balance and $\lambda$ change as we continue to restream the graph. We begin with a random ordering (which tends towards perfect balance and worst-case quality $\lambda_r$). Balance immediately worsens, albeit with excellent partition quality, and then the tempering process increases balance at the expense of higher edge-cut. Eventually we reach a point within the balance tolerance and terminate. 
 
 \begin{figure}[t!]
 \centering
 \includegraphics[width=0.9\columnwidth] {figures/tradeoff_process.pdf}
-\caption[Caption for]{ Time-series of tempering process on a Scale-28 RMAT graph on 64 MPI processes. }
+\caption[Caption for]{ Time-series of tempering process on a Scale-28 RMAT graph on 64 MPI processes, beginning from a random partition. }
 \label{fig:process}
 \end{figure}
 
@@ -157,7 +157,7 @@ In~\RefFigure{fig:tradeoff} we illustrate the tradeoff curve inherent in this pr
 \begin{figure}[t!]
 \centering
 \includegraphics[width=0.9\columnwidth] {figures/tradeoff_roc.pdf}
-\caption[Caption for]{ Tradeoff between node balance and edge-cut encountered during tempering process.}
+\caption[Caption for]{ Tradeoff between node balance and edge-cut (of a 64-partition) encountered during tempering process.}
 \label{fig:tradeoff}
 \end{figure}
 % Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
