@@ -59,4 +59,4 @@ This method is illustrated graphically in~\RefFigure{fig:restream}. In practice,
 
 Each process computes $\bigO{\numrestreamsparm \cdot \frac{|E|+|V|}{p}}$ work, and the network incurs a time of $\numrestreamsparm \cdot T_{allgather}(|V(G)|)$. 
 
-These complexities are then multiplied by the number of restreams, $\numrestreamsparm$. We can determine this by restreaming until some criteria is satisfied (either that we have encountered a local minimum, or we have achieved a good tradeoff between balance and edge-cut), or by choosing a number of restreamings and setting the tempering parameter $\expparm$ so that we achieve perfect balance within that number. In our experiments, we generally see good partitions within 10 restreams. 
+We can determine $\numrestreamsparm$ by restreaming until some criteria is satisfied (either that we have encountered a local minimum, or we have achieved a good tradeoff between balance and edge-cut), or by choosing a number of restreamings and setting the tempering parameter $\expparm$ so that we achieve perfect balance within that number. In our experiments, we generally see good partitions within 10 restreams. 
