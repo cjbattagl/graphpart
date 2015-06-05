@@ -136,46 +136,39 @@ void partition_graph_data_structure() {
   double streamstart= MPI_Wtime();
   idx_t vtxdist[size];// = new idx_t[size];
 // For AdaptiveRepart
-    itr = 1000.0;
- 
-    //TODO: FILL THIS IN
-    vtxdist[0] = 0;
-    vtxdist[1] = 5;
-    vtxdist[2] = 10;
-    vtxdist[3] = 15;
- 
-    ubvec = 1.05;
- 
-    options[0] = 0;
-    options[1] = 0;
-    options[2] = 0;
-    options[3] = 0;
- 
-  for (i=0; i<n_local; ++i) {
-    part[i] = rank; 
+  itr = 1000.0;
+
+  //TODO: FILL THIS IN
+  vtxdist[0] = 0;
+  vtxdist[1] = 5;
+  vtxdist[2] = 10;
+  vtxdist[3] = 15;
+
+  ubvec = 1.05;
+
+  options[0] = 0;
+  options[1] = 0;
+  options[2] = 0;
+  options[3] = 0;
+  
+  float tpwgts[3];
+
+  for (i=0; i<n_local; ++i) { part[i] = rank; }
+  for (i=0; i<size; ++i) { tpwgts[i] = 1.0/float(size); }
+  xadj = rowptr;
+  adjncy = colidx;
+  //xadj = new idx_t[6];
+  //adjncy = new idx_t[13];
+
+  if ( rank == 0 ){
+    fprintf(stdout,"parmetis initialized.\n");
   }
  
-    tpwgts = new real_t[3];
-//    tpwgts[0] = static_cast<float>(ncon) / static_cast<float>(nparts);
-    tpwgts[0] = 1.0/3.0;
-    tpwgts[1] = 1.0/3.0;
-    tpwgts[2] = 1.0/3.0;
-// Dependent on each processor
-
-    xadj = rowptr;
-    adjncy = colidx;
-    //xadj = new idx_t[6];
-    //adjncy = new idx_t[13];
- 
-    if ( rank == 0 ){
-      fprintf(stdout,"parmetis initialized.\n");
-    }
- 
-//  result = ParMETIS_V3_PartKway( vtxdist, xadj, adjncy, vwgt, adjwgt, 
+//result = ParMETIS_V3_PartKway( vtxdist, xadj, adjncy, vwgt, adjwgt, 
 //                                 &wgtflag, &numflag, &ncon, 
 //                                 &nparts, tpwgts, &ubvec, options, 
 //                                 &edgecut, part, &comm );  
-  /*result = ParMETIS_V3_AdaptiveRepart( vtxdist, xadj, adjncy, vwgt, vsize, 
+/*result = ParMETIS_V3_AdaptiveRepart( vtxdist, xadj, adjncy, vwgt, vsize, 
                                  adjwgt, &wgtflag, &numflag, &ncon, 
                                  &nparts, tpwgts, &ubvec, &itr, options, 
                                  &edgecut, part, &comm );  
