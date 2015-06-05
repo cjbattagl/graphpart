@@ -130,6 +130,9 @@ void partition_graph_data_structure() {
   real_t ubvec;
   idx_t options[4], edgecut;
   idx_t part[n_local];
+  MPI_Comm comm;
+
+  MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 
   int64_t localedges = (int64_t)g.nlocaledges;
   MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
@@ -138,7 +141,7 @@ void partition_graph_data_structure() {
   idx_t vtxdist[size];// = new idx_t[size];
 // For AdaptiveRepart
   float itr = 1000.0;
-
+  idx_t *vsize=NULL;
   idx_t vert_so_far = 0;
   for (i=0; i<size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
   //MPI_Allgather(MPI_IN_PLACE, 1, MPI_INT64_T, vtxdist, 1, MPI_INT64_T, MPI_COMM_WORLD);
