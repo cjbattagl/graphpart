@@ -3,6 +3,86 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
+def parmetisgiano_speed():
+        #8 16 32 64 128
+  data = [
+    # [ 0.017, 0.026, 0.04, 0.052],
+    # [0.026, 0.041, 0.06, 0.099],
+    # [0.04,0.071,0.10,0.151],
+    # [0.09, 0.117, 0.17, 0.266],
+    [5.01,  3.9,    3.7,    3.6, 3.7],
+    [13.9,  10.2,   9.5,    9.3, 9.4],
+    [34.8,  30.4,   25,     24, 24.3],
+    [94.3,  82.1,   65.1,   63.97, 63],
+    [207.8, 221.8,  194.9,  173.8, 153.9]
+    ]
+  
+  data_weak = [
+  [1.848, 3.9, 9.5, 24, 63],
+  [5.01, 10.2, 25, 64.97, 153],
+  [13.9, 30.4, 65.1, 173.8]
+  ]
+
+  x_domain = [8,16,32,64,128]
+  f, (ax, ax1) = plt.subplots(2, 1)
+  ax.plot(x_domain, data[0], '.-', linewidth=2.0, ms=10, label='Scale 18')
+  ax.plot(x_domain, data[1], '.-', linewidth=2.0, ms=10, label='Scale 19')
+  ax.plot(x_domain, data[2], '.-', linewidth=2.0, ms=10, label='Scale 20')
+  ax.plot(x_domain, data[3], '.-', linewidth=2.0, ms=10, label='Scale 21')
+  ax.plot(x_domain, data[4], '.-', linewidth=2.0, ms=10, label='Scale 22')
+  
+  handles, labels = ax.get_legend_handles_labels()
+  # sort both labels and handles by labels
+  labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0], reverse=True))
+  # ax.legend(handles, labels, bbox_to_anchor=(0., 1.02, 1., .102), ncol=3, mode='expand', loc=3, borderaxespad=0.)
+  ax.legend(handles, labels, ncol=1, loc=1)
+  # ax.legend(handles, labels, bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
+  
+  ax.set_xlim([6, 440])
+  ax.set_xscale('log')
+  
+  ax.set_title('ParMETIS Strong Scaling', fontsize=22)
+  ax.set_xticks(x_domain + [256])
+  ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+
+  ax.set_ylim([3, 265])
+  ax.set_yscale('log')
+  ax.set_ylabel('Time Per Stream (s)', fontsize=20)
+  ax.set_yticks([4, 16, 64, 256])
+  ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+
+
+  ax1.plot(x_domain, data_weak[0], '.-', linewidth=2.0, ms=10, label='142MB/proc')
+  ax1.plot(x_domain, data_weak[1], '.-', linewidth=2.0, ms=10, label='258MB/proc')
+  ax1.plot(x_domain[:-1], data_weak[2], '.-', linewidth=2.0, ms=10, label='570MB/proc')
+  # ax1.plot(x_domain[:-3], data[3], '.-', linewidth=2.0, ms=10, label='1.14GB/proc')
+
+  handles, labels = ax1.get_legend_handles_labels()
+  labels.reverse()
+  handles.reverse()
+  # sort both labels and handles by labels
+  ax1.legend(handles, labels)
+
+  ax1.set_title('ParMETIS Weak Scaling', fontsize=22)
+  ax1.set_xlim([6, 600])
+  ax1.set_xscale('log')
+  ax1.set_xlabel('# MPI Processes', fontsize=20)
+  ax1.set_xticks(x_domain+[256, 512])
+  ax1.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+
+  ax1.set_ylim([1, 256])
+  ax1.set_yscale('log')
+  ax.set_ylabel('Time Per Stream (s)', fontsize=20)
+  ax1.set_yticks([2, 8, 32, 128])
+  ax1.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+
+  ax1.set_xlabel('# MPI Processes', fontsize=20)
+  # f.set_size_inches(9,5)
+  # plt.savefig('strong_scaling_new.pdf')
+  plt.show()
+
+
+
 def weak_scaling():
   data = [
   # 64    128     256     512     1024    2048
@@ -32,7 +112,7 @@ def weak_scaling():
   ax.legend(handles, labels)
   # ax.legend(handles, labels, bbox_to_anchor=(0., 1.02, 1., .102), ncol=4, mode='expand', loc=3, borderaxespad=0.)
   # ax.legend(handles, labels, bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
-  ax.set_title('Weak Scaling', fontsize=22)
+  ax.set_title('GraSP Weak Scaling', fontsize=22)
   ax.set_xlim([58, 2300])
   ax.set_xscale('log')
   ax.set_xlabel('# MPI Processes', fontsize=20)
@@ -86,7 +166,7 @@ def strong_scaling():
   ax.set_xlim([58, 2300])
   ax.set_xscale('log')
   ax.set_xlabel('# MPI Processes', fontsize=20)
-  ax.set_title('Strong Scaling', fontsize=22)
+  ax.set_title('GraSP Strong Scaling', fontsize=22)
   ax.set_xticks(x_domain)
   ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
@@ -302,5 +382,6 @@ if __name__ == '__main__':
   # bipartite()
   # second_plot()
   # scattar()
-  strong_scaling()
-  weak_scaling()
+  # strong_scaling()
+  # weak_scaling()
+  parmetisgiano_speed()
