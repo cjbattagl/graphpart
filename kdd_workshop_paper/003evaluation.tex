@@ -1,11 +1,11 @@
 %!TEX root=kdd15_workshop_main.tex
-\section{Evaluation}
+\section{Evaluation}  \label{sec:eval}
 We ran our distributed experiments on a subset of the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. 
 
 We evaluate \ourmethod by its runtime as well as the quality of the partition that it produces, which we measure with \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align} where lower numbers represent a higher degree of locality. We can compare this to our baseline, the expected quality of a random $k-$partition, $\lambda_r = \frac{k-1}{k}$. Any partitioner that produces partitions with $\lambda < \lambda_r$ has improved the parallel locality of the partitions.
 
-\todo{Discuss balance.}
+Balance is also an important metric in partitioning. Our basic metric for balance is the number of vertices in the largest partition divided by the number of vertices in the smallest partition, and we design our restreaming framework to perform a tempered restream until balance is within a decent tolerance ($\approx 1.2$).
 
 \subsection{Test Graphs}
 We measure our approach with both synthetic and real-world graphs. While synthetic graphs make for excellent scalability experiments, demonstration on real-world networks is important to verify that the partitioner works well in practice. 
@@ -14,7 +14,7 @@ We measure our approach with both synthetic and real-world graphs. While synthet
 The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data, snapnets}. 
 Many networks in this collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). 
 We consider these to be excellent representative networks for a variety of domains. It is these types of networks that will continue to increase in size in the years to come.
-We ran \ourmethod on a representative selection of these graphs, and outline the results in~\RefTable{tab:rw} and in the following section on quality.
+We ran \ourmethod on a representative selection of these graphs, and outline the results in~\RefTable{tab:rw} and in~\refsec{sec:qual}.
 
 \begin{table}
 \caption{Basic properties of graphs in SNAP data set~\cite{Leskovec-data}, and $\lambda$ for one pass. $\lambda_{r,2}=0.5,\lambda_{r,8}=0.87$}
@@ -22,7 +22,7 @@ We ran \ourmethod on a representative selection of these graphs, and outline the
 \centering
 \small
 { \begin{tabular}{ *5r }    \toprule
-\emph{Data Set} & $N$ & $nnz$  & $\lambda_{k=2}$ & $\lambda_{k=8}$ \\\midrule
+\emph{Data Set} & $N$ & $nnz$  & $\lambda_{p=2}$ & $\lambda_{p=8}$ \\\midrule
 soc-LiveJournal & 4,847,571 & 68,993,773  &0.234& 0.463\\
 as-Skitter & 1,696,415 & 22,190,596  & 0.166&0.324\\
 cit-Patents & 3,774,768 & 16,518,948  & 0.402&0.726\\
@@ -51,7 +51,6 @@ For scalability experiments we generated random undirected power-law Kronecker (
 \centering
 \small
 { \begin{tabular}{ l | c | c | c | c | c | c  }    \toprule
-\label{table:rmat}
 Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
 |V(G)| & 67M & 134M & 268M & 537M & 1.07B & 2.15B \\%& 4.29B \\
 |E(G)| & 1.07B & 2.14B & 4.29B & 8.58B & 17.1B & 34.3B \\%& 68.7B \\
@@ -63,7 +62,7 @@ Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
 
 \subsection{Scalability}
 \subsubsection{Weak Scaling}
-Weak-scaling holds the amount of data per process constant as we increase the number of processes. In our experimental setup we achieved this by doubling the number of MPI processes every time we increased the scale of the RMAT generator. This yields the per-stream timing experiments in~\RefFigure{fig:kronspeed_weak}, where each line is labeled with the size of data per process:
+Weak-scaling holds the amount of data per process constant as we increase the number of processes. In our experimental setup we achieve this by doubling the number of MPI processes every time we increase the scale of the RMAT generator. This yields the per-stream timing experiments in~\RefFigure{fig:kronspeed_weak}, where each line is labeled with the size of data per process:
 \begin{figure}[t!]
 \centering
   \includegraphics[width=0.9\columnwidth]{figures/weak_scaling.pdf}
@@ -77,7 +76,6 @@ Weak-scaling holds the amount of data per process constant as we increase the nu
 \centering
 \small
 { \begin{tabular}{ l | c | c | c | c | c }    \toprule
-\label{table:rmat}
 \#procs & 8 & 16 & 32 & 64 & 128 \\ \midrule
 Time (s) & 5.01 & 10.2 & 25.0 & 64.0 & 167.0 \\
 \hline
@@ -86,9 +84,11 @@ Time (s) & 5.01 & 10.2 & 25.0 & 64.0 & 167.0 \\
 \label{tab:rmatpmweak}
 \end{table}
 
+This demonstrates that, for a reasonable number of MPI processes, we can scale up our problem sizes without encountering wasteful overhead from the network.
+
 \subsubsection{Strong Scaling}
 In strong-scaling, the size of the data is fixed while the number of processes inreases. 
-Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law). \ourmethod exhibits a high degree of parallelism, illustrated in~\RefFigure{fig:kronspeed_strong}. 
+Strong-scaling is heavily penalized by serial portions of code (as dictated by Amdahl's law) and growing network overhead. \ourmethod exhibits a high degree of parallelism, illustrated in~\RefFigure{fig:kronspeed_strong}. 
 
 \begin{figure}[b!]
 \centering
@@ -97,7 +97,7 @@ Strong-scaling is heavily penalized by serial portions of code (as dictated by A
   \label{fig:kronspeed_strong}
 \end{figure}
 
-In~\RefTable{tab:rmatpmstrong} we show strong scaling times for two RMAT scales using ParMETIS. Increasing the number of processes causes a reduction in partition quality, with a mild sublinear speedup. We did not 
+\todo{In~\RefTable{tab:rmatpmstrong} we show strong scaling times for two RMAT scales using ParMETIS.}
 
 \begin{table}
 \caption{Strong scaling results for ParMETIS on RMAT graphs.}
@@ -105,7 +105,6 @@ In~\RefTable{tab:rmatpmstrong} we show strong scaling times for two RMAT scales 
 \centering
 \small
 { \begin{tabular}{ l | c | c | c | c | c }    \toprule
-\label{table:rmat}
 \#procs & 8 & 16 & 32 & 64 & 128 \\ \midrule
 Scale 20 time (s) & 34.8 & 30.4 & 25.0 & 24.0 & 24.3 \\%& 68.7B \\
 Scale 20 $\lambda$ & 0.36 & 0.38 & 0.40 & 0.42 & 0.45 \\%& 68.7B \\
@@ -117,8 +116,10 @@ Scale 22 $\lambda$ & 0.36 & 0.39 & 0.41 & 0.43 & 0.45 \\
 \label{tab:rmatpmstrong}
 \end{table}
 
-\subsection{Quality}
-In \RefTable{tab:rw} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $k=2$ and $k=8$. 
+Performance inevitably plateaus for \ourmethod as local problem sizes become small in the face of increasing network overhead. However, for smaller degrees of parallelism we demonstrate near-linear scaling. 
+
+\subsection{Quality} \label{sec:qual}
+In \RefTable{tab:rw} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $p=2$ and $p=8$ partitions.. 
 
 We show the validity of the restreaming approach in Figs.~\ref{fig:k2_lambda, fig:k16_lambda}.
 
