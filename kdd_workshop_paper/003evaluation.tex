@@ -1,29 +1,25 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Evaluation}
-We ran our distributed experiments on the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. For scalability experiments we generated undirected power-law Kronecker (RMAT) graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. 
+We ran our distributed experiments on a subset of the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. For scalability experiments we generated undirected power-law Kronecker (RMAT) graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. 
 
-We measure the overall quality of partitions by the \textit{fraction of cut edges} $\lambda$.
-\begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}
-The fraction of edges cut demonstrates the quality of the edge minimization aspect of partitioning the graph.
+We measure the partition quality by the \textit{fraction of cut edges} $\lambda$.
+\begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}, where lower numbers represent a higher degree of locality. 
 
 As a baseline, we can compare this to the expected quality of a random $k-$partition:
 \begin{align}\lambda_r = \frac{k^2 - k}{k^2} = \frac{k-1}{k} \end{align}
-Any partitioner that produces partitions with $\lambda < \lambda_r$ has improved the parallel locality of the partitions. 
-We present $\lambda_{r,k}$ along with our one-pass, real network results in Table \ref{table:big}.
+Any partitioner that produces partitions with $\lambda < \lambda_r$ has improved the parallel locality of the partitions.  Table \ref{table:big}.
 
 \todo{Discuss balance.}
 
 \subsection{Test Graphs}
-We tested \ourmethod on both real and synthetic networks.
-Real networks demonstrate \ourmethod's potential for use on real domain problems.
-For scalability tests we utilize , because they allow better experimental control over size and structure.
+While synthetic graphs make for excellent scalability experiments, demonstration on real-world networks is important to verify that the partitioner works well in practice. We discuss our results with both classes of graph. 
+
 \subsubsection{Real-world Graphs}
 The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data, snapnets}. 
-Many networks in the collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be ideal targets for streaming partitioning, because these domains are producing the vast majority of the `big-data' that is difficult to partition using traditional methods.
+Many networks in this collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be excellent representatives of the sorts of data that will continue to increase in size.
 
 \subsubsection{Synthetic Graphs}
-To generate the test graphs we used the Graph500 Kronecker-Graph generator.
-Kronecker graphs are commonly used in HPC graph benchmarks and testing and can be scaled arbitrarily large for testing purposes. 
+Kronecker graphs are commonly used in HPC graph benchmarks and testing, can be efficiently generated in parallel, and can be scaled arbitrarily large for testing purposes. 
 
 \begin{figure}
 \caption{Edge and vertex counts for generated RMAT graphs of each scale.}

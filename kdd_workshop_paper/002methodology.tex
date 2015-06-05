@@ -28,7 +28,6 @@ Our implementation follows the methodology of `restreaming partitioning'~\cite{n
 
 Between each pass, the partition information is communicated across all processors using the MPI \textsc{AllGather} primitive, which is often optimized for a given network architecture. The pseudocode for \ourmethod is shown in~\RefAlgorithm{alg:grasp}.
 
-
 \begin{algorithm}
 \ForPar{each process $p$}{
 	$vorder \gets rand\_perm(\{0,\dots,|V(G_{local})|\})$\;
