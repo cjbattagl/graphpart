@@ -6,6 +6,6 @@
 
   This paper presents a \emph{distributed, streaming} graph partitioner, \ourmethod, which makes partition decisions as each vertex is read from memory, simulating an online algorithm that must process nodes as they arrive. 
   \ourmethod is a lightweight high-performance computing (HPC) library implemented in MPI, designed to be easily substituted for existing HPC partitioners such as ParMetis. 
-  It is the first MPI implementation of streaming partitioning of which we are aware, and is empirically much faster than existing partitioners while providing comparable partitioning quality.
+  It is the first MPI implementation of streaming partitioning of which we are aware, and is empirically orders-of-magnitude faster than existing partitioners while providing comparable partitioning quality.
   We demonstrate the scalability of \ourmethod on up to 1024 compute nodes of NERSC's Edison supercomputer, with speedups of up to \todo{XX} compared to a multilevel partitioner. 
 \end{abstract}
