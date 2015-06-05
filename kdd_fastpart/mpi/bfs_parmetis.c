@@ -104,16 +104,20 @@ size_t get_nlocalverts_for_pred(void) { return g.nlocalverts; }
 void permute_tuple_graph(tuple_graph* tg) { }
 
 void partition_graph_data_structure() { 
+  fprintf(stdout, " %d ", (int)sizeof(idx_t));
+    fprintf(stdout, "YOYO 1\n ");
   size_t n = g.nglobalverts;
   size_t n_local = g.nlocalverts;
   size_t offset = g.nlocalverts * rank; //!//Does this work?
   int64_t tot_nnz = 0;
   parts = (PART_TYPE*)malloc(n * sizeof(PART_TYPE));
-  
+    fprintf(stdout, "YOYO 2\n ");
+
   size_t k,  nnz_row, best_part;
   int64_t *colidx = g.column;
   size_t *rowptr = g.rowstarts;
   size_t i, s, l; //,j;
+    fprintf(stdout, "YOYO 3\n ");
 
   int result;
 // Needed by parmetis
@@ -127,16 +131,20 @@ void partition_graph_data_structure() {
   idx_t ncon=1;
   idx_t nparts=size;
   //real_t *tpwgts=NULL, 
+      fprintf(stdout, "YOYO 4\n ");
+
   real_t ubvec;
   idx_t options[4], edgecut;
   idx_t part[n_local];
   MPI_Comm comm;
+    fprintf(stdout, "YOYO 5\n ");
 
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 
   int64_t localedges = (int64_t)g.nlocaledges;
   MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
-  
+      fprintf(stdout, "YOYO 6\n ");
+
   fprintf(stdout, " %d ", (int)sizeof(idx_t));
 
   double streamstart= MPI_Wtime();
@@ -146,6 +154,7 @@ void partition_graph_data_structure() {
   idx_t *vsize=NULL;
   idx_t vert_so_far = 0;
   for (i=0; i<size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
+    fprintf(stdout, "YOYO 7\n ");
 
   for (i=0; i<size; ++i) { fprintf(stdout, " %d ", (int)vtxdist[i]);}
     fprintf(stdout,"\n");
@@ -163,7 +172,8 @@ void partition_graph_data_structure() {
   options[1] = 0;
   options[2] = 0;
   options[3] = 0;
-  
+      fprintf(stdout, "YOYO 8\n ");
+
   real_t tpwgts[size];
 
   for (i=0; i<n_local; ++i) { part[i] = rank; }
