@@ -15,12 +15,12 @@ Thus, computing an optimal mapping is generally computationally infeasible, and 
   \caption{Parallel streaming partitioning.}
 \end{figure}
 
-To illustrate the role of partitioning on performance, consider a parallel Breadth-First Search (BFS), a central primitive for graph analysis where vertices are partitioned between two machines in a `1D' distribution~\cite{Buluc2D}. During each BFS step, each process must communicate all newly explored target vertices to process that owns them. In Figure~\ref{fig:0}, if we have 4 processes, all 14 nonzeros in the non-diagonal blocks must be communicated at some point. A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducing communication.\footnote{Computing exact communication volume requires a hypergraph partitioner~\cite{hypergraph}.} 
+To illustrate the role of partitioning on performance, consider a parallel Breadth-First Search (BFS), a central primitive for graph analysis where vertices are partitioned between two machines in a `1D' distribution~\cite{Buluc2D}. During each BFS step, each process must communicate all newly explored target vertices to process that owns them. In Figure~\ref{fig:0}, if we have 4 processes, all 10 nonzeros in the non-diagonal blocks must be communicated at some point. A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducing communication.\footnote{Computing exact communication volume requires a hypergraph partitioner~\cite{hypergraph}.} 
 % \todo{In the figure: Differentiate the cut-edges and their associated non-zeroes from the internal edges, to emphasize that they are undersirable.}
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.85\columnwidth] {figures/graphpart1.pdf}
-\caption[Caption for]{Graph 4-partition shown with corresponding adjacency matrix. The intra-partition edges are shown in their partition color, while inter-partition edges are shown in black.  Inter-partition edges result in additional network communication and lowered performance. }
+\caption[Caption for]{Graph 4-partition shown with corresponding adjacency matrix. The intra-partition edges are shown in their partition color, while inter-partition edges are shown as dotted black lines.  Inter-partition edges or \emph{cut-edges} result in additional network communication and lowered performance. }
 \label{fig:0}
 \end{figure}
 
