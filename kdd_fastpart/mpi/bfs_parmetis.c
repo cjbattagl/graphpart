@@ -141,6 +141,9 @@ void partition_graph_data_structure() {
 
   idx_t vert_so_far = 0;
   for (i=0; i<size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
+
+  for (i=0; i<size; ++i) { fprintf(stdout, " %d ", (int)vtxdist[i]);}
+    fprintf(stdout,"\n");
   //MPI_Allgather(MPI_IN_PLACE, 1, MPI_INT64_T, vtxdist, 1, MPI_INT64_T, MPI_COMM_WORLD);
 
   /*
