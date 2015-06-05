@@ -1,5 +1,5 @@
 %!TEX root=kdd15_workshop_main.tex
-\section{Methodology}
+\section{Methodology} \label{sec:meth}
 While there are many possible heuristics for streaming partitioning~\cite{Stanton:2012:SGP:2339530.2339722}, the most effective by far have been \emph{weighted, greedy} approaches. We keep track of the partition assignments of vertices streamed so far ($P_i^t$ for each process $i$ at time $t$). As each vertex $v$ is streamed, we count the edges from that vertex to each partition $|P_i^t \cap N(v)|$. This intuitively maximizes \emph{modularity}, the ratio of intra-partition edges to inter-partition edges. However, using this value on its own would result in all vertices being assigned to a single, large partition. Thus, we exponentially \emph{weight} the edge counts by the size of partitions $|P_i^t|$, relatively dampening the scores for partitions that are too large (but penalizing only lightly for small differences in size). This gives us two parameters: the linear importance of partition size to the score, $\alpha$, and the exponential rate at which increasing partition size incurs a greater penalty, $\gamma$. This yields the basic `FENNEL' algorithm~\cite{tsourakakis2012fennel} shown in~\RefAlgorithm{alg:fennel}.
 
 \begin{algorithm}
