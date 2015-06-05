@@ -21,8 +21,6 @@ For scalability tests we utilize , because they allow better experimental contro
 The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data, snapnets}. 
 Many networks in the collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be ideal targets for streaming partitioning, because these domains are producing the vast majority of the `big-data' that is difficult to partition using traditional methods.
 
-% We also speculate (but have no proof) that the `random' structure of scale-free networks better suits the random quality of streaming graph partitioning, whereas a spatially-oriented graph would be poorly suited (for instance, in a grid, a streaming partitioner would create many local pockets for one particular partition, whereas a spatial partitioner would recognize that the graph could be geometrically bisected).
-
 \subsubsection{Synthetic Graphs}
 To generate the test graphs we used the Graph500 Kronecker-Graph generator.
 Kronecker graphs are commonly used in HPC graph benchmarks and testing and can be scaled arbitrarily large for testing purposes. 

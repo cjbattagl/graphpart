@@ -14,9 +14,9 @@ While there are many possible heuristics for streaming partitioning~\cite{Stanto
 
 Exact computation of this algorithm as described is not possible in parallel, because $P_i^{t-1}$ must be known to compute $P_i^t$. A multi-threaded approximation of this algorithm is easily performed by relaxing this requirement and using $P_i^{t-p}$ to compute $P_i^t$, where $p$ is the number of threads. This resulted in only a small drop in partition quality in our experiments.
 
-To compute this algorithm in distributed memory, a naive approach is to constantly broadcast partition assignments as they are computed. Unless we use synchronization (which involves a massive performance hit), this results in a drastic drop in partition quality because the latency across a network is high enough that partition assignments are perpetually out of date. 
+To compute this algorithm in distributed memory, a naive approach is to constantly broadcast partition assignments as they are computed. Unless we use synchronization (which involves a massive performance reduction), this results in a drastic drop in partition quality, because the latency across a network is high enough that partition assignments are perpetually out of date. 
 
-Our implementation follows the methodology of `restreaming' partitioning'~\cite{nishimura2013restream}, which shows the single-pass algorithms of FENNEL and WDG~\cite{tsourakakis2012fennel,Stanton:2012:SGP:2339530.2339722} can be repeated over the same data in the same order, yielding a convergent improvement in quality. This approach has other benefits that we utilize:
+Our implementation follows the methodology of `restreaming partitioning'~\cite{nishimura2013restream}, which shows the single-pass algorithms of FENNEL and WDG~\cite{tsourakakis2012fennel,Stanton:2012:SGP:2339530.2339722} can be repeated over the same data in the same order, yielding a convergent improvement in quality. This approach has other benefits that we utilize:
 
 \begin{itemize}
 \item Partition data is only communicated between streams, yielding high parallelism.
@@ -24,9 +24,9 @@ Our implementation follows the methodology of `restreaming' partitioning'~\cite{
 \end{itemize}
 
 \subsection{\ourmethod}
-\ourmethod operates on a distributed graph $G$ in distributed CSR format. We take as input the parameters $\alpha, \gamma$, the number of partitions \numprocsparm (assumed to be equal to the number of MPI processes), the number of re-streams $\numrestreamsparm$, and the `tempering' parameter \expparm. \ourmethod then performs $\numrestreamsparm$ iterative passes over the graph (in identical random order), multiplicatively increasing the balance parameter by \expparm with each pass. This promotes a high-quality but less-balanced partition early on, while further promoting balance with subsequent pass~\cite{nishimura2013restream}. 
+\ourmethod operates on a distributed graph $G$ in distributed CSR format. We take as input the parameters $\alpha, \gamma$, the number of partitions \numprocsparm (assumed to be equal to the number of MPI processes), the number of re-streams $\numrestreamsparm$, and the `tempering' parameter \expparm. \ourmethod then performs $\numrestreamsparm$ iterative passes over the graph (in identical random order), multiplicatively increasing the balance parameter by \expparm with each pass. This promotes a high-quality, but less-balanced partition early on, while further promoting balance with each subsequent pass~\cite{nishimura2013restream}. 
 
-In between each pass, the partition information is communicated across all processors using the MPI \textsc{AllGather} primitive, which is often optimized for a given network architecture. The pseudocode for \ourmethod is shown in~\RefAlgorithm{alg:grasp}.
+Between each pass, the partition information is communicated across all processors using the MPI \textsc{AllGather} primitive, which is often optimized for a given network architecture. The pseudocode for \ourmethod is shown in~\RefAlgorithm{alg:grasp}.
 
 
 \begin{algorithm}

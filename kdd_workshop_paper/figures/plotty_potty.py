@@ -41,7 +41,7 @@ def weak_scaling():
   ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
   f.set_size_inches(9,5)
-  plt.savefig('weak_scaling.pdf')
+  plt.savefig('weak_scaling_new.pdf')
   # plt.show()
 
 
@@ -85,7 +85,7 @@ def strong_scaling():
   ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
   f.set_size_inches(9,8)
-  plt.savefig('strong_scaling.pdf')
+  plt.savefig('strong_scaling_new.pdf')
   # plt.show()
 
 def bipartite():
