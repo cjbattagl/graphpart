@@ -35,7 +35,7 @@ extern MPI_Datatype packed_edge_mpi_type; /* MPI datatype for packed_edge struct
 #define ALPHA_EXP_RATE 1.7
 
 #define F_DELTA 100
-#define F_GAMMA 2
+#define F_GAMMA 1.5
 #define F_CUTOFF 100000000
 #define NUM_STREAMS 30
 #define SANITY 0
