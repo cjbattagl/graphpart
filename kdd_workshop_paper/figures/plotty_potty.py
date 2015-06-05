@@ -8,7 +8,7 @@ def tradeoff():
     [0.98, 0.98, 0.08, 0.09, 0.12, 0.15, 0.17, 0.17, 0.17, 0.2, 0.25, 0.3, 0.32, 0.33, 0.33, 0.39, 0.44, 0.48, 0.5, 0.51, 0.52, 0.53]
   ]
   f, ax = plt.subplots(1, 1)
-  ax.plot(data[0][4:], data[1][4:], '.-', linewidth=2.0, ms=10)
+  ax.plot(data[0][3:], data[1][3:], '.-', linewidth=2.0, ms=10)
   # ax.plot(x_domain, data[1], '.-', linewidth=2.0, ms=10, label='Quality')
   
   handles, labels = ax.get_legend_handles_labels()
@@ -18,6 +18,9 @@ def tradeoff():
   ax.set_ylabel('Edges Cut ( )', fontsize=20)
   ax.set_xlabel('Balance', fontsize=20)
   # plt.show()
+  
+  ax.set_ylim([0,.6])
+  ax.set_xlim([0.5,11])
 
   f.set_size_inches(9,5)
   plt.savefig('tradeoff_roc.pdf')
