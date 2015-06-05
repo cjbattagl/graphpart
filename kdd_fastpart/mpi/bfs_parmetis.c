@@ -104,7 +104,7 @@ size_t get_nlocalverts_for_pred(void) { return g.nlocalverts; }
 void permute_tuple_graph(tuple_graph* tg) { }
 
 void partition_graph_data_structure() { 
-  fprintf(stdout, " %d ", (int)sizeof(idx_t));
+  //fprintf(stdout, " %d ", (int)sizeof(idx_t));
   size_t n = g.nglobalverts;
   size_t n_local = g.nlocalverts;
   int64_t localedges = (int64_t)g.nlocaledges;
@@ -168,8 +168,8 @@ void partition_graph_data_structure() {
 */
   ubvec = 1.05;
 
-  options[0] = 0;
-  options[1] = 0;
+  options[0] = 1;
+  options[1] = 1;
   options[2] = 0;
   options[3] = 0;
 
