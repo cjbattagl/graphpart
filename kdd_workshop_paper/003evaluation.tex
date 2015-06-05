@@ -97,7 +97,7 @@ Strong-scaling is heavily penalized by serial portions of code (as dictated by A
   \label{fig:kronspeed_strong}
 \end{figure}
 
-\todo{In~\RefTable{tab:rmatpmstrong} we show strong scaling times for two RMAT scales using ParMETIS.}
+While ParMETIS can't execute in a reasonable time on the problem sizes we demonstrate for \ourmethod, we show a small strong-scaling experiment in~\RefTable{tab:rmatpmstrong}. 
 
 \begin{table}
 \caption{Comparison of run-time and partition quality between ParMETIS and \ourmethod for a Scale-22 RMAT graph.}
@@ -137,10 +137,9 @@ Performance inevitably plateaus for \ourmethod as local problem sizes become sma
 \subsection{Quality} \label{sec:qual}
 In \RefTable{tab:rw} we show some properties of our real test-graphs, as well as the performance of our streaming partitioner on them, for $p=2$ and $p=8$ partitions.. 
 
-We confirm the validity of the restreaming approach on the SNAP data sets for the two values of $p$ in Figs.~\ref{fig:k2_lambda} and~\ref{fig:k16_lambda}, respectively. 
+We confirm the validity of the restreaming approach on the SNAP data sets for the two values of $p$ in Figs.~\ref{fig:k2_lambda} and~\ref{fig:k16_lambda}, respectively. The tradeoff between vertex balance and partition quality for a large scale \ourmethod computation is demonstrated in~\refsec{sec:anal}.
 
-We also compare our partition quality with ParMETIS.
-In~\RefFigure{tab:rmatpmstrong}, \ourmethod finds comparable partition quality to ParMETIS but in a small fraction of the time. 
+In a direct comparison to ParMETIS,~\RefFigure{tab:rmatpmstrong}, demonstrates that \ourmethod finds comparable partition quality in a small fraction of the time, although it computes a worse edge-cut than ParMETIS when partitioning a small graph into a large number of partitions. 
 
 \begin{figure}[t!]
 \centering
@@ -156,10 +155,10 @@ In~\RefFigure{tab:rmatpmstrong}, \ourmethod finds comparable partition quality t
 \label{fig:k16_lambda}
 \end{figure}
 
-\subsection{Analysis}
+\subsection{Analysis} \label{sec:anal}
 Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than more sophisticated algorithms. A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds. Performing a constant number of restreams while tempering the balance parameter allows us to find a good tradeoff between partition balance and partition quality. 
 
-Partitions of power-law graphs are known to involve such a tradeoff~\cite{Lang04findinggood}. Continuously better cuts can be found as we relax our requirements for vertex balance. To illustrate this, we show the tempering process of \ourmethod computing on a Scale-28 RMAT graph on 64 processes. In Fig.~\ref{fig:process} we show how partition balance and $\lambda$ change as we continue to restream the graph. We begin with a random ordering (which tends towards perfect balance and worst-case quality $\lambda_r$). Balance immediately worsens, albeit with excellent partition quality, and then the tempering process increases balance at the expense of higher edge-cut. Eventually we reach a point within the balance tolerance and terminate. 
+Partitions of power-law graphs are known to involve such a tradeoff~\cite{Lang04findinggood}. Continuously better cuts can be found as we relax our requirements for vertex balance. To illustrate this, we show the tempering process of \ourmethod computing on a Scale-28 RMAT graph on 64 processes. In Fig.~\ref{fig:process} we show how partition balance and $\lambda$ change as we continue to restream the graph. We begin with a random ordering (which tends towards perfect balance and worst-case quality $\lambda_r$). Balance immediately worsens, albeit with excellent partition quality, and then the tempering process increases balance at the expense of higher edge-cut. Eventually we reach a point within the balance tolerance and terminate.
 
 \begin{figure}[t!]
 \centering
