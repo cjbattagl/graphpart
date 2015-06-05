@@ -105,23 +105,30 @@ void permute_tuple_graph(tuple_graph* tg) { }
 
 void partition_graph_data_structure() { 
   size_t n = g.nglobalverts;  size_t n_local = g.nlocalverts;  int64_t localedges = (int64_t)g.nlocaledges;
-  fprintf(stdout,"rank:%d, global verts:%d, local verts:%d, local edges:%d\n",rank,(int)n,(int)n_local,(int)localedges);
-  //int64_t tot_nnz = 0;
-  //MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
+  int64_t tot_nnz = 0;
+  MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
+  if (rank==0) { fprintf(stdout,"rank:%d, global verts:%d, local verts:%d, local edges:%d, total edges:%d\n",rank,(int)n,(int)n_local,(int)localedges,(int)tot_nnz);}  
   int64_t *colidx = g.column;
   size_t *rowptr = g.rowstarts;
   size_t k, i, s, l; //,j;
-
   // need to convert colidx, rowptr to 32-bit ints.
   idx_t* colidx_32 = (idx_t*)malloc(localedges*sizeof(idx_t));
   idx_t* rowptr_32 = (idx_t*)malloc((n_local+1)*sizeof(idx_t));
-  for (i=0; i<localedges; ++i) { colidx_32[i] = (idx_t)colidx[i]; assert(colidx_32[i] < n); }
-  for (i=0; i<=n_local; ++i) { rowptr_32[i] = (idx_t)rowptr[i]; assert(rowptr_32[i] <= localedges); }
-
+  for (i=0; i<localedges; ++i) { 
+    int64_t new = VERTEX_OWNER(colidx[i])*g.nlocalverts + VERTEX_LOCAL(colidx[i]);   
+    colidx_32[i] = (idx_t)new; 
+  }
+  //fprintf(stdout,"%d ",colidx_32[i]); assert(colidx_32[i] < n && colidx_32[i] >= 0); }
+//  fprintf(stdout,"\n");
+  for (i=0; i<=n_local; ++i) { rowptr_32[i] = (idx_t)rowptr[i];}
+  //fprintf(stdout,"%d ",rowptr_32[i]); assert(rowptr_32[i] <= localedges && rowptr_32[i] >= 0); }
+//  fprintf(stdout,"\n");
+  assert(rowptr_32[0] == 0);
   int result;
 
   idx_t vtxdist[size+1]; idx_t vert_so_far = 0;
-  for (i=0; i<=size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; }
+  for (i=0; i<=size; ++i) { vtxdist[i] = vert_so_far; vert_so_far+=n_local; /*fprintf(stdout,"%d ",vtxdist[i]);*/ }
+ // fprintf(stdout,"\n");
   idx_t *xadj=rowptr_32;
   idx_t *adjncy=colidx_32;
   idx_t *vwgt=NULL, *adjwgt=NULL;
@@ -163,7 +170,7 @@ void partition_graph_data_structure() {
   double streamstop = MPI_Wtime();
   double streamtime = streamstop - streamstart;
   if (rank == 0) { fprintf(stderr, "stream time: %f,  per-stream time: %f \n", streamtime, streamtime/NUM_STREAMS); }
-  fprintf(stdout,"%d edgecut: %d\n", rank, edgecut);// MPI_PROC_ID << " edgecut " << edgecut << '\n';
+  if (rank == 0) { fprintf(stdout,"%d edgecut: %d\n", rank, edgecut); }// MPI_PROC_ID << " edgecut " << edgecut << '\n';
 }
 
 
