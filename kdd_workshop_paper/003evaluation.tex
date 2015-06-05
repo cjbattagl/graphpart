@@ -145,7 +145,9 @@ In~\RefFigure{fig:kronqual}, \ourmethod performs comparably with parMETIS. Strea
 \end{figure}
 
 \subsection{Analysis}
-Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than more sophisticated algorithms. A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds.
+Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than more sophisticated algorithms. A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds. Performing a constant number of restreams while tempering the balance parameter allows us to find a good tradeoff between partition balance and partition quality. 
+
+Partitions of power-law graphs are known to involve such a tradeoff~\cite{Lang04findinggood}. Continuously better cuts can be found as we relax our requirements for vertex balance. This is illustrated in \todo{Table}, and opens up interesting algorithmic questions.
 
 % Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
 Despite the complexity of many of the real graphs, \ourmethod creates well-balanced partitions.

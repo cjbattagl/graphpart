@@ -288,7 +288,7 @@ void partition_graph_data_structure() {
           }
         }
 #endif
-        if (i % (n_local / 200) == 0) {
+        if (i % (n_local / 2000) == 0) {
           for (l=0; l<nparts; ++l) { partsize_update[l] = partsize[l] - old_partsize[l]; }            
           MPI_Allreduce(MPI_IN_PLACE, partsize_update, nparts, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
           for (l=0; l<nparts; ++l) { old_partsize[l] += partsize_update[l]; partsize[l] = old_partsize[l]; }
