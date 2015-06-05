@@ -107,7 +107,6 @@ void partition_graph_data_structure() {
   size_t n = g.nglobalverts;
   size_t n_local = g.nlocalverts;
   size_t offset = g.nlocalverts * rank; //!//Does this work?
-  int nparts = size;
   int64_t tot_nnz = 0;
   parts = (PART_TYPE*)malloc(n * sizeof(PART_TYPE));
   
@@ -135,7 +134,7 @@ void partition_graph_data_structure() {
   MPI_Allreduce(&localedges, &tot_nnz, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
   
   double streamstart= MPI_Wtime();
-  vtxdist = new idx_t[size];
+  idx_t vtxdist[size];// = new idx_t[size];
 // For AdaptiveRepart
     itr = 1000.0;
  
@@ -168,8 +167,8 @@ void partition_graph_data_structure() {
     //xadj = new idx_t[6];
     //adjncy = new idx_t[13];
  
-    if ( MPI_PROC_ID == 0 ){
-      fprintf(stout,"parmetis initialized.\n");
+    if ( rank == 0 ){
+      fprintf(stdout,"parmetis initialized.\n");
     }
  
 //  result = ParMETIS_V3_PartKway( vtxdist, xadj, adjncy, vwgt, adjwgt, 
@@ -182,15 +181,11 @@ void partition_graph_data_structure() {
                                  &edgecut, part, &comm );  
 */
 
-  double streamstop= MPI_Wtime();
-  streamtime += streamstop - streamstart;
+  double streamstop = MPI_Wtime();
+  double streamtime = streamstop - streamstart;
   if (rank == 0) { fprintf(stderr, "stream time: %f,  per-stream time: %f \n", streamtime, streamtime/NUM_STREAMS); }
 
   MPI_Allgather(MPI_IN_PLACE, n_local, MPI_PART_TYPE, parts, n_local, MPI_PART_TYPE, MPI_COMM_WORLD);
-  //MPI_Allgather(parts+offset, n_local, MPI_INT, parts, n_local, MPI_INT, MPI_COMM_WORLD);
-  //MPI_Barrier(MPI_COMM_WORLD);
-  if (rank == 0) { fprintf(stderr, "allgather parts time:               %f s\n", allgpartstime); }
-
 }
 
 // Random permutation generator. Move to another file.
