@@ -1,46 +1,24 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Evaluation}
-We ran our distributed experiments on a subset of the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. For scalability experiments we generated undirected power-law Kronecker (RMAT) graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. 
+We ran our distributed experiments on a subset of the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. 
+
+We evaluate \ourmethod by its runtime as well as the quality of the partition that it produces. 
 
 We measure the partition quality by the \textit{fraction of cut edges} $\lambda$.
-\begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}, where lower numbers represent a higher degree of locality. 
-
-As a baseline, we can compare this to the expected quality of a random $k-$partition:
+\begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align}, where lower numbers represent a higher degree of locality. We can compare this to our baseline, the expected quality of a random $k-$partition:
 \begin{align}\lambda_r = \frac{k^2 - k}{k^2} = \frac{k-1}{k} \end{align}
 Any partitioner that produces partitions with $\lambda < \lambda_r$ has improved the parallel locality of the partitions.  Table \ref{table:big}.
 
 \todo{Discuss balance.}
 
 \subsection{Test Graphs}
-While synthetic graphs make for excellent scalability experiments, demonstration on real-world networks is important to verify that the partitioner works well in practice. We discuss our results with both classes of graph. 
+We discuss our results with both synthetic and real-world graphs. While synthetic graphs make for excellent scalability experiments, demonstration on real-world networks is important to verify that the partitioner works well in practice. 
 
 \subsubsection{Real-world Graphs}
 The SNAP dataset is a collection of real-world networks collected by Leskovec and collaborators~\cite{Leskovec-data, snapnets}. 
-Many networks in this collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be excellent representatives of the sorts of data that will continue to increase in size.
+Many networks in this collection are power-law and scale-free representatives of social networks (such as collaboration networks, citation networks, email networks, and web graphs). We consider these to be excellent representatives of the sorts of data that will continue to increase in size, and have run \ourmethod on a representative selection of graphs, outlined in~\RefTable{tab:rw}.
 
-\subsubsection{Synthetic Graphs}
-Kronecker graphs are commonly used in HPC graph benchmarks and testing, can be efficiently generated in parallel, and can be scaled arbitrarily large for testing purposes. 
-
-\begin{figure}
-\caption{Edge and vertex counts for generated RMAT graphs of each scale.}
-\rowcolors{2}{blue!05}{blue!15}
-\centering
-\small
-{ \begin{tabular}{ l | c | c | c | c | c | c  }    \toprule
-\label{table:rmat}
-Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
-|V(G)| & 67M & 134M & 268M & 537M & 1.07B & 2.15B \\%& 4.29B \\
-|E(G)| & 1.07B & 2.14B & 4.29B & 8.58B & 17.1B & 34.3B \\%& 68.7B \\
-\hline
-\end{tabular}\par
-}
-\end{figure}
-
-% As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. 
-% This suggests good scalability.
-
-
-\begin{figure}
+\begin{table}
 \caption{Basic properties of graphs in SNAP data set~\cite{Leskovec-data}, and $\lambda$ for one pass. $\lambda_{r,2}=0.5,\lambda_{r,8}=0.87$}
 \rowcolors{2}{blue!05}{blue!15}
 \centering
@@ -64,8 +42,30 @@ p2p-Gnutella04 & 10,879 & 39,994  & 0.415&0.747\\
  \hline
 \end{tabular}\par
 }
-\end{figure}
+\label{tab:rw}
+\end{table}
 
+\subsubsection{Synthetic Graphs}
+For scalability experiments we generated random undirected power-law Kronecker (RMAT) graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. Kronecker graphs are commonly used in HPC graph benchmarks and testing, and arbitrarily large instances can be efficiently generated in parallel. The \emph{scale} of an RMAT graph is equal to $\log |V(G)|$, and the edge-factor is the average number of edges per node, which we hold constant at 16. Vertex and edge counts for the scales we experiment on are shown in~\RefTable{tab:rmat}.
+
+\begin{table}
+\caption{Edge and vertex counts for generated RMAT graphs of each scale.}
+\rowcolors{2}{blue!05}{blue!15}
+\centering
+\small
+{ \begin{tabular}{ l | c | c | c | c | c | c  }    \toprule
+\label{table:rmat}
+Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
+|V(G)| & 67M & 134M & 268M & 537M & 1.07B & 2.15B \\%& 4.29B \\
+|E(G)| & 1.07B & 2.14B & 4.29B & 8.58B & 17.1B & 34.3B \\%& 68.7B \\
+\hline
+\end{tabular}\par
+}
+\label{tab:rmat}
+\end{table}
+
+% As a note, the ratio of change in $\lambda$ from $k=2$ to $k=8$ was for the vast majority of cases within 1.5 and 2.2. 
+% This suggests good scalability.
 
 %\begin{figure}
 %\caption{Basic properties of graphs in SNAP data set~\cite{Leskovec-data}, and $\lambda$ for one pass. $\lambda_{r,2}=0.5,\lambda_{r,8}=0.87$}
@@ -183,8 +183,7 @@ Streaming partitioning is a valid alternative to conventional offline approaches
 \end{figure}
 
 \subsection{Analysis}
-Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than our comptetitors.
-A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds.
+Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than our comptetitors. A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds.
 
 % Other data from real-world was harder to analyze -- there are not enough wide differences between data sets' results to draw strong conclusions.
 Despite the complexity of many of the real graphs, \ourmethod creates well-balanced partitions.
@@ -192,7 +191,7 @@ While Power-Law graphs are overwhelmingly considered to be difficult to partitio
 We also demonstrate in~\RefFigure{fig:k2_lambda} and \RefFigure{fig:k16_lambda} that additional passes can further reduce edges cut (by up to a factor of 3). 
 
 % Isolated comparisons we have made to the state-of-the-art partitioner METIS show that these results are competitive (usually within a factor of 2).
-
+\REM{
 One set of outlying (poorly-performing) data points are the Gnutella networks.
 While Gnutella networks exhibit power-law-like topologies, elements of their algorithm truncate nodes from ever becoming extremely large. 
 This heavy-clipping sets the Gnutella networks apart from many of the other social network topologies in our experiments.
@@ -206,4 +205,4 @@ This can be observed qualitatively when scale-free graphs are embedded in a spec
 
 This dense partition tends to strongly emerge as we continue to make further passes of the streaming algorithm.
 In order to overcome this we used the tempered parameter technique described in our methodology section. 
-
+}

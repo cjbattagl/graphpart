@@ -2,7 +2,7 @@
 \section{Introduction}
 We consider the problem of partitioning a power-law graph on a distributed memory system. Power-law graphs are ubiquitous in the real world, and arise particularly in social networks, where data sizes are growing at enormous rates. As we will discuss, partitioning is a key step for algorithms that arise in applications such as fraud detection, bioinformatics, and social and information network analysis, among numerous others.
 
-The speed of mining algorithms on power-law graphs, at scale, is often limited by bottlenecks in network communication and load imbalance~\cite{challenglums}. Partitioning is the common preprocessing step to find a mapping of the data to processors of the system that alleviates these two issues; in distributed computing the desired objective is generally the minimization of inter-partition edges (to minimize communication) subject to balanced partition size (to favor load balance).
+The speed of data-mining algorithms on power-law graphs, at scale, is often limited by bottlenecks in network communication and load imbalance~\cite{challenglums}. Partitioning is the common preprocessing step to find a mapping of the data to processors of the system that alleviates these two issues; in distributed computing the desired objective is generally the minimization of inter-partition edges (to minimize communication) subject to balanced partition size (to favor load balance).
 
 Formally, we wish to partition the nodes of a graph into $k$ balanced components with capacity $(1+\epsilon)\frac{N}{k}$, such that the number of edges crossing partition boundaries is minimized. Partitioning with these two requirements can be reduced to the minimum-bisection problem~\cite{Garey:1979:CIG:578533} and is therefore NP-Complete. 
 Thus, computing an optimal mapping is generally computationally infeasible, and heuristic approaches are taken. 
@@ -37,4 +37,4 @@ In an initial study, partitioning a \SI{26}{\giga\byte} Twitter graph has been s
 We have developed \ourmethod, a fast, iterative, distributed streaming graph partitioner.
 It works by restreaming the distributed graph with tempered partition parameters to achieve a fast, parallel \textit{k}-partitioning. When applied to scale-free graphs, \ourmethod performs competitively with more sophisticated algorithms while performing orders of magnitude faster. 
 
-
+%Based on the sheer efficiency and effectiveness that we demonstrate for streaming methods on power-law graphs, we argue that 
