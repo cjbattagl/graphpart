@@ -43,7 +43,7 @@ def tradeoff():
 
 
   ax2 = ax1.twinx()
-  ax2.plot(x_domain, data[1], 'r.-', linewidth=2.0, ms=10)
+  ax2.plot(x_domain, data[1], 'r*-', linewidth=2.0, ms=10)
   ax2.set_ylabel('Quality', color='r', fontsize=20)
   for tl in ax2.get_yticklabels():
       tl.set_color('r')
@@ -56,6 +56,8 @@ def tradeoff():
   # plt.show()
   ax1.set_title('GraSP Tempering Process', fontsize=22)
   f.set_size_inches(9,5)
+  # plt.show()
+ 
   plt.savefig('tradeoff_process_nu.pdf')
 
 
@@ -157,9 +159,9 @@ def weak_scaling():
 
   f, ax = plt.subplots(1, 1)
   ax.plot(x_domain, data[0], '.-', linewidth=2.0, ms=10, label='142MB/proc')
-  ax.plot(x_domain[:-1], data[1], '.-', linewidth=2.0, ms=10, label='258MB/proc')
-  ax.plot(x_domain[:-2], data[2], '.-', linewidth=2.0, ms=10, label='570MB/proc')
-  ax.plot(x_domain[:-3], data[3], '.-', linewidth=2.0, ms=10, label='1.14GB/proc')
+  ax.plot(x_domain[:-1], data[1], '+-', linewidth=2.0, ms=10, label='258MB/proc')
+  ax.plot(x_domain[:-2], data[2], 'x-', linewidth=2.0, ms=10, label='570MB/proc')
+  ax.plot(x_domain[:-3], data[3], '^-', linewidth=2.0, ms=10, label='1.14GB/proc')
   
   # ax.set_title('Stong Scaling')
   # ax.set_xticks([0,1,2,3,4])
@@ -207,11 +209,11 @@ def strong_scaling():
 
   f, ax = plt.subplots(1, 1)
   ax.plot(x_domain, data[0], '.-', linewidth=2.0, ms=10, label='Scale 26')
-  ax.plot(x_domain, data[1], '.-', linewidth=2.0, ms=10, label='Scale 27')
-  ax.plot(x_domain, data[2], '.-', linewidth=2.0, ms=10, label='Scale 28')
-  ax.plot(x_domain[1:], data[3], '.-', linewidth=2.0, ms=10, label='Scale 29')
-  ax.plot(x_domain[2:], data[4], '.-', linewidth=2.0, ms=10, label='Scale 30')
-  ax.plot(x_domain[3:], data[5], '.-', linewidth=2.0, ms=10, label='Scale 31')
+  ax.plot(x_domain, data[1], '+-', linewidth=2.0, ms=10, label='Scale 27')
+  ax.plot(x_domain, data[2], 'x-', linewidth=2.0, ms=10, label='Scale 28')
+  ax.plot(x_domain[1:], data[3], '^-', linewidth=2.0, ms=10, label='Scale 29')
+  ax.plot(x_domain[2:], data[4], 'v-', linewidth=2.0, ms=10, label='Scale 30')
+  ax.plot(x_domain[3:], data[5], '*-', linewidth=2.0, ms=10, label='Scale 31')
   # ax.set_title('Stong Scaling')
   # ax.set_xticks([0,1,2,3,4])
   
@@ -273,28 +275,28 @@ def bipartite():
 
   lim = 5
 
-  ax1.plot(cite_collab['ca-AstroPh'][0:lim], '.-')
-  ax1.plot(cite_collab['ca-GrQc'][0:lim], '.-')
-  ax1.plot(cite_collab['ca-HepPh'][0:lim], '.-')
-  ax1.plot(cite_collab['cit-Patents'][0:lim], '.-')
+  ax1.plot(cite_collab['ca-AstroPh'][0:lim], '.-', ms=10)
+  ax1.plot(cite_collab['ca-GrQc'][0:lim], '+-', ms=10)
+  ax1.plot(cite_collab['ca-HepPh'][0:lim], 'x-', ms=10)
+  ax1.plot(cite_collab['cit-Patents'][0:lim], '*-', ms=10)
   ax1.set_title('Citation & Collaboration')
   ax1.set_xticks([0,1,2,3,4])
   ax1.set_xticklabels(['1', '2', '3', '4', '5'])
   ax1.legend(['ca-AstroPh', 'ca-GrQc', 'ca-HepPh', 'cit-Patents'])
   
-  ax2.plot(commune_social['email-EuAll'][0:lim], '.-')
-  ax2.plot(commune_social['soc-LiveJournal'][0:lim], '.-')
-  ax2.plot(commune_social['wiki-Talk'][0:lim], '.-')
+  ax2.plot(commune_social['email-EuAll'][0:lim], '.-', ms=10)
+  ax2.plot(commune_social['soc-LiveJournal'][0:lim], '+-', ms=10)
+  ax2.plot(commune_social['wiki-Talk'][0:lim], 'x-', ms=10)
   ax2.set_title('Communication & Social')
   ax2.set_ylabel('Fraction Edges Cut')
   ax2.set_xticks([0,1,2,3,4])
   ax2.set_xticklabels(['1', '2', '3', '4', '5'])
   ax2.legend(['email-EuAll', 'soc-LiveJournal', 'wiki-Talk'])
 
-  ax3.plot(as_web_related['Oregon-1'][0:lim], '.-')
-  ax3.plot(as_web_related['web-Google'][0:lim], '.-')
-  ax3.plot(as_web_related['p2p-Gnutella04'][0:lim], '.-')
-  ax3.plot(as_web_related['as-Skitter'][0:lim], '.-')
+  ax3.plot(as_web_related['Oregon-1'][0:lim], '.-', ms=10)
+  ax3.plot(as_web_related['web-Google'][0:lim], '+-', ms=10)
+  ax3.plot(as_web_related['p2p-Gnutella04'][0:lim], 'x-', ms=10)
+  ax3.plot(as_web_related['as-Skitter'][0:lim], '*-', ms=10)
   ax3.legend(['Oregon-1', 'web-Google', 'p2p-Gnutella04', 'as-Skitter'])
   ax3.set_title('Autonomous Sys., Traffic, & Web')
   ax3.set_xticks([0,1,2,3,4])
@@ -308,11 +310,6 @@ def bipartite():
   # plt.show()
 
 def second_plot():
-
-
-
-
-
   biz_trans = {
   'amazon0302':[0.395,0.285,0.251,0.236,0.227,0.222,0.218,0.216,0.214,0.213],
   'roadNet-CA':[0.393,0.3,0.263,0.242,0.228,0.219,0.212,0.207,0.202,0.199]
@@ -338,8 +335,6 @@ def second_plot():
   'as-Skitter':[0.341,0.206,0.186,0.179,0.175,0.173,0.172,0.171,0.171,0.171]
   }
 
-
-
   params = {'legend.fontsize': 11,
           'legend.linewidth': 2}
   plt.rcParams.update(params)
@@ -348,28 +343,28 @@ def second_plot():
 
   lim = 5
 
-  ax1.plot(cite_collab['ca-AstroPh'][0:lim], '.-')
-  ax1.plot(cite_collab['ca-GrQc'][0:lim], '.-')
-  ax1.plot(cite_collab['ca-HepPh'][0:lim], '.-')
-  ax1.plot(cite_collab['cit-Patents'][0:lim], '.-')
+  ax1.plot(cite_collab['ca-AstroPh'][0:lim], '.-', ms=10)
+  ax1.plot(cite_collab['ca-GrQc'][0:lim], '+-', ms=10)
+  ax1.plot(cite_collab['ca-HepPh'][0:lim], 'x-', ms=10)
+  ax1.plot(cite_collab['cit-Patents'][0:lim], '*-', ms=10)
   ax1.set_title('Citation & Collaboration')
   ax1.set_xticks([0,1,2,3,4])
   ax1.set_xticklabels(['1', '2', '3', '4', '5'])
   ax1.legend(['ca-AstroPh', 'ca-GrQc', 'ca-HepPh', 'cit-Patents'])
   
-  ax2.plot(commune_social['email-EuAll'][0:lim], '.-')
-  ax2.plot(commune_social['soc-LiveJournal'][0:lim], '.-')
-  ax2.plot(commune_social['wiki-Talk'][0:lim], '.-')
+  ax2.plot(commune_social['email-EuAll'][0:lim], '.-', ms=10)
+  ax2.plot(commune_social['soc-LiveJournal'][0:lim], '+-', ms=10)
+  ax2.plot(commune_social['wiki-Talk'][0:lim], 'x-', ms=10)
   ax2.set_title('Communication & Social')
   ax2.set_ylabel('Fraction Edges Cut')
   ax2.set_xticks([0,1,2,3,4])
   ax2.set_xticklabels(['1', '2', '3', '4', '5'])
   ax2.legend(['email-EuAll', 'soc-LiveJournal', 'wiki-Talk'])
 
-  ax3.plot(as_web_related['Oregon-1'][0:lim], '.-')
-  ax3.plot(as_web_related['web-Google'][0:lim], '.-')
-  ax3.plot(as_web_related['p2p-Gnutella04'][0:lim], '.-')
-  ax3.plot(as_web_related['as-Skitter'][0:lim], '.-')
+  ax3.plot(as_web_related['Oregon-1'][0:lim], '.-', ms=10)
+  ax3.plot(as_web_related['web-Google'][0:lim], '+-', ms=10)
+  ax3.plot(as_web_related['p2p-Gnutella04'][0:lim], 'x-', ms=10)
+  ax3.plot(as_web_related['as-Skitter'][0:lim], '*-', ms=10)
   ax3.legend(['Oregon-1', 'web-Google', 'p2p-Gnutella04', 'as-Skitter'])
   ax3.set_title('Autonomous Sys., Traffic, & Web')
   ax3.set_xticks([0,1,2,3,4])
@@ -439,10 +434,10 @@ def scattar():
   plt.show()
 
 if __name__ == '__main__':
-  # bipartite()
-  # second_plot()
+  bipartite()
+  second_plot()
   # scattar()
   # strong_scaling()
   # weak_scaling()
   # parmetisgiano_speed()
-  tradeoff()
+  # tradeoff()
