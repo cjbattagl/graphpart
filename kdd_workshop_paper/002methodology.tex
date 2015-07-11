@@ -1,6 +1,6 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Methodology} \label{sec:meth}
-While there are many possible heuristics for streaming partitioning~\cite{Stanton:2012:SGP:2339530.2339722}, the most effective by far have been \emph{weighted, greedy} approaches. We keep track of the partition assignments of vertices streamed so far ($P_i^t$ for each process $i$ at time $t$). As each vertex $v$ is streamed, we count the edges from that vertex to each partition $|P_i^t \cap N(v)|$. This intuitively maximizes \emph{modularity}, the ratio of intra-partition edges to inter-partition edges. However, using this value on its own would result in all vertices being assigned to a single, large partition. Thus, we exponentially \emph{weight} the edge counts by the size of partitions $|P_i^t|$, relatively dampening the scores for partitions that are too large (but penalizing only lightly for small differences in size). This gives us two parameters: the linear importance of partition size to the score, $\alpha$, and the exponential rate at which increasing partition size incurs a greater penalty, $\gamma$. This yields the basic `FENNEL' algorithm~\cite{tsourakakis2012fennel} shown in~\RefAlgorithm{alg:fennel}.
+While there are many possible heuristics for streaming partitioning~\cite{Stanton:2012:SGP:2339530.2339722}, the most effective by far have been \emph{weighted, greedy} approaches. We maintain a compressed array storing the partition assignments of vertices streamed so far ($P_i^t$ for each process $i$ at time $t$). As each vertex $v$ is streamed, we count the edges from that vertex to each partition $|P_i^t \cap N(v)|$. This intuitively maximizes \emph{modularity}, the ratio of intra-partition edges to inter-partition edges. However, using this value on its own would result in all vertices being assigned to a single, large partition. Thus, we exponentially \emph{weight} the edge counts by the size of partitions $|P_i^t|$, relatively dampening the scores for partitions that are too large (but penalizing only lightly for small differences in size). This gives us two parameters: the linear importance of partition size to the score, $\alpha$, and the exponential rate at which increasing partition size incurs a greater penalty, $\gamma$. This yields the basic `FENNEL' algorithm~\cite{tsourakakis2012fennel} shown in~\RefAlgorithm{alg:fennel}.
 
 \begin{algorithm}
  Set all $P_i$ to $\emptyset$\;
@@ -36,7 +36,7 @@ Between each pass, the partition information (an array that maps each vertex to 
 \For{$run \gets \{ 1 \dots \numrestreamsparm \}$} {
 	\ForPar{each process $p$}{
 		\ForEach{$v \in vorder$}{
-			$j \gets \displaystyle \argmax_{i\in\{1,\dots,p\}}|P_{i,p}^t \cap N(v)| - \alpha \frac{\gamma}{2}|P_{i,p}^t|^{\gamma-1}$\;
+			$j \gets \displaystyle \argmax_{i\in\{1,\dots,p\}}|P_{i}^t \cap N(v)| - \alpha \frac{\gamma}{2}|P_{i}^t|^{\gamma-1}$\;
 			Add $v$ to set $P_{j,p}^{t+1}$\;
 		}
 	}
@@ -49,7 +49,7 @@ Between each pass, the partition information (an array that maps each vertex to 
 
 This method is illustrated graphically in~\RefFigure{fig:restream}. In practice, we store the partitioning in a single compressed array, updating partition assignments in-place while storing a running count of the partition sizes. 
 
-To increase accuracy we occasionally recompute global partition sizes using the \textsc{MPI\_AllReduce} primitive. 
+To increase accuracy, we found it necessary to update the global partition sizes $|P_{i}^t|$ at finer granularities within the stream. Since there are only $p$ such values, this incurs a very small amount of communication. In our experiments we used the \textsc{MPI\_AllReduce} primitive to update partition sizes every time we had processed a constant number of vertices. We found that updating every 4096 vertices yielded good quality with only a small performance hit. This is a natural target to optimize with non-blocking primitives.
 
 \begin{figure}[ht]
 \centering
@@ -59,6 +59,5 @@ To increase accuracy we occasionally recompute global partition sizes using the 
   \label{fig:restream}
 \end{figure}
 
-Each process computes $\bigO{\numrestreamsparm \cdot \frac{|E|+|V|}{p}}$ work, and the network incurs a time of $\numrestreamsparm \cdot T_{allgather}(|V(G)|)$. 
 
-We can determine $\numrestreamsparm$ by restreaming until some criteria is satisfied (either that we have encountered a local minimum, or we have achieved a good tradeoff between balance and edge-cut), or by choosing a number of restreamings and setting the tempering parameter $\expparm$ so that we achieve perfect balance within that number. In our experiments, we generally see good partitions within 10 restreams. 
+In~\RefAlgorithm{alg:grasp}, each process computes $\bigO{\numrestreamsparm \cdot \frac{|E|+|V|}{p}}$ work, and the network incurs a time of $\numrestreamsparm \cdot T_{allgather}(|V(G)|)$. $\numrestreamsparm$ is determined by restreaming until some criteria is satisfied (either that we have encountered a local minimum, or we have achieved a good tradeoff between balance and edge-cut), or by choosing a number of restreamings and setting the tempering parameter $\expparm$ so that we achieve perfect balance within that number. In our experiments, we generally see good partitions within 10 restreams. 
