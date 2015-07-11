@@ -1,6 +1,6 @@
 %!TEX root=kdd15_workshop_main.tex
 \section{Evaluation}  \label{sec:eval}
-We ran our distributed experiments on a subset of the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. 
+We ran our distributed experiments on a subset of the Edison machine at NERSC, featuring 5576 compute nodes with two 12-core Intel ``Ivy Bridge'' processors per node and a Cray Aries interconnect. We utilized a Cray implementation of MPI v3.0 for message passing.
 
 We evaluate \ourmethod by its runtime as well as the quality of the partition that it produces, which we measure with \textit{fraction of cut edges} $\lambda$.
 \begin{align}\lambda = \frac{\text{Number of edges cut by partition}}{\text{Total number of edges}}\end{align} where lower numbers represent a higher degree of locality. We can compare this to our baseline, the expected quality of a random $k-$partition, $\lambda_r = \frac{k-1}{k}$. Any partitioner that produces partitions with $\lambda < \lambda_r$ has improved the parallel locality of the partitions.
@@ -43,10 +43,10 @@ p2p-Gnutella04 & 10,879 & 39,994  & 0.415&0.747\\
 \end{table}
 
 \subsubsection{Synthetic Graphs}
-For scalability experiments we generated random undirected power-law Kronecker (RMAT) graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. Kronecker graphs are commonly used in HPC graph benchmarks and testing, and arbitrarily large instances can be efficiently generated in parallel. The \emph{scale} of an RMAT graph is equal to $\log |V(G)|$, and the edge-factor is the average number of edges per node, which we hold constant at 16. Vertex and edge counts for the scales we experiment on are shown in~\RefTable{tab:rmat}.
+For scalability experiments we generated random undirected power-law Kronecker (R-MAT) graphs of varying scale in parallel using the Graph500 Reference implementation~\cite{graph500}. Kronecker graphs are commonly used in HPC graph benchmarks and testing. We choose to use them in our experiments because we can very quickly generate arbitrarily large instances in parallel, and they have been proven to have properties common to most power-law networks in the real world~\cite{kroneck}. The \emph{scale} of an R-MAT graph is equal to $\log |V(G)|$, and the edge-factor is the average number of edges per node, which we hold constant at 16. Vertex and edge counts for the scales we experiment on are shown in~\RefTable{tab:rmat}.
 
 \begin{table}
-\caption{Edge and vertex counts for generated RMAT graphs of each scale.}
+\caption{Edge and vertex counts for generated R-MAT graphs of each scale.}
 \rowcolors{2}{blue!05}{blue!15}
 \centering
 \small
@@ -62,7 +62,7 @@ Scale & 26 & 27 & 28 & 29 & 30 & 31 \\ \midrule
 
 \subsection{Scalability}
 \subsubsection{Weak Scaling}
-Weak-scaling holds the amount of data per process constant as we increase the number of processes. In our experimental setup we achieve this by doubling the number of MPI processes every time we increase the scale of the RMAT generator. This yields the per-stream timing experiments in~\RefFigure{fig:kronspeed_weak}, where each line is labeled with the size of data per process:
+Weak-scaling holds the amount of data per process constant as we increase the number of processes. In our experimental setup we achieve this by doubling the number of MPI processes every time we increase the scale of the R-MAT generator. This yields the per-stream timing experiments in~\RefFigure{fig:kronspeed_weak}, where each line is labeled with the size of data per process:
 \begin{figure}[t!]
 \centering
   \includegraphics[width=0.9\columnwidth]{figures/weak_scaling.pdf}
@@ -71,7 +71,7 @@ Weak-scaling holds the amount of data per process constant as we increase the nu
 \end{figure}
 
 \begin{table}
-\caption{Weak scaling results for ParMETIS on RMAT graphs, with $2^{18}$ vertices per compute node.}
+\caption{Weak scaling results for ParMETIS on R-MAT graphs, with $2^{18}$ vertices per compute node.}
 \rowcolors{2}{blue!05}{blue!15}
 \centering
 \small
@@ -100,7 +100,7 @@ Strong-scaling is heavily penalized by serial portions of code (as dictated by A
 While ParMETIS can't execute in a reasonable time on the problem sizes we demonstrate for \ourmethod, we show a small strong-scaling experiment in~\RefTable{tab:rmatpmstrong}. 
 
 \begin{table}
-\caption{Comparison of run-time and partition quality between ParMETIS and \ourmethod for a Scale-22 RMAT graph.}
+\caption{Comparison of run-time and partition quality between ParMETIS and \ourmethod for a Scale-22 R-MAT graph.}
 \rowcolors{2}{blue!05}{blue!15}
 \centering
 \small
@@ -139,7 +139,7 @@ In \RefTable{tab:rw} we show some properties of our real test-graphs, as well as
 
 We confirm the validity of the restreaming approach on the SNAP data sets for the two values of $p$ in Figs.~\ref{fig:k2_lambda} and~\ref{fig:k16_lambda}, respectively. The tradeoff between vertex balance and partition quality for a large scale \ourmethod computation is demonstrated in~\refsec{sec:anal}.
 
-In a direct comparison to ParMETIS,~\RefFigure{tab:rmatpmstrong}, demonstrates that \ourmethod finds comparable partition quality in a small fraction of the time, although it computes a worse edge-cut than ParMETIS when partitioning a small graph into a large number of partitions. 
+In a direct comparison to ParMETIS,~\RefTable{tab:rmatpmstrong} demonstrates that \ourmethod finds comparable partition quality in a small fraction of the time, although it computes a worse edge-cut than ParMETIS when partitioning a small graph into a large number of partitions. 
 
 \begin{figure}[t!]
 \centering
@@ -158,12 +158,12 @@ In a direct comparison to ParMETIS,~\RefFigure{tab:rmatpmstrong}, demonstrates t
 \subsection{Analysis} \label{sec:anal}
 Our scalability tests have demonstrated that \ourmethod is highly parallel and performs quality partitions far faster than more sophisticated algorithms. A single stream over a 34 billion edge, 2.1 billion node network can be done in just 15 seconds. Performing a constant number of restreams while tempering the balance parameter allows us to find a good tradeoff between partition balance and partition quality. 
 
-Partitions of power-law graphs are known to involve such a tradeoff~\cite{Lang04findinggood}. Continuously better cuts can be found as we relax our requirements for vertex balance. To illustrate this, we show the tempering process of \ourmethod computing on a Scale-28 RMAT graph on 64 processes. In Fig.~\ref{fig:process} we show how partition balance and $\lambda$ change as we continue to restream the graph. We begin with a random ordering (which tends towards perfect balance and worst-case quality $\lambda_r$). Balance immediately worsens, albeit with excellent partition quality, and then the tempering process increases balance at the expense of higher edge-cut. Eventually we reach a point within the balance tolerance and terminate.
+Partitions of power-law graphs are known to involve such a tradeoff~\cite{Lang04findinggood}. Continuously better cuts can be found as we relax our requirements for vertex balance. To illustrate this, we show the tempering process of \ourmethod computing on a Scale-28 R-MAT graph on 64 processes. In Fig.~\ref{fig:process} we show how partition balance and $\lambda$ change as we continue to restream the graph. We begin with a random ordering (which tends towards perfect balance and worst-case quality $\lambda_r$). Balance immediately worsens, albeit with excellent partition quality, and then the tempering process increases balance at the expense of higher edge-cut. Eventually we reach a point within the balance tolerance and terminate.
 
 \begin{figure}[t!]
 \centering
 \includegraphics[width=0.9\columnwidth] {figures/tradeoff_process.pdf}
-\caption[Caption for]{ Time-series of tempering process on a Scale-28 RMAT graph on 64 MPI processes, beginning from a random partition. Lower quality is better, while the optimal balance is 1. }
+\caption[Caption for]{ Time-series of tempering process on a Scale-28 R-MAT graph on 64 MPI processes, beginning from a random partition. Lower quality is better, while the optimal balance is 1. }
 \label{fig:process}
 \end{figure}
 

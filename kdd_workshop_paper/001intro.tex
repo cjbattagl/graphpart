@@ -11,11 +11,11 @@ Thus, computing an optimal mapping is generally computationally infeasible, and 
 \centering
   \includegraphics[width=0.7\columnwidth]{figures/coverfig.pdf}
   %\caption{Partition speed of various Kronecker graphs.}
-  \label{fig:coverfig}
   \caption{Parallel streaming partitioning.}
+  \label{fig:coverfig}
 \end{figure}
 
-To illustrate the role of partitioning on performance, consider a parallel Breadth-First Search (BFS), a central primitive for graph analysis where vertices are partitioned between two machines in a `1D' distribution~\cite{Buluc2D}. During each BFS step, each process must communicate all newly explored target vertices to process that owns them. In Figure~\ref{fig:0}, if we have 4 processes, all 10 nonzeros in the non-diagonal blocks must be communicated at some point. A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducing communication.\footnote{Computing exact communication volume requires a hypergraph partitioner~\cite{hypergraph}.} 
+To illustrate the role of partitioning on performance, consider a parallel Breadth-First Search (BFS), a central primitive for graph analysis where vertices are partitioned between two machines in a `1D' distribution~\cite{Buluc2D}. During each BFS step, each process must communicate all newly explored target vertices to process that owns them. In Figure~\ref{fig:0}, if we have 4 processes, all 10 nonzeros in the non-diagonal blocks must be communicated at some point. A good partitioner concentrates nonzeros in the diagonal blocks, thereby reducing communication.\footnote{Computing exact communication volume requires a hypergraph partitioner~\cite{hypergraph}.} The frontier-expansion inherent to BFS is also seen in many higher-level graph algorithms, examples of which include shortest-path, connectivity, betweenness-centrality, and PageRank computations. While partitionining provides a clear benefit for distributed-memory systems, it can also improve the performance of shared-memory implementations~\cite{graphchi}.
 % \todo{In the figure: Differentiate the cut-edges and their associated non-zeroes from the internal edges, to emphasize that they are undersirable.}
 \begin{figure}[h]
 \centering
@@ -37,7 +37,7 @@ In an initial study, partitioning a \SI{26}{\giga\byte} Twitter graph has been s
 We have developed \ourmethod, a fast, iterative, distributed streaming graph partitioner.
 It works by restreaming the distributed graph with tempered partition parameters to achieve a fast, parallel \textit{k}-partitioning. When applied to scale-free graphs, \ourmethod attains an edgecut competitive with more sophisticated algorithms, but can operate on graphs multiple orders of magnitude larger within the same run-time. 
 
-For instance, ParMETIS takes at least \SI{1}{\minute} to partition a Scale-21 RMAT graph (see~\refsec{sec:eval}) on any number of compute nodes in our experiment, with run-time ballooning for larger scale graphs. \ourmethod performs a partitioning stream of a Scale-31 RMAT graph (with 1024 as many vertices and edges) on the same setup in under 20 seconds, with comparable edge-cut after 5-10 restreams.
+For instance, ParMETIS takes at least \SI{1}{\minute} to partition a Scale-21 R-MAT graph (see~\refsec{sec:eval}) on any number of compute nodes in our experiment, with run-time ballooning for larger scale graphs. \ourmethod performs a partitioning stream of a Scale-31 R-MAT graph (with 1024 as many vertices and edges) on the same setup in under 20 seconds, with comparable edge-cut after 5-10 restreams.
 
 \ourmethod operates on a distributed CSR graph representation, the same data structure used by ParMETIS, and can therefore be easily substituted in high-performance codes. 
 
