@@ -1,0 +1,28 @@
+%!TEX root=kdd15_workshop_main.tex
+\section{Related Work} \label{sec:rel}
+Partitioning is an important step in many algorithms. In HPC applications ranging from simulation to web analytics, the quality of partitions can strongly affect the parallel performance of many algorithms. Partitioning can also be used to identify community structure. We mention here a small sample of contemporary work in graph partitioning.
+
+Streaming partitioning for a variety of heuristics was first presented by Stanton and Kliot~\cite{Stanton:2012:SGP:2339530.2339722}, the Weighted Deterministic Greedy approach generalized by Tsourakakis, et. al~\cite{tsourakakis2012fennel}, and the benefits of restreaming for convergence and parallelism determined by Nishimura and Ugander~\cite{nishimura2013restream}, although large-scale parallel experiments and benchmarks were not performed. Our implementation is the first parallel HPC-oriented study that we are aware of. 
+
+Streaming partitioning has been successfully adapted for edge-centric partitioning schemes like X-Stream~\cite{xstream}.
+X-Stream uses edge partitioning, to streams edges rather than vertices, which takes advantage of increased sequential memory access bandwidth.
+
+A survey by Bulu\c{c}, et. al~\cite{gpsurvey} provides an excellent overview of conventional HPC graph partitioners, from spectral to spatial. Boman, et. al show how conventional graph partitioning can be used to optimize distributed SpmV~\cite{Bomansc13}. However, recent approaches to scale conventional multi-level partitioners to billion-node graphs can still take hours~\cite{billion}. Streaming partitioners on the other hand have attracted attention in the field of dynamic Graph Databases. For networks with dynamic structure, iterative approaches can dynamically adjust the partitions to suit changing graph structure. Vaquero et al. propose a method for iteratively adjusting graph partitions to cope with changes in the graph, using only local information ~\cite{Vaquero:2013:APL:2523616.2525943}. This work demonstrated the power and scalability of leveraging local data to improve partition quality, especially to reduce the edges cut. ``Sedge,'' or Self Evolving Distributed Graph Management Environment also takes advantage of dynamically managing and modifying partitions to reduce network communication and improve throughput~\cite{Yangpart}.
+
+Frameworks like Pregel~\cite{Malpregel}, make use of hashing-based partition schemes.
+These allow constant-time lookup and prediction of partition location based on only the vertex ids.
+GraphLab~\cite{Low:2012:DGF:2212351.2212354} also uses a hashed, random partitioning method, which essentially produces a worst-case edgecut ($\lambda_r$), but which has the benefit that $H(v)$ can be called at any time to return the compute node that owns $v$. Khayyat et al. showed that a preprocessed partitioning of large-scale graphs is insufficient to truly minimize network communication~\cite{khayyatmizan}. They propose another dynamic partition approach that allows vertex migration during runtime to maintain balanced load.
+
+%\paragraph{Large-scale Data-mining}
+%Shared-memory vs. Distributed argument: GraphCHI~\cite{graphchi}
+
+%\paragraph{Partitioning}
+\REM{Spatial methods like \cite{Gilbert95geometricmesh} that leverage geometric data to supplement the partition formation process.
+Arora et al. proposed a fast approximation algorithm using spectral projection to perform sparse cuts, edge expansions, and separator balance \cite{arora2009expander}.
+Some of the most successful partitioners use multilevel approaches \cite{karypis1998multilevel}.
+Which achieve a high level of concurrency while maintaining good partition quality.
+Some recent approaches have been designed specifically to address small-world networks \cite{slota2014pulp}.}
+
+
+
+

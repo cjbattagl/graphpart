@@ -1,0 +1,187 @@
+% This is "sig-alternate.tex" V2.0 May 2012
+% This file should be compiled with V2.5 of "sig-alternate.cls" May 2012
+%
+% This example file demonstrates the use of the 'sig-alternate.cls'
+% V2.5 LaTeX2e document class file. It is for those submitting
+% articles to ACM Conference Proceedings WHO DO NOT WISH TO
+% STRICTLY ADHERE TO THE SIGS (PUBS-BOARD-ENDORSED) STYLE.
+% The 'sig-alternate.cls' file will produce a similar-looking,
+% albeit, 'tighter' paper resulting in, invariably, fewer pages.
+%
+% ----------------------------------------------------------------------------------------------------------------
+
+
+
+
+%%%%%% TO   DOO
+% Intro - GraphCHI GraphLab? Related work, defend distributed approach
+% Add comments on 
+% Why is this better than existing approaches i.e in GraphLab...
+
+% PARMETIS !!!!
+% Build table of weak/strong scaling time plots
+% Build table of quality plots
+
+%Robert:
+% Motivating Applications
+% Related Work
+
+
+\documentclass{sig-alternate}
+
+\usepackage{flushend}
+\usepackage{vuduc-stdpkgs}
+\usepackage{vuduc-typography}
+
+\usepackage{xspace}
+\usepackage{url}
+%\usepackage{color}
+\usepackage{algorithm2e}
+\usepackage{amsmath}
+
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+
+\usepackage[binary-units]{siunitx} % for nice SI units
+\DeclareSIUnit\hours{hours}
+\DeclareSIUnit\minutes{minutes}
+
+% Pienta's defines:
+\newcommand{\REM}[1]{}
+\DeclareMathOperator*{\argmax}{\arg\!\max}
+
+
+\newcommand{\MakeAcronym}[3]{
+  \acrodef{#2}[{\scshape #2}]{#3}
+  \newcommand{#1}{\ac{#2}\xspace}
+}
+\MakeAcronym{\ourmethod}{GraSP}{Graph Streaming Partitioner}
+
+\newcommand{\todo}[1]{\textcolor{red}{[#1]}}
+\newcommand{\robert}[1]{\textcolor{OliveGreen}{[#1 -R]}}
+\newcommand{\acar}[1]{\textcolor{blue}{[#1 -A]}}
+\newcommand{\polo}[1]{\textcolor{red}{[#1 -P]}}
+\newcommand{\alex}[1]{\textcolor{Mahogany}{[#1 - A]}}
+
+\newcommand{\xourname}{Grasp}
+\newcommand{\name}{\textsc{\xourname}\xspace}
+%\newcommand{\ourmethod}{\name}
+\newcommand{\ourmethodtitle}{Grasp\xspace}
+
+\newcommand{\expparm}{\ensuremath{t_\alpha}\xspace}
+\newcommand{\numrestreamsparm}{\ensuremath{n_s}\xspace}
+\newcommand{\numprocsparm}{\ensuremath{p}\xspace}
+
+
+\newcommand{\largestgraphedges}{34.3 billion\xspace}
+\newcommand{\largestgraphtime}{15 seconds}
+
+\newcommand{\ignore}[1]{}
+
+
+\begin{document}
+%
+% --- Author Metadata here ---
+\conferenceinfo{KDD}{'15 Sydney, Australia}
+%\CopyrightYear{2007} % Allows default copyright year (20XX) to be over-ridden - IF NEED BE.
+%\crdata{0-12345-67-8/90/01}  % Allows default copyright data (0-89791-88-6/97/05) to be over-ridden - IF NEED BE.
+% --- End of Author Metadata ---
+
+\title{GraSP: Distributed Streaming Graph Partitioning}
+%\subtitle{[Extended Abstract]
+%\titlenote{A full version of this paper is available as
+%\textit{Author's Guide to Preparing ACM SIG Proceedings Using
+%\LaTeX$2_\epsilon$\ and BibTeX} at
+%\texttt{www.acm.org/eaddress.htm}}}
+%
+% You need the command \numberofauthors to handle the 'placement
+% and alignment' of the authors beneath the title.
+%
+% For aesthetic reasons, we recommend 'three authors at a time'
+% i.e. three 'name/affiliation blocks' be placed beneath the title.
+%
+% NOTE: You are NOT restricted in how many 'rows' of
+% "name/affiliations" may appear. We just ask that you restrict
+% the number of 'columns' to three.
+%
+% Because of the available 'opening page real-estate'
+% we ask you to refrain from putting more than six authors
+% (two rows with three columns) beneath the article title.
+% More than six makes the first-page appear very cluttered indeed.
+%
+% Use the \alignauthor commands to handle the names
+% and affiliations for an 'aesthetic maximum' of six authors.
+% Add names, affiliations, addresses for
+% the seventh etc. author(s) as the argument for the
+% \additionalauthors command.
+% These 'additional authors' will be output/set for you
+% without further effort on your part as the last section in
+% the body of your article BEFORE References or any Appendices.
+
+\numberofauthors{3} %  in this sample file, there are a *total*
+% of EIGHT authors. SIX appear on the 'first-page' (for formatting
+% reasons) and the remaining two appear in the \additionalauthors section.
+%
+\author{
+% You can go ahead and credit any number of authors here,
+% e.g. one 'row of three' or two rows (consisting of one row of three
+% and a second row of one, two or three).
+%
+% The command \alignauthor (no curly braces needed) should
+% precede each author name, affiliation/snail-mail address and
+% e-mail address. Additionally, tag each line of
+% affiliation/address with \affaddr, and tag the
+% e-mail address with \email.
+%
+% 1st. author
+\alignauthor Casey Battaglino\\
+       \affaddr{Georgia Institute of Technology}\\
+       \email{cbattaglino3@gatech.edu}
+% 2nd. author
+\alignauthor Robert Pienta\\
+       \affaddr{Georgia Institute of Technology}\\
+       \email{pientars@gatech.edu}
+% \alignauthor Guy Fieri\\
+\alignauthor Richard Vuduc\\
+       \affaddr{Georgia Institute of Technology}\\
+       \email{richie@gatech.edu}
+%
+}
+% There's nothing stopping you putting the seventh, eighth, etc.
+% author on the opening page (as the 'third row') but we ask,
+% for aesthetic reasons that you place these 'additional authors'
+% in the \additional authors block, viz.
+%\additionalauthors{Additional authors: John Smith (The Th{\o}rv{\"a}ld Group,
+%email: {\texttt{jsmith@affiliation.org}}) and Julius P.~Kumquat
+%(The Kumquat Consortium, email: {\texttt{jpkumquat@consortium.net}}).}
+%\date{30 July 1999}
+% Just remember to make sure that the TOTAL number of authors
+% is the number that will appear on the first page PLUS the
+% number that will appear in the \additionalauthors section.
+
+\maketitle
+\input{000abstract}
+
+% A category with the (minimum) three required fields
+\category{G.2.2}{Mathematics of Computing}{Discrete Mathematics}[Graph Algorithms]
+%A category including the fourth, optional field follows...
+% \category{D.2.8}{Software Engineering}{Metrics}[complexity measures, performance measures]
+\terms{Theory}
+
+\keywords{graph partitioning, streaming graph partitioning}
+
+\input{001intro}
+\input{002methodology}
+\input{003evaluation}
+\input{003related}
+\input{004conclusion}
+
+%\subsection{References}
+
+\bibliographystyle{abbrv}
+\bibliography{bibly}
+\balancecolumns
+% \thebibliography
+ % GM June 2007
+\end{document}
+

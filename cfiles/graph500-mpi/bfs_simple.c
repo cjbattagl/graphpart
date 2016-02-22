@@ -28,6 +28,7 @@ static size_t* g_outgoing_counts /* 2x actual count */;
 static MPI_Request* g_outgoing_reqs;
 static int* g_outgoing_reqs_active;
 static int64_t* g_recvbuf;
+
 int print_graph(FILE* out, size_t *rowptr, int64_t *colidx, int n_local, int offset);
 
 
@@ -47,7 +48,8 @@ void make_graph_data_structure(const tuple_graph* const tg) {
 }
 
 void partition_graph_data_structure() { 
-      char name[14] = "mygraph1.mat";
+  /*
+    char name[14] = "mygraph1.mat";
     char name2[14] = "mygraph2.mat";
 
     char* targ;
@@ -57,7 +59,7 @@ void partition_graph_data_structure() {
         assert(GraphFile != NULL);
         print_graph(GraphFile, g.rowstarts, g.column, g.nlocalverts, rank*g.nlocalverts);
     //  }
-      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);  */
 }
 
 void free_graph_data_structure(void) {
@@ -88,6 +90,12 @@ void run_bfs(int64_t root, int64_t* pred) {
   int64_t* restrict newq = g_newq;
   size_t oldq_count = 0;
   size_t newq_count = 0;
+
+  double COMP_START_TIMES[1024];
+  double COMP_END_TIMES[1024];
+  double COMM_START_TIMES[1024];
+  double COMM_END_TIMES[1024];
+  int iter = 0;
 
   /* Set up the visited bitmap. */
   const int ulong_bits = sizeof(unsigned long) * CHAR_BIT;
@@ -179,10 +187,15 @@ void run_bfs(int64_t root, int64_t* pred) {
     } \
   } while (0)
 
+
   while (1) {
     memset(outgoing_counts, 0, size * sizeof(size_t));
     num_ranks_done = 1; /* I never send to myself, so I'm always done */
     
+
+    //!start time of computation here
+    COMP_START_TIMES[iter] = MPI_Wtime();
+
     /* Start the initial receive. */
     if (num_ranks_done < size) {
       MPI_Irecv(recvbuf, coalescing_size * 2, MPI_INT64_T, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &recvreq);
@@ -191,6 +204,8 @@ void run_bfs(int64_t root, int64_t* pred) {
 
     /* Step through the current level's queue. */
     size_t i;
+
+
     for (i = 0; i < oldq_count; ++i) {
       CHECK_MPI_REQS;
       assert (VERTEX_OWNER(oldq[i]) == rank);
@@ -225,6 +240,10 @@ void run_bfs(int64_t root, int64_t* pred) {
         }
       }
     }
+
+    //! end computation measure here
+    COMP_END_TIMES[iter] = MPI_Wtime();
+
     /* Flush any coalescing buffers that still have messages. */
     int offset;
     for (offset = 1; offset < size; ++offset) {
@@ -244,7 +263,12 @@ void run_bfs(int64_t root, int64_t* pred) {
     }
     /* Wait until everyone else is done (and thus couldn't send us any more
      * messages). */
+
+    //!time this
     while (num_ranks_done < size) CHECK_MPI_REQS;
+
+    //! end communication measure here
+    COMM_END_TIMES[iter] = MPI_Wtime();
 
     /* Test globally if all queues are empty. */
     int64_t global_newq_count;
@@ -257,8 +281,40 @@ void run_bfs(int64_t root, int64_t* pred) {
     {int64_t* temp = oldq; oldq = newq; newq = temp;}
     oldq_count = newq_count;
     newq_count = 0;
+    iter++;
   }
 #undef CHECK_MPI_REQS
+
+
+
+  //ostringstream pertimes;
+  //pertimes << LOC_SPMV_TIMES[iterations] + LOC_MERGE_TIMES[iterations] + LOC_TRANS_TIMES[iterations] << ",";
+  if (rank == 0) { 
+    fprintf(stdout, "$\n");  
+    fprintf(stdout, "%d\n", size); 
+  }
+  size_t  proc, i;
+  double zerotime = COMP_START_TIMES[0];
+  for (i = 0; i < iter; i++ ) {
+    //COMP_START_TIMES[i] = COMP_START_TIMES[i] - zerotime;
+    //COMP_END_TIMES[i] = COMP_END_TIMES[i] - zerotime;
+    //COMM_END_TIMES[i] = COMM_END_TIMES[i] - zerotime;
+  }
+  for (proc = 0; proc < size; proc++ ) {
+    if (rank == proc) { 
+      for (i = 0; i<iter; i++) {
+        fprintf (stdout, "%f, %f, %f, ", COMP_START_TIMES[i], COMP_END_TIMES[i], COMM_END_TIMES[i]);
+      }
+      fprintf(stdout, "\n"); 
+    }
+    usleep(200);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  if (rank == 0) {  
+    //MPI_Barrier(MPI_COMM_WORLD);
+    usleep(200);
+    fprintf(stdout, "$\n"); 
+  }
 }
 
 void get_vertex_distribution_for_pred(size_t count, const int64_t* vertex_p, int* owner_p, size_t* local_p) {

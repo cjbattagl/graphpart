@@ -1,0 +1,16 @@
+ombinatorial BLAS compilation instructions for NERSC resources. 
+
+1- First and foremost, make cmake active by running: module load cmake 
+2- In your CombBLAS_xx directory, rename CMakeLists_NERSC.txt to CMakeLists.txt, replacing the existing one. 
+3- (On Hopper only) Change the compiler to GNU, using the following command: module swap PrgEnv-pgi PrgEnv-gnu 
+
+Now run "cmake ." , followed by "make" 
+
+
+
+For tests, you might want to run them through the interactive batch system via 
+> "qsub -I -V -q debug -l mppwidth=48" 
+> "cd $PBS_O_WORKDIR" 
+> "ctest -V" 
+
+Contact abuluc@lbl.gov for questions/problems.

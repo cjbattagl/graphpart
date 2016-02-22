@@ -2,7 +2,7 @@ EXT_ROOT=../external
 SMC_ROOT=$(EXT_ROOT)/sparse_matrix_converter
 BBU_ROOT=$(EXT_ROOT)/bebop_util
 BBM_ROOT=$(EXT_ROOT)/bebop_make
-MET_ROOT=$(EXT_ROOT)/metis-5.1.0
+#MET_ROOT=$(EXT_ROOT)/metis-5.1.0
 
 MPICC=mpicc
 
@@ -12,8 +12,8 @@ include $(BBM_ROOT)/ecl
 include $(BBM_ROOT)/setup
 
 ## Set up library and include paths
-CPPFLAGS += -I$(BBU_ROOT)/include  -I$(SMC_ROOT)/include -std=c99 -I$(MET_ROOT)/include
-LIBS += -L$(BBU_ROOT) -lbebop_util -L$(SMC_ROOT) -lsparse_matrix_converter -L$(MET_ROOT)/build/Darwin-i386/libmetis -lmetis
+CPPFLAGS += -I$(BBU_ROOT)/include  -I$(SMC_ROOT)/include -std=c99 #-I$(MET_ROOT)/include
+LIBS += -L$(BBU_ROOT) -lbebop_util -L$(SMC_ROOT) -lsparse_matrix_converter #-L$(MET_ROOT)/build/Darwin-i386/libmetis -lmetis
 
 ## Filename of static library
 LIBSMC_STATIC = $(SMC_ROOT)/libsparse_matrix_converter$(STATIC_LIB_EXTENSION)

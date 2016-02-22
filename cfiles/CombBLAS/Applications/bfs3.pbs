@@ -1,0 +1,14 @@
+#PBS -q debug
+#PBS -l mppwidth=192
+#PBS -l walltime=00:04:30
+#module load tau
+#export TAU_COMM_MATRIX=1
+#export TAU_TRACE=1
+cd $PBS_O_WORKDIR
+#27
+export OMP_NUM_THREADS=12
+##aprun -n 25 -N1 -d 24 -cc none ./tdbfs Force 26 FastGen
+##uses 17 core hours
+
+aprun -n 16 -N 2 -d 12 -cc numa_node ./tdbfs Force 26 FastGen
+#aprun -n 144 ./tdbfs Force 26 FastGen
