@@ -5,10 +5,12 @@
 function [A] = erdos_generator(N, p, isDirected, seed)
   if (nargin == 4)
     rand('seed',seed);
+    %rng(seed);
   end
 
-  A = spones(sprand(N,N,p)); 
-  
+  A = sparse(rand(N,N)<p);
+  %A = spones(sprand(N,N,p)); 
+  %p 
   if (nargin == 3)
     if (~isDirected)
       T = tril(A);
