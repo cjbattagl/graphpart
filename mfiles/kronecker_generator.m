@@ -13,7 +13,7 @@ function ij = kronecker_generator (SCALE, edgefactor, A, B, C)
 %%   spy (G);                                                           
 %% The spy plot should appear fairly dense. Any locality                
 %% is removed by the final permutations.                                
-                                                                        
+  rand('seed',1);                                                                        
   %% Set number of vertices.                                            
   N = 2^SCALE;                                                          
                                                                         
