@@ -280,7 +280,7 @@ static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx,
       }
     }
   }
-
+  fprintf (stdout, "Cuts/part: ");
   for (int i=0; i<nparts; i++) {
       fprintf (stdout, " [%d: %d] ",i,cuts_per_part[i]);
   }
