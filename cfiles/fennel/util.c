@@ -15,26 +15,26 @@
 #include <bebop/util/timer.h>
 #include <bebop/util/util.h>
 
-#include <metis.h>
+// #include <metis.h>
 #include <assert.h>
 
 #include "util.h"
 
-void checkCall(int rval) {
-  switch (rval) {
-    case METIS_OK:
-      return;
-    case METIS_ERROR_INPUT:
-      fprintf(stdout,"metismex:metisError / metis input error");
-      break;
-    case METIS_ERROR_MEMORY:
-      fprintf(stdout,"metismex:metisError / metis memory error");
-      break;
-    default:
-      fprintf(stdout,"metismex:metisError / unknown metis error");
-      break;
-  }
-}
+// void checkCall(int rval) {
+//   switch (rval) {
+//     case METIS_OK:
+//       return;
+//     case METIS_ERROR_INPUT:
+//       fprintf(stdout,"metismex:metisError / metis input error");
+//       break;
+//     case METIS_ERROR_MEMORY:
+//       fprintf(stdout,"metismex:metisError / metis memory error");
+//       break;
+//     default:
+//       fprintf(stdout,"metismex:metisError / unknown metis error");
+//       break;
+//   }
+// }
 
 const char* format_to_string(enum sparse_matrix_storage_format_t type ) {
   switch(type) {

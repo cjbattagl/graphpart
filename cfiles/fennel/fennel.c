@@ -61,8 +61,6 @@
 #include <bebop/util/timer.h>
 #include <bebop/util/util.h>
 
-//#include <metis.h>
-
 #include "fennel.h"
 #include "fennel_kernel.h"
 
@@ -86,7 +84,7 @@ usage (FILE* out, const struct arginfo* arglist, const struct arginfo* ext_args)
   fprintf (out, "<out-filename>: name of file to which to output results\n");
   fprintf (out, "[options]: -e -- expand symmetric into unsymmetric storage\n");
   fprintf (out, " -v -- verbose mode\n");
-  fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM' 4 10000\n");
+  fprintf (out, "EX: ./fennel -v -e 'test.mtx' 'MM' 4\n");
 }
 
 int main (int argc, char *argv[]) {
@@ -109,7 +107,6 @@ int main (int argc, char *argv[]) {
   register_usage_function (usage);
   arglist = register_arginfo (arglist, 'v', NULLARG, NULL, "If specified, ac"
                          "tivate verbose mode");
-                         
 
   arglist = register_arginfo (arglist, 'e', NULLARG, NULL, "If specified, ex"
                          "pand the input matrix from symmetric storage "
@@ -120,18 +117,16 @@ int main (int argc, char *argv[]) {
 
   get_options (argc, argv, arglist, NULL);
 
-  if (argc - optind != 4) {
+  if (argc - optind != 3) {
       fprintf (stderr, "*** Incorrect number of command-line arguments: %d ar"
          "e specified, but there should be %d ***\n", argc - optind, 4);
       dump_usage (stderr, argv[0], arglist, NULL);
-      bebop_exit (EXIT_FAILURE); /* stops logging */
+      bebop_exit (EXIT_FAILURE);
   }
 
   opts.input_filename = argv[optind];
   opts.input_file_format = argv[optind+1];
   int parts = atoi(argv[optind+2]);
-  int cutoff = atoi(argv[optind+3]);
-  //opts.output_filename = argv[optind+2];
   
   if (strcmp (opts.input_file_format, "HB") == 0 ||
       strcmp (opts.input_file_format, "hb") == 0) { informat = HARWELL_BOEING; }
@@ -210,13 +205,7 @@ int main (int argc, char *argv[]) {
   
   // ********** Run FENNEL ***************************************
   fprintf (stdout, "\n===== Running fennel =====\n");
-
-  int q;
-
-  for (q=2; q<20; q++) {
-    fprintf (stdout, "\t%d\t",q);
-    run_fennel(repr, parts, 1.9, q); //todo: nparts, gamma as inputs
-  }
+  run_fennel(repr, parts, 1.9); 
   // for (q=20; q<200; q+=5) {
   //   fprintf (stdout, "\t%d\t",q);
   //   run_fennel(repr, parts, 1.0, q); //todo: nparts, gamma as inputs
