@@ -25,8 +25,6 @@
 #include <bebop/smc/interface.h>
 #include <bebop/smc/sparse_matrix_ops.h>
 
-//#include <metis.h>
-
 #include "fennel_kernel.h"
 #include "randperm.h"
 #include "util.h"
@@ -61,7 +59,7 @@ int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
       // choose optimal partition (initializing first)
       best_score = (partscore[0]-nnz_row) - calc_dc(alpha,gamma,partsize[0]);
       best_part = 0;
-      for (s = 1; s < nparts; s++) {
+      for (s = 0; s < nparts; s++) {
         curr_score = (partscore[s]-nnz_row) - calc_dc(alpha,gamma,partsize[s]);
         if (curr_score > best_score) { best_score = curr_score; best_part = s; }
       }
@@ -80,10 +78,10 @@ int fennel_kernel(int n, int nparts, int *partsize, int *rowptr, int *colidx,
         partsize[oldpart]--;
       }
       
-    } else { // empty vertex for some reason... assign it to random permutation
+    } else { // empty vertex... assign it to random permutation
       emptyverts++;
       randidx = irand(nparts);
-      for (s = 1; s < nparts; s++) {
+      for (s = 0; s < nparts; s++) {
         if (parts[s][vert] == 1) {
           oldpart = s;
         }
@@ -210,12 +208,8 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     emptyparts = 0; //empty assignments
     redparts = 0; //redundant assignments
     
-    // if (run < numruns-1) {
-    //   //cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, NULL, cutoff);
-    // }
-    // else {
-      cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile);
-    // }
+    cutedges = compute_cut(&emptyparts, &redparts, rowptr, colidx, parts, nparts, n, PartFile);
+
     fprintf (stdout, "Run [%d]: Percent edges cut = %d / %d = %1.3f \n", run,cutedges,nnz,(float)cutedges/nnz);
     max_load = partsize[0];
     min_load = partsize[0];
@@ -226,16 +220,16 @@ int run_fennel(const struct csr_matrix_t* A, int nparts, float gamma) {
     fprintf(LambdaFile, "%1.3f, ",(float)cutedges/nnz);
 
     if (run == numruns-1) {
-    fprintf (stdout, "----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
-    fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
-    fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
-    fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
-    fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
+      fprintf (stdout, "----> Load balance: %d / %d = %1.3f\n",max_load,min_load,(float)max_load/min_load);
+      fprintf (stdout, "----> Unassigned vertices (error): %d\n",emptyparts);
+      fprintf (stdout, "----> Overassigned vertices (error): %d\n", redparts);
+      fprintf (stdout, "----> Empty vertices: %d\n", emptyverts);
+      fprintf (stdout, "----> Percent of random: %1.3f\n\n",((float)cutedges/nnz)/((float)(nparts-1)/nparts));
     }
   }
-  fclose(PartFile);
-      fprintf(LambdaFile, "\n");
 
+  fclose(PartFile);
+  fprintf(LambdaFile, "\n");
   fclose(LambdaFile);
 }
 
@@ -262,7 +256,7 @@ static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx,
     numnodes++;
     totnodes++;
     v_part = -1;
-    
+
     // find v's partition
     for (int s = 0; s < nparts; s++) {
       if (parts[s][vert] == 1) {
@@ -274,9 +268,9 @@ static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx,
       v_part = nparts;
       emptyparts++;
     }
-    
+
     if (out != NULL) { fprintf (out, "%d %d\n",i+1,v_part+1); }
-    
+
     // count edges to other partitions
     for (int k = *row; k < ((*row)+nnz_row); k++) {
       nnz++;
@@ -286,13 +280,11 @@ static int compute_cut(int *emptyparts, int *redparts, int *rowptr, int *colidx,
       }
     }
   }
-  //fprintf (stdout, "%d / %d = \t",cutedges, tot_lo_deg_edges);
-  // fprintf (stdout, "%f\t",(float)cutedges/tot_lo_deg_edges);
-  //fprintf (stdout, "Pct nnz below cutoff: %f\n",(float)tot_lo_deg_edges/nnz);
-  // fprintf (stdout, "%f\n",(float)numnodes/totnodes);
+
   for (int i=0; i<nparts; i++) {
-      // fprintf (stdout, "%d\n",cuts_per_part[i]);
+      fprintf (stdout, " [%d: %d] ",i,cuts_per_part[i]);
   }
+  fprintf (stdout, "\n");
   return cutedges;
 }
 
